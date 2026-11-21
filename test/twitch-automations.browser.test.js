@@ -630,15 +630,19 @@ test("automation list searches and filters compact rows, expands inline, and pre
       path: path.join(__dirname, "../runtime/automation-list-private.png"),
       fullPage: true,
     });
-  for (const width of [390, 780, 1200]) {
+  for (const width of [320, 390, 780, 1200]) {
     await f.page.setViewportSize({ width, height: 900 });
-    assert.equal(
-      await panel
-        .locator("body")
-        .evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-      true,
-      "fits width " + width,
-    );
+    const overflow = await panel.locator("body").evaluate(async () => {
+      await new Promise(requestAnimationFrame);
+      const root = document.documentElement;
+      if (root.scrollWidth <= innerWidth) return [];
+      const overflowing = [...document.querySelectorAll("body *")]
+        .filter((node) => node.getBoundingClientRect().right > innerWidth + 1)
+        .slice(0, 12)
+        .map((node) => node.id || node.className || node.nodeName);
+      return [`${root.scrollWidth}px of content in ${innerWidth}px`, ...overflowing];
+    });
+    assert.deepEqual(overflow, [], "fits width " + width);
   }
   assert.equal(f.calls.length, 0);
 });

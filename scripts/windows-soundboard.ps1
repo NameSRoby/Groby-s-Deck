@@ -1,6 +1,7 @@
 # Structured local soundboard bridge. EOF closes playback when Core exits.
 param([switch]$SelfTest)
 $ErrorActionPreference = 'Stop'
+$env:PSModulePath = "$PSHOME\Modules"
 [Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $vendor = Join-Path (Split-Path -Parent $PSScriptRoot) 'integrations\soundboard\vendor'

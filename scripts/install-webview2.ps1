@@ -1,5 +1,6 @@
 param([switch]$CheckOnly)
 $ErrorActionPreference = 'Stop'
+$env:PSModulePath = "$PSHOME\Modules"
 function Test-WebViewRuntime {
   $taskRegistryKey = 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
   foreach ($taskHive in @([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryHive]::CurrentUser)) {

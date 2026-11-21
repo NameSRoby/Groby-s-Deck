@@ -524,11 +524,24 @@ dialog::backdrop {
   body {
     padding: 12px;
   }
+  #editor :is(.deckStepParameters, .deckStepHeading, .deckSequenceTools, .deckStepControls) > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  #editor .deckStepParameters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #editor :is(button, .deckEditorHint) {
+    overflow-wrap: anywhere;
+  }
   .automationRowTitle {
     grid-column: 2 / -1;
   }
   .automationManage {
     grid-area: 5 / 2 / auto / -1;
     justify-content: flex-start;
+  }
+  .automationManage button {
+    white-space: normal;
   }
 }

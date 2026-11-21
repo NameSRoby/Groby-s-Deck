@@ -153,13 +153,11 @@ test(
       .replace("if (Test-WebViewRuntime) {", "if ($false) {");
     const file = path.join(root, "scripts/install-webview2.ps1");
     fs.writeFileSync(file, helper);
-    const result = run("powershell.exe", [
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      file,
-    ]);
+    const result = run(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", file],
+      { PSModulePath: path.join(root, "incompatible-parent-modules") },
+    );
     assert.equal(result.status, 1, result.stdout + result.stderr);
     assert.match(result.stdout, /signature verification failed/);
   },
