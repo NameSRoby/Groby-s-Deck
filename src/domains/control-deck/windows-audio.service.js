@@ -217,8 +217,24 @@ module.exports = function createWindowsAudio({
         available: available && known,
         defaults: {},
         state: feedback,
+        restorable: true,
       };
       return [
+        {
+          ...base,
+          id: "native.audio.set-muted:" + target.key,
+          label: "Set " + target.name + " mute",
+          symbol: "\uD83C\uDF99",
+          parameters: {
+            type: "object",
+            additionalProperties: false,
+            properties: { muted: { type: "boolean" } },
+            required: ["muted"],
+          },
+          defaults: { muted: true },
+          description:
+            "Set this device/app to muted or unmuted explicitly. Supports restoring its previous value.",
+        },
         {
           ...base,
           id: "native.audio.volume:" + target.key,
@@ -249,6 +265,7 @@ module.exports = function createWindowsAudio({
         {
           ...base,
           id: "native.audio.controls:" + target.key,
+          restorable: false,
           label: target.name + " controls",
           symbol: "\u25d5",
           parameters: empty,
@@ -260,14 +277,16 @@ module.exports = function createWindowsAudio({
     });
   }
   function execute(id, params, signal) {
-    const match = /^native\.audio\.(volume|mute|controls):(.+)$/.exec(id);
+    const match = /^native\.audio\.(volume|mute|set-muted|controls):(.+)$/.exec(id);
     if (!match || !keyPattern.test(match[2])) throw fault("audio_command_invalid");
     if (match[1] === "controls") return { ok: true };
     return apply(
       {
         target: match[2],
-        action: match[1] === "volume" ? "volume" : "toggle-mute",
+        action:
+          match[1] === "volume" ? "volume" : match[1] === "set-muted" ? "mute" : "toggle-mute",
         ...(match[1] === "volume" ? { level: params.level } : {}),
+        ...(match[1] === "set-muted" ? { muted: params.muted } : {}),
       },
       signal,
     );
@@ -278,6 +297,40 @@ module.exports = function createWindowsAudio({
     apply,
     catalog,
     execute,
+    restorationTarget(id) {
+      const match = /^native\.audio\.(volume|mute|set-muted):(.+)$/.exec(id);
+      if (!match) return null;
+      const prior = targetRow(match[2]);
+      if (!prior) return null;
+      const target = prior.key,
+        field = match[1] === "volume" ? "volume" : "mute";
+      return {
+        key: `windows:${target}:${field}`,
+        capture: async (signal) => {
+          if (signal?.aborted) throw fault("control_deck_cancelled");
+          await read(true);
+          const row = targetRow(match[2]);
+          if (
+            !row ||
+            row.key !== target ||
+            (field === "volume" ? !Number.isInteger(row.volume) : typeof row.muted !== "boolean")
+          )
+            throw fault("control_deck_restore_target_changed");
+          return { volume: row.volume, muted: row.muted };
+        },
+        restore: async (saved, signal) => {
+          if (!targetRow(target)) throw fault("control_deck_restore_target_changed");
+          return apply(
+            {
+              target,
+              action: field,
+              ...(field === "volume" ? { level: saved.volume } : { muted: saved.muted }),
+            },
+            signal,
+          );
+        },
+      };
+    },
     shutdown() {
       closed = true;
       epoch++;

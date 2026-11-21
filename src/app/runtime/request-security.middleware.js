@@ -232,12 +232,17 @@ function installRequestSecurityMiddleware(app, options = {}) {
           "media-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
       );
     } else {
+      const twitchEmotes = ["/overlay-designer.html", "/stream-overlay.html"].includes(req.path)
+        ? " https://static-cdn.jtvnw.net/emoticons/v2/"
+        : "";
       res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
       res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
+          "img-src 'self' data:" +
+          twitchEmotes +
+          "; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
       );
     }
 
@@ -274,12 +279,11 @@ function installRequestSecurityMiddleware(app, options = {}) {
   });
 
   app.use((req, res, next) => {
-    const parser =
-      req.path === "/api/control-deck"
-        ? jsonParserDeck
-        : enableLargeModImports && String(req.path || "") === "/mods/import"
-          ? jsonParserLarge
-          : jsonParserDefault;
+    const parser = ["/api/control-deck", "/api/stream-overlays"].includes(req.path)
+      ? jsonParserDeck
+      : enableLargeModImports && String(req.path || "") === "/mods/import"
+        ? jsonParserLarge
+        : jsonParserDefault;
     parser(req, res, next);
   });
 

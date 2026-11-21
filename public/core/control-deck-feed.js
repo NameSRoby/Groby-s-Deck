@@ -5,59 +5,106 @@ export function createDeckFeed({ request, visible, receive, offline }) {
     flight,
     instance,
     version = -1,
+    connected = false,
+    streamHasState = false,
+    liveSequence = 0,
     closed = false;
+  const validFrame = (frame) => frame && Number.isSafeInteger(frame.version) && frame.value;
   function accept(frame) {
-    if (!frame || !Number.isSafeInteger(frame.version) || !frame.value) return;
-    if (frame.instance === instance && frame.version < version) return;
+    if (!validFrame(frame)) return;
+    if (
+      frame.instance === instance &&
+      (frame.version < version || (frame.version === version && connected))
+    )
+      return;
     instance = frame.instance;
     version = frame.version;
+    connected = true;
     receive(frame.value);
   }
-  function stop() {
+  function stopStream() {
     clearTimeout(timer);
+    timer = null;
     source?.close();
     source = null;
+    streamHasState = false;
+  }
+  function disconnect() {
+    stopStream();
+    // Overview and initial boot also use the state endpoint to load deck settings.
+    if (closed || !flight?.forced) flight = null;
+  }
+  function markOffline() {
+    connected = false;
+    offline();
   }
   function connect() {
     if (closed || !visible()) {
-      stop();
+      disconnect();
       return;
     }
     if (source || typeof EventSource === "undefined") return;
-    source = new EventSource("/api/control-deck/events");
-    source.onmessage = (event) => {
+    clearTimeout(timer);
+    timer = null;
+    const stream = new EventSource("/api/control-deck/events");
+    source = stream;
+    stream.onmessage = (event) => {
+      if (source !== stream || !visible()) return;
       try {
-        accept(JSON.parse(event.data));
+        const frame = JSON.parse(event.data);
+        if (!validFrame(frame)) return;
+        streamHasState = true;
+        liveSequence++;
+        accept(frame);
       } catch {}
     };
-    source.onerror = () => {
-      stop();
-      offline();
+    stream.onerror = () => {
+      if (source !== stream) return;
+      if (!visible()) return disconnect();
+      stopStream();
+      markOffline();
       timer = setTimeout(() => void refresh(), 1500);
     };
   }
   async function refresh(force = false) {
-    if (closed || (!force && !visible())) {
-      stop();
+    const shown = visible();
+    if (closed || (!force && !shown)) {
+      disconnect();
       return;
     }
-    connect();
-    if (flight) return flight;
-    flight = request("/api/control-deck/state")
-      .then(accept)
-      .catch(() => offline())
+    if (shown) connect();
+    if (flight) {
+      if (force) flight.forced = true;
+      return flight.promise;
+    }
+    clearTimeout(timer);
+    timer = null;
+    const seenLiveSequence = liveSequence;
+    const pending = { forced: force };
+    const isCurrent = () => flight === pending && (pending.forced || visible());
+    pending.promise = request("/api/control-deck/state")
+      .then((frame) => {
+        if (isCurrent() && (liveSequence === seenLiveSequence || frame?.instance === instance))
+          accept(frame);
+      })
+      .catch(() => {
+        if (isCurrent() && !streamHasState) markOffline();
+      })
       .finally(() => {
+        if (flight !== pending) return;
         flight = null;
-        if (!source && visible() && !closed) timer = setTimeout(() => void refresh(), 2000);
+        if (!source && !timer && visible() && !closed)
+          timer = setTimeout(() => void refresh(), 2000);
       });
-    return flight;
+    flight = pending;
+    return pending.promise;
   }
   return {
     refresh,
     sync: connect,
     close() {
       closed = true;
-      stop();
+      disconnect();
     },
     resume() {
       closed = false;

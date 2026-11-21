@@ -162,6 +162,20 @@ module.exports = function obsActions({
         : {}),
       state: state(t),
       stateful: !["transition", "transition-choice", "replay-save"].includes(t.kind),
+      restorable: [
+        "scene",
+        "preview",
+        "source-toggle",
+        "source-show",
+        "source-hide",
+        "filter-toggle",
+        "filter-enable",
+        "filter-disable",
+        "mute-toggle",
+        "mute",
+        "unmute",
+        "volume",
+      ].includes(t.kind),
     }));
   }
   let chain = Promise.resolve();
@@ -247,6 +261,18 @@ module.exports = function obsActions({
   }
   return {
     catalog,
+    restorationTarget: require("./obs-restoration")({
+      targets,
+      cache,
+      connected,
+      request,
+      visibility,
+      audio,
+      filterList,
+      refresh,
+      notify,
+      fault,
+    }),
     execute(id, params, signal) {
       const work = chain.catch(() => {}).then(() => perform(id, params, signal));
       chain = work;

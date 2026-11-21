@@ -12,7 +12,7 @@ const check = process.argv.includes("--check");
 
 for (const feature of ["song-request", "twitch-integration"]) {
   const directory = path.join(root, "features", feature);
-  const filename = path.join(directory, "ravelink.feature.json");
+  const filename = path.join(directory, "groby.feature.json");
   const manifest = JSON.parse(fs.readFileSync(filename, "utf8"));
   const files = {};
   function walk(relative = "") {
@@ -20,7 +20,7 @@ for (const feature of ["song-request", "twitch-integration"]) {
       .readdirSync(path.join(directory, relative), { withFileTypes: true })
       .sort((a, b) => a.name.localeCompare(b.name))) {
       const file = relative ? `${relative}/${entry.name}` : entry.name;
-      if (!relative && entry.name === "ravelink.feature.json") continue;
+      if (!relative && entry.name === "groby.feature.json") continue;
       if (entry.isSymbolicLink()) throw Error(`Feature links are forbidden: ${feature}/${file}`);
       if (entry.isDirectory()) {
         walk(file);

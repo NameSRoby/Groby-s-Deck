@@ -1,4 +1,5 @@
 /** Local drag feedback stays smooth while bounded writes coalesce to the latest value. */
+import { createSliderSteps } from "./control-deck-slider-steps.js";
 const controls = new WeakMap();
 export const sliderControl = (input) => controls.get(input);
 export function sliderIncrement(layout = {}, appearance = {}, base = 1) {
@@ -47,8 +48,11 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     touch = null,
     activePointer = null,
     editor = null,
+    painted = null,
     closed = false;
   const paint = () => {
+    if (painted === input.value && output.textContent === input.value + "%") return;
+    painted = input.value;
     output.textContent = input.value + "%";
     input.style.setProperty("--slider-level", input.value + "%");
     const min = Number(input.min) || 0,
@@ -80,6 +84,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     }
   }
   function changed() {
+    const previous = latest;
     const min = Number(input.min) || 0,
       max = Number(input.max) || 100,
       increment = Number(input.dataset.increment) || Number(input.step) || 1,
@@ -90,6 +95,13 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     latest = Number(input.value);
     protectUntil = Date.now() + 1800;
     paint();
+    if (latest !== previous)
+      input.dispatchEvent(
+        new CustomEvent("ravelink-slider-change", {
+          bubbles: true,
+          detail: { value: latest, previous },
+        }),
+      );
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
       if (!pointerDown) dragging = false;
@@ -113,6 +125,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
         y: event.clientY,
         value: Number(input.value),
         vertical,
+        bounds: input.getBoundingClientRect(),
         locked: false,
         abandoned: false,
         after: performance.now() + (!vertical && input.closest('[data-paged="true"]') ? 200 : 0),
@@ -144,7 +157,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
       input.dataset.touchAdjusting = "true";
     }
     event.preventDefault();
-    const bounds = input.getBoundingClientRect(),
+    const bounds = touch.bounds,
       min = Number(input.min) || 0,
       max = Number(input.max) || 100,
       step = Number(input.step) || 1,
@@ -286,6 +299,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     },
     close() {
       closed = true;
+      steps.close();
       releasePointer();
       editor?.remove();
       editor = null;
@@ -298,6 +312,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     },
     cancel() {
       dirty = false;
+      steps.cancel();
       releasePointer();
       dragging = pointerDown = false;
       delete input.dataset.dragging;
@@ -308,6 +323,26 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
       clearTimeout(idleTimer);
     },
   };
+  const steps = createSliderSteps({
+    input,
+    adjust(direction) {
+      if (closed || input.disabled) return;
+      input.value = String(
+        Math.max(
+          Number(input.min) || 0,
+          Math.min(
+            Number(input.max) || 100,
+            Number(input.value) +
+              direction * (Number(input.dataset.increment) || Number(input.step) || 1),
+          ),
+        ),
+      );
+      changed();
+    },
+    finish: () => {
+      if (!closed && dirty) void flush();
+    },
+  });
   controls.set(input, control);
   paint();
   return control;

@@ -48,7 +48,7 @@ module.exports = function playerTransport({ feature, getController, getState }) 
         parameters: { type: "object", properties: {}, additionalProperties: false },
         defaults: {},
         description:
-          "Controls the selected native music player directly on the RaveLink PC. Embedded players use their request controls.",
+          "Controls the selected native music player directly on the Groby’s Deck PC. Embedded players use their request controls.",
       }));
     },
     async execute(id, signal) {

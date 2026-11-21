@@ -200,7 +200,7 @@ function installSoundCloudPlayer() {
         setRequestNotice("Searching SoundCloud for a matching track?");
         const result = await api("submit-query", {
           query,
-          requestId: globalThis.RaveLinkRandomId(),
+          requestId: globalThis.GrobyRandomId(),
         });
         $("videoInput").value = "";
         setRequestNotice(
@@ -221,7 +221,7 @@ function installSoundCloudPlayer() {
         throw new Error("Use a single public track link. Import playlists in Setup.");
       const result = await api("submit", {
         sound: sounds[0],
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       $("videoInput").value = "";
       setRequestNotice("Queued " + result.entry.candidate.title + ". Requests play in order.");
@@ -449,7 +449,7 @@ function installSoundCloudPlayer() {
     $("allowNonMusic").parentElement.hidden = true;
     $("titleInput").closest("label").hidden = true;
     $("videoInput").closest("label").firstChild.textContent = "ARTIST AND SONG OR SOUNDCLOUD LINK";
-    $("playerProviderHint").textContent = "Public SoundCloud links · playback in RaveLink";
+    $("playerProviderHint").textContent = "Public SoundCloud links · playback in Groby’s Deck";
     $("videoInput").placeholder = "Artist and song, YouTube, Spotify, TIDAL, or SoundCloud link";
     $("requestNotice").textContent =
       "Enter an artist and song, or a public track link. Requests play in order.";

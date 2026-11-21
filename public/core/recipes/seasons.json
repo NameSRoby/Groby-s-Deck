@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "XP seasons",
+  "description": "Save the top three XP records, reset XP and advance a channel counter. Every operation uses public generic functions. Other saved fields are preserved.",
+  "stages": [
+    {
+      "title": "Read or initialize the season number",
+      "source": "${set season readcountseason}\n${if season == 0}${set season setcount season 1}${end}"
+    },
+    { "title": "Save the finishing leaderboard", "source": "${saveboard \"S${season}\" xp 3}" },
+    { "title": "Reset the chosen field for everyone", "source": "${resetstats xp}" },
+    {
+      "title": "Advance the season",
+      "source": "${set previous season}\n${set season addcount season 1}"
+    },
+    {
+      "title": "Prepare an optional results message",
+      "source": "${board \"S${previous}\"} • S${season} begins! XP is reset; other player records are unchanged."
+    }
+  ]
+}

@@ -3,10 +3,23 @@
  * Sources: dev.twitch.tv/docs/authentication/scopes/ and /docs/chat/authenticating */
 const GROUPS = Object.freeze([
   {
+    id: "predictions",
+    label: "Prediction widgets & events",
+    description: "Display Twitch prediction choices, progress and results.",
+    scopes: ["channel:read:predictions"],
+  },
+  {
+    id: "chat-presence",
+    label: "Chat presence & watchtime",
+    description:
+      "Sample logged-in chat presence every five minutes while live to estimate watchtime.",
+    scopes: ["moderator:read:chatters"],
+  },
+  {
     id: "rewards",
     label: "Channel Points",
     description:
-      "Read and manage RaveLink rewards, receive redemptions, and settle their outcomes.",
+      "Read and manage Groby’s Deck rewards, receive redemptions, and settle their outcomes.",
     scopes: ["channel:manage:redemptions"],
   },
   {
@@ -35,23 +48,60 @@ const GROUPS = Object.freeze([
   },
   {
     id: "followers",
-    label: "Recent followers",
+    label: "Followers & events",
     description:
       "Show recent follower names in status widgets. The total count can work without this access.",
     scopes: ["moderator:read:followers"],
   },
   {
     id: "subscribers",
-    label: "Subscriber widgets",
+    label: "Subscribers & events",
     description: "Read your subscriber total and subscription points for dashboard widgets.",
     scopes: ["channel:read:subscriptions"],
   },
   {
     id: "markers",
-    label: "Twitch Highlighter markers",
+    label: "Stream title & markers",
     description:
       "Add a marker to your live VOD when you press its button. Local timestamps work without this access.",
     scopes: ["channel:manage:broadcast"],
+  },
+  {
+    id: "ads",
+    label: "Ad controls",
+    description:
+      "Start a commercial or snooze an eligible ad break from your own flows. Does not create any rewards.",
+    scopes: ["channel:edit:commercial", "channel:manage:ads", "channel:read:ads"],
+  },
+  {
+    id: "announcements",
+    label: "Chat announcements",
+    description: "Post an announcement from an operator-authored flow.",
+    scopes: ["moderator:manage:announcements"],
+  },
+  {
+    id: "shoutouts",
+    label: "Native shoutouts",
+    description: "Send Twitch native shoutouts from flows or raid events.",
+    scopes: ["moderator:manage:shoutouts"],
+  },
+  {
+    id: "bits",
+    label: "Cheer events",
+    description: "Trigger a flow when viewers cheer with Bits.",
+    scopes: ["bits:read"],
+  },
+  {
+    id: "hype-train",
+    label: "Hype Train events",
+    description: "Trigger flows at the start, progress or end of a Hype Train.",
+    scopes: ["channel:read:hype_train"],
+  },
+  {
+    id: "polls",
+    label: "Poll events",
+    description: "Trigger flows when a poll starts, progresses or ends.",
+    scopes: ["channel:read:polls"],
   },
 ]);
 const DEFAULT_GROUPS = Object.freeze(["rewards", "chat-read", "chat-send", "roles"]);

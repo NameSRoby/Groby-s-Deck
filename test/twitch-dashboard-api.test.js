@@ -6,6 +6,28 @@ const credentials = { accessToken: "private-token", clientId: "fixture", userId:
 function response(body, status = 200) {
   return { ok: status === 200, status, text: async () => JSON.stringify(body) };
 }
+
+test("credits fetch bounded official pages and expose names without subscriber IDs or credentials", async () => {
+  const urls = [];
+  const api = make({
+    fetch: async (url) => {
+      urls.push(new URL(url));
+      return response({
+        data: [
+          { user_name: "Supporter", user_id: "private-id", followed_at: "2026-01-01T00:00:00Z" },
+        ],
+        pagination: urls.length === 1 ? { cursor: "next" } : {},
+      });
+    },
+  });
+  const value = await api.overlaySupporters({ credentials, kind: "subscribers" });
+  assert.equal(urls.length, 2);
+  assert.equal(urls[1].searchParams.get("after"), "next");
+  assert.equal(urls[0].pathname, "/helix/subscriptions");
+  assert.equal(value.names[0].at, null);
+  assert.equal(value.truncated, false);
+  assert.doesNotMatch(JSON.stringify(value), /private-/);
+});
 test("official dashboard queries normalize totals without forwarding user tokens or subscriber identities", async () => {
   const calls = [],
     api = make({

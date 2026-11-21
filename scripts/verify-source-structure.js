@@ -11,7 +11,6 @@ const DEBT_LIMITS = Object.freeze({
   "src/adapters/brands/hue-bridge.adapter.js": { tokens: 9800, branches: 110 },
   "src/adapters/brands/hue-entertainment.runtime.js": { tokens: 6000, branches: 65 },
   "src/app/core/register-lighting-core.routes.js": { tokens: 7000, branches: 70 },
-  "public/core/core.js": { tokens: 9300, branches: 50 },
   "features/song-request/dist/domain.js": { tokens: 8500, branches: 82 },
 });
 function verify() {

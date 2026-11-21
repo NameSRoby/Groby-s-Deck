@@ -53,7 +53,7 @@ test("filtered feature discovery does not request unrelated remote feature manif
     ["twitch-integration"],
   );
   assert.equal(requested.length, 1);
-  assert.match(requested[0], /twitch-integration\/ravelink.feature.json$/);
+  assert.match(requested[0], /twitch-integration\/groby.feature.json$/);
 });
 
 test("every official optional feature is advertised from GitHub and installs only after download", async (t) => {

@@ -60,7 +60,7 @@ function generateSlimWidgetTemplateScript(config = {}) {
   const safeConfig = normalizeWidgetPayload(config);
   const configJson = JSON.stringify(safeConfig, null, 2);
   return [
-    "/* RaveLink StreamElements widget: minimal event forwarder */",
+    "/* Groby’s Deck StreamElements widget: minimal event forwarder */",
     "const RAVELINK_WIDGET_CONFIG = " + configJson + ";",
     "",
     "(function ravelinkWidgetBootstrap() {",

@@ -1,10 +1,15 @@
 /** Fit each tile to its own size. Color/status polling never restarts display cycles. */
-export function createDeckDisplay(host) {
+import { fitDeckSliders } from "./control-deck-slider-fit.js";
+export function createDeckDisplay(host, paintFeedback = () => {}) {
   let frame = 0,
+    feedbackFrame = 0,
     closed = false,
     measurements = new WeakMap();
   function fit() {
     frame = 0;
+    const changed = [];
+    // Read the whole deck before changing styles. Interleaving reads and writes
+    // here forces a fresh browser layout for each tile on a crowded page.
     for (const tile of host.querySelectorAll("[data-deck-button]")) {
       const own = tile.dataset.textMode || "auto",
         global = host.dataset.display || "auto";
@@ -15,10 +20,12 @@ export function createDeckDisplay(host) {
       const title = tile.querySelector(".deckButtonTitle"),
         icon = tile.querySelector(".deckButtonSymbol,.deckButtonImage"),
         slider = tile.querySelector(".deckVolumeSlider");
+      const width = tile.clientWidth,
+        height = tile.clientHeight;
       const key = [
         mode,
-        tile.clientWidth,
-        tile.clientHeight,
+        width,
+        height,
         title?.textContent,
         tile.querySelector(".deckButtonState")?.textContent,
         host.style.getPropertyValue("--deck-label-scale"),
@@ -26,23 +33,35 @@ export function createDeckDisplay(host) {
       ].join("|");
       if (measurements.get(tile) === key) continue;
       measurements.set(tile, key);
+      changed.push({ tile, title, icon, slider, mode, width });
+    }
+    for (const { tile, slider, mode, width } of changed) {
       tile.dataset.compact = "false";
       tile.dataset.displayMode = mode === "auto" || slider ? "image-text" : mode;
       if (slider) {
-        tile.dataset.compact = String(tile.clientWidth < 140);
-        continue;
+        tile.dataset.compact = String(width < 140);
       }
-      if (mode !== "auto" || tile.clientWidth === 0) continue;
-      if (tile.clientWidth < 80 && icon) {
-        tile.dataset.displayMode = "image";
-        continue;
-      }
-      const clipped =
-        tile.scrollHeight > tile.clientHeight + 1 ||
-        (title && title.scrollHeight > title.clientHeight + 1);
-      if (clipped && title && icon) tile.dataset.displayMode = "alternate";
-      else if (!icon) tile.dataset.displayMode = "text";
     }
+    const fitted = changed
+      .filter(({ mode, slider, width }) => mode === "auto" && !slider && width > 0)
+      .map(({ tile, title, icon, width }) => ({
+        tile,
+        mode:
+          width < 80 && icon
+            ? "image"
+            : title &&
+                icon &&
+                (tile.scrollHeight > tile.clientHeight + 1 ||
+                  title.scrollHeight > title.clientHeight + 1)
+              ? "alternate"
+              : !icon
+                ? "text"
+                : "image-text",
+      }));
+    for (const { tile, mode } of fitted) {
+      tile.dataset.displayMode = mode;
+    }
+    fitDeckSliders(host);
   }
   function schedule() {
     if (!closed && !frame) frame = requestAnimationFrame(fit);
@@ -50,24 +69,63 @@ export function createDeckDisplay(host) {
   const resize = new ResizeObserver(schedule);
   resize.observe(host.querySelector(".deckGrid"));
   const changes = new MutationObserver(schedule);
-  changes.observe(host, { attributes: true, attributeFilter: ["data-display"] });
+  const watch = {
+    attributes: true,
+    attributeFilter: [
+      "data-display",
+      "data-slider-fill",
+      "data-slider-orientation",
+      "data-focus",
+      "data-editing",
+    ],
+  };
+  changes.observe(host, watch);
+  host.addEventListener("ravelink-deck-mixer-layout", schedule);
+  host.addEventListener("ravelink-deck-screen-change", schedule);
+  window.addEventListener("resize", schedule);
   document.fonts?.ready.then(() => {
     measurements = new WeakMap();
     schedule();
   });
   return {
     schedule,
+    paintButtons(buttons, paint) {
+      const byId = new Map(buttons.map((button) => [button.id, button]));
+      for (const tile of host.querySelectorAll("[data-deck-button]")) {
+        const button = byId.get(tile.dataset.deckButton);
+        if (button) paint(tile, button);
+      }
+    },
+    scheduleFeedback() {
+      if (closed || feedbackFrame) return;
+      feedbackFrame = requestAnimationFrame(() => {
+        feedbackFrame = 0;
+        if (!closed) paintFeedback();
+      });
+    },
+    cancelFeedback() {
+      cancelAnimationFrame(feedbackFrame);
+      feedbackFrame = 0;
+    },
     close() {
       closed = true;
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(feedbackFrame);
+      feedbackFrame = 0;
       frame = 0;
       resize.disconnect();
       changes.disconnect();
+      host.removeEventListener("ravelink-deck-mixer-layout", schedule);
+      host.removeEventListener("ravelink-deck-screen-change", schedule);
+      window.removeEventListener("resize", schedule);
     },
     resume() {
       closed = false;
       resize.observe(host.querySelector(".deckGrid"));
-      changes.observe(host, { attributes: true, attributeFilter: ["data-display"] });
+      changes.observe(host, watch);
+      host.addEventListener("ravelink-deck-mixer-layout", schedule);
+      host.addEventListener("ravelink-deck-screen-change", schedule);
+      window.addEventListener("resize", schedule);
       schedule();
     },
   };

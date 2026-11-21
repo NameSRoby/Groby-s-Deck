@@ -31,6 +31,31 @@ module.exports = function dashboardApi({ request, text, base }) {
     );
   }
   return {
+    async overlaySupporters(input = {}) {
+      const subscribers = input.kind === "subscribers";
+      let cursor = "";
+      const names = [];
+      for (let page = 0; page < 10; page++) {
+        const r = await call(input, subscribers ? "/subscriptions" : "/channels/followers", {
+          broadcaster_id: input.credentials?.userId,
+          first: "100",
+          ...(cursor ? { after: cursor } : {}),
+        });
+        if (!r.ok) return fail(r, "twitch_supporters_unavailable");
+        for (const row of (r.body.data || []).slice(0, 100))
+          names.push({
+            name: text(row.user_name, 80),
+            at: subscribers ? null : time(row.followed_at),
+          });
+        const next = text(r.body.pagination?.cursor, 1024);
+        if (!next || next === cursor) {
+          cursor = "";
+          break;
+        }
+        cursor = next;
+      }
+      return { ok: true, names, truncated: !!cursor };
+    },
     async dashboardStream(input = {}) {
       const r = await call(input, "/streams", { user_id: input.credentials?.userId, first: "1" });
       if (!r.ok) return fail(r, "twitch_stream_lookup_failed");

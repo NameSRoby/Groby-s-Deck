@@ -1,0 +1,126 @@
+<div id="manualPanel" role="tabpanel" aria-labelledby="manualTab" hidden>
+  <h2>Writing a command, step by step</h2>
+  <p>
+    Normal words become the bot's reply. A call inside <code>${...}</code> inserts a value or
+    performs an operation. Start here, then use the tables to look up every symbol.
+  </p>
+  <nav class="manualNavigation" aria-label="Manual sections">
+    <a href="#manual-basics">Values and names</a>
+    <a href="#manual-branches">If, else and end</a>
+    <a href="#manual-comparisons">Number comparisons</a>
+    <a href="#manual-logic">AND, OR and NOT</a>
+    <a href="#manual-calculations">Calculations</a>
+    <a href="#manual-math-functions">Rounding and limits</a>
+    <a href="#manual-text">Compare text</a>
+    <a href="#manual-worked-example">Try a complete example</a>
+  </nav>
+  <section id="manual-basics">
+    <h2>Remember a value, then use its name</h2>
+    <pre>
+${set roll 18}
+${sender} rolled ${roll}.</pre>
+    <p>
+      <code>${set roll 18}</code> remembers 18 under the name <code>roll</code> and prints nothing.
+      <code>${roll}</code> inserts that remembered value. <code>${sender}</code> is a supplied
+      variable: the person who sent the command.
+    </p>
+    <p>
+      Create a temporary name before reading it. Begin with a letter; use letters, digits or
+      underscores, with no spaces. Keep the same capitalization: <code>roll</code> and
+      <code>Roll</code> are different temporary names. Use built-in names exactly as listed in
+      Variables; choose a new name rather than replacing <code>sender</code> or <code>user</code>.
+    </p>
+    <p>
+      Spaces separate function options. Quotes keep a phrase together:
+      <code>${set greeting "Welcome back"}</code> remembers those words;
+      <code>${greeting}</code> displays them. A temporary value lasts for this message or recipe
+      step. Counters and player fields save values across steps, commands and restarts; find them in
+      the Variables table.
+    </p>
+  </section>
+  <section id="manual-branches">
+    <h2>Choose what happens: if, else and end</h2>
+    <pre>
+${set roll 18}
+${if roll &gt;= 16}
+  The roll passes!
+${else}
+  The roll fails.
+${end}
+The check is finished.</pre>
+    <ol>
+      <li>
+        <code>${if roll &gt;= 16}</code> asks whether roll is at least 16. Since roll is 18 here,
+        the answer is true.
+      </li>
+      <li>
+        The text and operations between <code>if</code> and <code>else</code> run when the answer is
+        true. This example prints <strong>The roll passes!</strong>
+      </li>
+      <li>
+        <code>${else}</code> starts the alternative for a false answer. If roll were 9, it would
+        print <strong>The roll fails.</strong> This part is optional: leave it out when nothing
+        should happen for a false answer.
+      </li>
+      <li>
+        <code>${end}</code> closes this choice. Everything after it runs normally, so
+        <strong>The check is finished.</strong> appears in either case.
+      </li>
+    </ol>
+    <p>
+      Only the chosen block runs: an XP award or counter change in the other block does not happen.
+      Each <code>if</code> needs its own <code>end</code>. A choice inside another choice needs
+      another pair; the language allows up to three nested choices.
+    </p>
+    <p>
+      Indentation and line breaks make the source easier to read. They do not decide which block
+      runs; <code>if</code>, <code>else</code> and <code>end</code> do. Preview shows the final chat
+      wording and spacing.
+    </p>
+  </section>
+  <!-- OPERATOR_TABLES_START -->
+  <!-- OPERATOR_TABLES_END -->
+  <section id="manual-text">
+    <h2>Compare words or usernames with same</h2>
+    <pre>
+${if same sender user}
+  You targeted yourself!
+${else}
+  You targeted someone else.
+${end}</pre>
+    <p>
+      <code>same</code> asks whether two complete text values match. It ignores capitalization,
+      spaces at the start or end, and a leading @, so <code>@Groby</code> matches
+      <code>groby</code>. It does not look for a word inside a longer sentence. Put literal words in
+      quotes: <code>${if same ${1} "confirm"}</code> checks whether the first command argument is
+      confirm.
+    </p>
+    <p>
+      Use <code>==</code> and the other number comparisons for numbers. Use <code>same</code> for
+      text. To reverse a text test, remember it first: <code>${set isSelf same sender user}</code>,
+      then check <code>${if isSelf == 0}</code>.
+    </p>
+  </section>
+  <section id="manual-worked-example">
+    <h2>Try both outcomes</h2>
+    <pre id="manualDiceSource">
+${set roll 18}
+Need 16 or more. ${sender} rolled ${roll}/20.
+${if roll &gt;= 16}
+  Success! The shield breaks.
+${else}
+  Failed! The shield holds.
+${end}</pre>
+    <p>
+      With 18, the reply ends with <strong>Success! The shield breaks.</strong> With 9, it ends with
+      <strong>Failed! The shield holds.</strong> The buttons load this editable example into the
+      preview. They never send chat or change saved records.
+    </p>
+    <button type="button" data-manual-roll="18">Try with 18 (passes)</button>
+    <button type="button" data-manual-roll="9">Try with 9 (fails)</button>
+    <p>
+      To roll randomly instead, replace the first line with <code>${set roll random 1 20}</code>.
+      That rolls once; every later <code>${roll}</code> uses the same result.
+    </p>
+  </section>
+</div>

@@ -11,7 +11,13 @@ const {
   unprotectTextMapWithWindowsDpapi,
 } = require("../../src/shared/security/windows-dpapi");
 const { writeJsonFile, readJsonFileWithMetadata } = require("../../src/shared/fs/json-file-store");
-const SCOPES = ["user-read-private", "user-read-playback-state", "user-modify-playback-state"];
+const SCOPES = [
+  "user-read-private",
+  "user-read-playback-state",
+  "user-modify-playback-state",
+  "user-library-read",
+  "user-library-modify",
+];
 module.exports = function spotifyOAuth(options = {}) {
   const protect = options.protect || protectTextMapWithWindowsDpapi,
     unprotect = options.unprotect || unprotectTextMapWithWindowsDpapi;
@@ -62,10 +68,14 @@ module.exports = function spotifyOAuth(options = {}) {
     lastError = "spotify_vault_failed";
   }
   const status = () => ({
+    revision,
     configured: Boolean(saved.clientId),
     connected: Boolean(saved.refreshToken || (saved.accessToken && saved.expiresAt > now())),
     pending: Boolean(pending && pending.until > now()),
     lastError,
+    favoritesEnabled: ["user-library-read", "user-library-modify"].every((scope) =>
+      (saved.scopes || []).includes(scope),
+    ),
   });
   function configure(input) {
     if (!/^[a-f0-9]{32}$/i.test(input.clientId || ""))
@@ -140,7 +150,8 @@ module.exports = function spotifyOAuth(options = {}) {
       !Number.isFinite(Number(value.expires_in)) ||
       Number(value.expires_in) <= 0 ||
       (value.token_type && value.token_type.toLowerCase() !== "bearer") ||
-      (value.scope && !SCOPES.every((scope) => value.scope.split(/\s+/).includes(scope)))
+      (value.scope &&
+        !SCOPES.slice(0, 3).every((scope) => value.scope.split(/\s+/).includes(scope)))
     )
       throw Error("spotify_oauth_scope_missing");
     if (
@@ -153,6 +164,9 @@ module.exports = function spotifyOAuth(options = {}) {
       throw Error("spotify_oauth_token_invalid");
     persist({
       ...before,
+      scopes: value.scope
+        ? value.scope.split(/\s+/)
+        : before.scopes || (fields.grant_type === "authorization_code" ? SCOPES : []),
       accessToken: value.access_token,
       refreshToken: value.refresh_token || before.refreshToken || "",
       expiresAt: now() + Math.min(86400, Number(value.expires_in)) * 1000,

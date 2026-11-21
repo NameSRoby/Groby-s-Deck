@@ -29,6 +29,27 @@ test("optional slider increments support keyboard, endpoints and per-button over
   await page.waitForFunction(() => window.ready);
   const slider = page.getByRole("slider", { name: "Volume" });
   assert.equal(await slider.inputValue(), "54", "enabling snap never changes the current volume");
+  const unchangedPaints = await page.evaluate(async () => {
+    let changes = 0;
+    const observer = new MutationObserver((records) => {
+      changes += records.length;
+    });
+    observer.observe(document.querySelector("output"), { childList: true, subtree: true });
+    for (let i = 0; i < 100; i++) control.sync(54);
+    await Promise.resolve();
+    observer.disconnect();
+    return changes;
+  });
+  assert.equal(unchangedPaints, 0, "unchanged live values do not repaint the slider label");
+  await page.evaluate(() => {
+    document.querySelector("output").textContent = "Mixed";
+    control.sync(54);
+  });
+  assert.equal(
+    await page.locator("output").textContent(),
+    "54%",
+    "a confirmed value replaces a mixed-level label",
+  );
   assert.deepEqual(await page.evaluate(() => overrides), [1, 10]);
   await slider.fill("19");
   assert.equal(await slider.inputValue(), "21");

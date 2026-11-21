@@ -13,13 +13,13 @@ try {
     throw "Use a Windows 10 or 11 x64 PC. Native ARM64 is not currently supported."
   }
   $spec = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'source-runtime.json') -Raw | ConvertFrom-Json
-  if ($spec.version -notmatch '^\d+\.\d+\.\d+[a-z]?$' -or
-      $spec.asset -cnotin @("RaveLink-Core-Windows-v$($spec.version).zip", "RaveLink-Core-Windows-v$($spec.version)-fresh-pc.zip") -or
+  if ($spec.version -notmatch '^\d+\.\d+(?:\.\d+)?[a-z]?$' -or
+      $spec.asset -cnotin @("Grobys-Deck-Windows-v$($spec.version).zip", "Grobys-Deck-Windows-v$($spec.version)-fresh-pc.zip") -or
       $spec.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid source runtime manifest.' }
   $cache = Join-Path $root 'runtime\source-setup'
   $stamp = Join-Path $cache 'ready.json'
-  $node = Join-Path $root 'runtime\RaveLink-Core-Node.exe'
-  $probe = Join-Path $root 'runtime\music-to-light\cargo\release\ravelink-audio-probe.exe'
+  $node = Join-Path $root 'runtime\Grobys-Deck-Node.exe'
+  $probe = Join-Path $root 'runtime\music-to-light\cargo\release\groby-audio-probe.exe'
   $lockHash = (Get-FileHash -LiteralPath (Join-Path $root 'package-lock.json') -Algorithm SHA256).Hash
   $ready = $false
   if (Test-Path -LiteralPath $stamp) {
@@ -34,13 +34,13 @@ try {
     if ($ReleaseArchive) {
       $archive = (Resolve-Path -LiteralPath $ReleaseArchive).Path
     } elseif (!(Test-Path -LiteralPath $archive)) {
-      Write-Host '[SETUP] Downloading the official Windows runtime (about 43 MB)...'
+      Write-Host '[SETUP] Downloading the official Windows runtime and offline prerequisites...'
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       $download = "$archive.part"
       $previousProgress = $ProgressPreference
       try {
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/NameSRoby/RaveLink-Core/releases/download/v$($spec.version)/$($spec.asset)" -OutFile $download
+        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/NameSRoby/Groby-s-Deck/releases/download/v$($spec.version)/$($spec.asset)" -OutFile $download
         Move-Item -LiteralPath $download -Destination $archive -Force
       } finally { $ProgressPreference = $previousProgress }
     }
@@ -59,7 +59,7 @@ try {
         # Windows Compress-Archive and tar use different ZIP path separators.
         # Normalize both before filtering and checking the extraction boundary.
         $relative = ($entry.FullName -replace '\\', '/') -replace '^\./', ''
-        if ($relative -notmatch '^(node_modules/|runtime/RaveLink-Core-Node\.exe$|runtime/music-to-light/cargo/release/ravelink-audio-probe\.exe$|runtime/NODE-LICENSE\.txt$|runtime/desktop/(Microsoft\.Web\.WebView2\.(Core|WinForms)\.dll|WebView2Loader\.dll|LICENSE\.WebView2\.txt)$|package-lock\.json$)') { continue }
+        if ($relative -notmatch '^(node_modules/|optional-components/prerequisites/|runtime/Grobys-Deck-Node\.exe$|runtime/music-to-light/cargo/release/groby-audio-probe\.exe$|runtime/NODE-LICENSE\.txt$|runtime/desktop/(Microsoft\.Web\.WebView2\.(Core|WinForms)\.dll|WebView2Loader\.dll|LICENSE\.WebView2\.txt)$|package-lock\.json$)') { continue }
         $destination = [IO.Path]::GetFullPath((Join-Path $stage $relative))
         if (!$destination.StartsWith("$stage\", [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe archive path.' }
         if ($relative.EndsWith('/')) { continue }
@@ -67,12 +67,12 @@ try {
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $true)
       }
     } finally { $zip.Dispose() }
-    $stagedNode = Join-Path $stage 'runtime\RaveLink-Core-Node.exe'
+    $stagedNode = Join-Path $stage 'runtime\Grobys-Deck-Node.exe'
     # A runtime from another dependency graph must never silently satisfy this source tree.
     & $stagedNode (Join-Path $PSScriptRoot 'verify-source-runtime.js') $root $stage
     if ($LASTEXITCODE -ne 0) { throw 'The pinned runtime does not match this source lockfile. See README for developer setup.' }
     # Node handles long destination paths even when Windows PowerShell cannot.
-    $copyScript = "const fs=require('node:fs'),path=require('node:path');for(const dir of ['node_modules','runtime'])fs.cpSync(path.join(process.argv[1],dir),path.join(process.argv[2],dir),{recursive:true,force:true});"
+    $copyScript = "const fs=require('node:fs'),path=require('node:path');for(const dir of ['node_modules','runtime','optional-components'])fs.cpSync(path.join(process.argv[1],dir),path.join(process.argv[2],dir),{recursive:true,force:true});"
     & $stagedNode -e $copyScript $stage $root
     if ($LASTEXITCODE -ne 0) { throw 'Runtime installation failed. See the setup output above.' }
     @{ lock = $lockHash; archive = $spec.sha256 } | ConvertTo-Json | Set-Content -LiteralPath $stamp -Encoding UTF8
@@ -81,17 +81,19 @@ try {
     Remove-Item -LiteralPath $stage -Recurse -Force
   }
   $hostStamp = Join-Path $cache 'host.sha256'
-  $hostHash = (@('desktop\windows-host\RaveLinkCoreHost.cs', 'desktop\windows-host\DashboardWindow.cs', 'desktop\windows-host\DesktopBrowserActions.cs', 'desktop\windows-host\DesktopPolicy.cs', 'desktop\windows-host\webview2-sdk.json', 'desktop\windows-host\app.manifest', 'assets\RaveLink-Core.ico', 'scripts\build-windows-host.ps1', 'scripts\restore-webview2.ps1') | ForEach-Object {
+  $hostHash = (@('desktop\windows-host\GrobyDeckHost.cs', 'desktop\windows-host\DashboardWindow.cs', 'desktop\windows-host\DesktopBrowserActions.cs', 'desktop\windows-host\DesktopPolicy.cs', 'desktop\windows-host\webview2-sdk.json', 'desktop\windows-host\app.manifest', 'assets\Grobys-Deck.ico', 'scripts\build-windows-host.ps1', 'scripts\restore-webview2.ps1') | ForEach-Object {
     (Get-FileHash -LiteralPath (Join-Path $root $_) -Algorithm SHA256).Hash
   }) -join ':'
-  if (!(Test-Path -LiteralPath (Join-Path $root 'RaveLink-Core.exe')) -or
+  if (!(Test-Path -LiteralPath (Join-Path $root 'Groby''s Deck.exe')) -or
       !(Test-Path -LiteralPath $hostStamp) -or (Get-Content -LiteralPath $hostStamp -Raw).Trim() -ne $hostHash) {
     & (Join-Path $PSScriptRoot 'build-windows-host.ps1')
     if ($LASTEXITCODE -ne 0) { throw 'Windows launcher build failed. Exit Core before rebuilding changed launcher sources.' }
     Set-Content -LiteralPath $hostStamp -Value $hostHash -Encoding ASCII
   }
   Write-Host '[SETUP] Ready. Node, production dependencies and audio capture are included. Optional packages can be installed from Packages.'
-  if (!$NoStart) { Start-Process -FilePath (Join-Path $root 'RaveLink-Core.exe') -WorkingDirectory $root -WindowStyle Hidden }
+  & (Join-Path $PSScriptRoot 'install-webview2.ps1')
+  if ($LASTEXITCODE -notin @(0,3010)) { throw 'WebView2 setup failed.' }
+  if (!$NoStart) { Start-Process -FilePath (Join-Path $root 'Groby''s Deck.exe') -WorkingDirectory $root -WindowStyle Hidden }
 } catch {
   Write-Host "[SETUP] $($_.Exception.Message)" -ForegroundColor Red
   exit 1

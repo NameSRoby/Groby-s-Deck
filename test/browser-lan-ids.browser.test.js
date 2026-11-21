@@ -94,7 +94,7 @@ addEventListener('message',event=>{
   assert.equal(await player.locator("body").evaluate(() => typeof crypto.randomUUID), "undefined");
   const generated = await player
     .locator("body")
-    .evaluate(() => Array.from({ length: 64 }, () => RaveLinkRandomId()));
+    .evaluate(() => Array.from({ length: 64 }, () => GrobyRandomId()));
   assert.equal(new Set(generated).size, 64);
   generated.forEach((value) => assert.match(value, uuid));
   await player.locator("#videoInput").fill("aaaaaaaaaaa");

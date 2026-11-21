@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ravelink-audio-probe"
+name = "groby-audio-probe"
 version = "0.1.0"
 dependencies = [
  "serde",

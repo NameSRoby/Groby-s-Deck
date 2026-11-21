@@ -8,6 +8,93 @@ const { validate, defaults } = require("../src/domains/control-deck/control-deck
 const schema = { type: "object", properties: {}, additionalProperties: false };
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
+test("rebrand repairs nested clip actions and conditions without rewriting text or unrelated mods", () => {
+  const migrate = require("../src/shared/fs/migrate-action-references"),
+    old = "mod:ravelink.twitch-clips:create",
+    current = "mod:groby.twitch-clips:create";
+  const config = {
+    pages: [
+      {
+        buttons: [
+          {
+            steps: [
+              {
+                type: "if",
+                condition: { actionId: old, field: "available", value: true },
+                then: [
+                  {
+                    type: "repeat",
+                    count: 2,
+                    steps: [{ actionId: old, params: { duration: 30 } }],
+                  },
+                ],
+                else: [{ actionId: "mod:someone.other:create", params: { text: old } }],
+              },
+            ],
+            alternateSteps: [{ actionId: old, params: { duration: 15 } }],
+            holdSteps: [
+              { actionId: "twitch.action.chat", params: { message: old, actionId: old } },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const before = JSON.stringify(config),
+    next = migrate(config),
+    button = next.pages[0].buttons[0];
+  assert.equal(JSON.stringify(config), before);
+  assert.equal(button.steps[0].condition.actionId, current);
+  assert.equal(button.steps[0].then[0].steps[0].actionId, current);
+  assert.equal(button.alternateSteps[0].actionId, current);
+  assert.equal(button.steps[0].else[0].actionId, "mod:someone.other:create");
+  assert.equal(button.holdSteps[0].params.actionId, old);
+  assert.equal(button.holdSteps[0].params.message, old);
+  assert.deepEqual(migrate(next), next);
+});
+
+test("saved clipping buttons upgrade once with a backup and still require an available approved mod", async (t) => {
+  const e = environment(t),
+    old = "mod:ravelink.twitch-clips:create",
+    current = "mod:groby.twitch-clips:create";
+  const config = e.config([{ actionId: old, params: { duration: 30 }, delayMs: 0 }]);
+  config.pages[0].buttons[0].title = "My clip";
+  const filename = path.join(e.runtimeDir, "system", "control-deck.json");
+  await e.service.shutdown();
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  fs.writeFileSync(
+    filename,
+    JSON.stringify({ version: 1, revision: 7, audioPageAdded: true, config }),
+  );
+  let invoked = 0;
+  const actions = {
+    catalog: () => [{ id: current, available: false, parameters: { type: "object" } }],
+    execute: async () => {
+      invoked++;
+      return { ok: true };
+    },
+  };
+  const repaired = create({ runtimeDir: e.runtimeDir, actions });
+  t.after(() => repaired.shutdown());
+  assert.equal(repaired.snapshot().revision, 8);
+  assert.equal(repaired.snapshot().config.pages[0].buttons[0].steps[0].actionId, current);
+  assert.equal(repaired.snapshot().config.pages[0].buttons[0].title, "My clip");
+  assert.equal(repaired.snapshot().config.pages[0].buttons[0].steps[0].params.duration, 30);
+  assert.equal(
+    JSON.parse(fs.readFileSync(filename.replace(".json", ".syntax-backup.json"))).config.pages[0]
+      .buttons[0].steps[0].actionId,
+    old,
+  );
+  assert.throws(() => repaired.execute("button"), /action_unavailable/);
+  assert.equal(invoked, 0);
+  const reopened = create({ runtimeDir: e.runtimeDir, actions });
+  t.after(() => reopened.shutdown());
+  assert.equal(reopened.snapshot().revision, 8);
+  const stale = structuredClone(config);
+  reopened.save(stale, 8);
+  assert.equal(reopened.snapshot().config.pages[0].buttons[0].steps[0].actionId, current);
+});
+
 test("manual Rave toggle stays owner-driven, restores on its next press and derives fixture LEDs", async () => {
   const view = {
       installed: true,
@@ -307,6 +394,46 @@ function environment(t, invoke = async () => ({ ok: true })) {
     },
   };
 }
+
+test("style profiles persist without actions or artwork, reject stale writes and retain five recovery snapshots", (t) => {
+  const e = environment(t),
+    service = e.service;
+  let snapshot = service.save(e.config(), service.snapshot().revision);
+  const before = structuredClone(snapshot.config.pages[0].buttons[0]);
+  const library = service.saveStyleProfile({
+    name: "Original",
+    revision: snapshot.revision,
+    profileRevision: service.styleProfiles().revision,
+  });
+  const id = library.profiles.find((row) => row.name === "Original").id;
+  assert.throws(
+    () =>
+      service.saveStyleProfile({ name: "Stale", revision: snapshot.revision, profileRevision: 0 }),
+    /revision_conflict/,
+  );
+  for (let n = 0; n < 8; n++) {
+    snapshot.config.pages[0].buttons[0].appearance.backgroundProfile = "orbit";
+    snapshot.config.pages[0].buttons[0].appearance.color =
+      "#" + (n + 100).toString(16).padStart(6, "0");
+    snapshot = service.save(snapshot.config, snapshot.revision);
+  }
+  assert.equal(service.styleProfiles().profiles.filter((row) => row.automatic).length, 5);
+  snapshot = service.restoreStyleProfile({
+    id,
+    revision: snapshot.revision,
+    profileRevision: service.styleProfiles().revision,
+  });
+  assert.equal(snapshot.config.pages[0].buttons[0].appearance.color, before.appearance.color);
+  assert.equal(snapshot.config.pages[0].buttons[0].appearance.backgroundProfile, "none");
+  const raw = fs.readFileSync(
+    path.join(e.runtimeDir, "system", "deck-style-profiles.json"),
+    "utf8",
+  );
+  assert.doesNotMatch(raw, /actionId|imageId|steps/);
+  const reopened = create({ runtimeDir: e.runtimeDir, actions: e.actions });
+  t.after(() => reopened.shutdown());
+  assert.ok(reopened.styleProfiles().profiles.some((row) => row.id === id));
+});
 async function idle(service) {
   for (let i = 0; i < 100; i++) {
     if (!service.snapshot().running.length) return;
@@ -339,7 +466,7 @@ test("deck config persists privately with optimistic revision and rejects invali
   );
   assert.throws(() => e.config(undefined, { code: "process.exit()" }), /button_invalid/);
   assert.throws(
-    () => e.config([{ actionId: "test.run", params: {}, delayMs: 10001 }]),
+    () => e.config([{ actionId: "test.run", params: {}, delayMs: 86400001 }]),
     /steps_invalid/,
   );
 });
@@ -366,6 +493,9 @@ test("old layouts acquire responsive defaults and bounded custom layouts round-t
     sliderOrientation: "vertical",
     sliderStyle: "mixer",
     sliderPlacement: "dock",
+    sliderFill: false,
+    hapticsEnabled: false,
+    hapticsSensitivity: 50,
     sliderDock: "end",
     sliderSnap: false,
     sliderIncrement: 5,
@@ -383,6 +513,9 @@ test("old layouts acquire responsive defaults and bounded custom layouts round-t
   };
   assert.deepEqual(validate(config).layout, {
     ...config.layout,
+    sliderFill: false,
+    hapticsEnabled: false,
+    hapticsSensitivity: 50,
     display: "auto",
     fullscreenMode: "scroll",
     fullscreenSwipe: false,
@@ -407,6 +540,10 @@ test("old layouts acquire responsive defaults and bounded custom layouts round-t
     ["shape", "unknown"],
     ["showStatus", "true"],
     ["sliderSnap", "true"],
+    ["sliderFill", "true"],
+    ["hapticsEnabled", "true"],
+    ["hapticsSensitivity", 0],
+    ["hapticsSensitivity", 101],
     ["sliderIncrement", 0],
     ["sliderIncrement", 101],
     ["sliderIncrement", 2.5],
@@ -584,7 +721,7 @@ test("slider execution may override only its saved approved parameter within bou
   assert.throws(() => e.service.execute("button", "press", 25), /slider_invalid/);
 });
 test("mod action metadata must target provided capabilities and capability changes revoke approval", () => {
-  const manifest = require("../packages/bundled-mods/twitch-clips/ravelink.mod.json");
+  const manifest = require("../mods/twitch-clips/groby.mod.json");
   const {
     validateManifestV1,
   } = require("../src/capabilities/mod-platform/contracts/mod-manifest-v1");
@@ -651,6 +788,86 @@ test("legacy decks acquire one Audio mixer page without replacing local buttons 
   );
   await reopened.shutdown();
 });
+test("a large built-in catalog cannot hide active mods or use their separate action budget", () => {
+  const build = (count) =>
+    require("../src/domains/control-deck/control-deck-actions")({
+      core: { lightingProfiles: { snapshot: () => ({ profiles: [] }) } },
+      music: { view: () => ({ captureAvailable: false, status: { permissions: {} }, design: {} }) },
+      getTwitchActions: () => ({
+        catalog: () => Array.from({ length: count }, (_, i) => ({ id: "twitch.example." + i })),
+      }),
+      getMods: () => ({
+        list: () => ({
+          mods: [
+            {
+              id: "example.disabled",
+              name: "Disabled",
+              lifecycle: "installed-disabled",
+              actions: Array.from({ length: 300 }, (_, i) => ({
+                id: "action" + i,
+                title: "Action " + i,
+              })),
+            },
+            {
+              id: "groby.twitch-clips",
+              name: "Clips",
+              lifecycle: "active",
+              actions: [
+                {
+                  id: "create",
+                  title: "Clip stream",
+                  defaults: { duration: 30 },
+                  parameters: { type: "object", properties: { duration: { type: "number" } } },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    }).catalog();
+  for (const count of [0, 255, 453, 1000]) {
+    const rows = build(count),
+      clip = rows.find((row) => row.id === "mod:groby.twitch-clips:create");
+    assert.ok(clip?.available, "approved active mod stays discoverable");
+    assert.equal(clip.defaults.duration, 30);
+    assert.equal(rows.filter((row) => row.id.startsWith("mod:")).length, 256);
+    assert.ok(
+      rows
+        .filter((row) => row.id.startsWith("mod:example.disabled:"))
+        .every((row) => !row.available),
+    );
+    assert.equal(rows.filter((row) => row.id.startsWith("twitch.example.")).length, count);
+  }
+});
+
+test("mod catalog hides replaced identities without merging unrelated mods or changing their enabled state", () => {
+  const mod = (id) => ({
+    id,
+    name: "Twitch Clip Button",
+    lifecycle: "installed-disabled",
+    actions: [{ id: "create", title: "Clip stream" }],
+  });
+  const mods = [mod("ravelink.twitch-clips"), mod("groby.twitch-clips"), mod("someone.clips")];
+  const before = structuredClone(mods);
+  const adapter = require("../src/domains/control-deck/control-deck-actions")({
+    core: { lightingProfiles: { snapshot: () => ({ profiles: [] }) } },
+    music: { view: () => ({ captureAvailable: false, status: { permissions: {} }, design: {} }) },
+    getMods: () => ({ list: () => ({ mods }) }),
+  });
+  const rows = adapter.catalog().filter((row) => row.id.startsWith("mod:"));
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    ["mod:groby.twitch-clips:create", "mod:someone.clips:create"],
+  );
+  assert.ok(rows.every((row) => !row.available && row.unavailableReason === "enable in Mods"));
+  assert.deepEqual(mods, before);
+  mods.splice(1, 1);
+  assert.ok(
+    adapter.catalog().some((row) => row.id === "mod:ravelink.twitch-clips:create"),
+    "an old-only install is not silently discarded",
+  );
+});
+
 test("mod feedback refresh shares concurrent reads and fairly visits more than eight actions", async () => {
   const calls = [],
     actions = Array.from({ length: 12 }, (_, i) => ({
@@ -754,4 +971,54 @@ test("mod feedback preserves bounded completion receipts without inventing new c
       .filter((row) => row.id.startsWith("mod:"))
       .every((row) => !row.available),
   );
+});
+
+test("favorite deck actions use the selected provider's exact playing track and preserve failed library writes", async () => {
+  let player = "tidal",
+    missing = false;
+  const writes = [],
+    registry = {
+      list: () => ({ features: [{ id: "song-request", lifecycle: "active" }] }),
+      request: async (_id, cap, method, input) => {
+        if (method === "favorite") {
+          writes.push({ cap, input });
+          return { ok: true, value: { ok: false, error: "library_write_unconfirmed" } };
+        }
+        return {
+          ok: true,
+          value:
+            cap === "song.player.preferences.v1"
+              ? { player }
+              : cap === "song.tidal.experimental.v1"
+                ? { current: missing ? null : { trackId: "123" } }
+                : cap === "song.spotify.player.v1"
+                  ? { current: { uri: "spotify:track:" + "A".repeat(22) } }
+                  : {},
+        };
+      },
+    };
+  const adapter = require("../src/domains/control-deck/control-deck-actions")({
+    core: { lightingProfiles: { snapshot: () => ({ profiles: [] }) } },
+    music: { view: () => ({ captureAvailable: false, status: { permissions: {} }, design: {} }) },
+    getFeatures: () => registry,
+  });
+  const signal = new AbortController().signal;
+  await adapter.refresh();
+  assert.equal(adapter.catalog().find((a) => a.id === "song.favorite").available, true);
+  const failed = await adapter.execute("song.favorite", {}, signal);
+  assert.equal(failed.value.ok, false);
+  assert.deepEqual(writes.pop(), {
+    cap: "song.tidal.experimental.v1",
+    input: { trackId: "123", save: true },
+  });
+  player = "spotify";
+  await adapter.execute("song.unfavorite", {}, signal);
+  assert.deepEqual(writes.pop(), {
+    cap: "song.spotify.player.v1",
+    input: { trackId: "A".repeat(22), save: false },
+  });
+  player = "tidal";
+  missing = true;
+  await assert.rejects(adapter.execute("song.favorite", {}, signal), /current_unavailable/);
+  assert.equal(writes.length, 0);
 });

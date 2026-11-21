@@ -12,6 +12,47 @@ const crypto = require("node:crypto");
 const espree = require("espree");
 const { ROOT, sourceFiles } = require("./lib/source-inventory");
 
+function localImport(node) {
+  if (
+    node.type === "ImportDeclaration" ||
+    node.type === "ImportExpression" ||
+    node.type === "ExportNamedDeclaration" ||
+    node.type === "ExportAllDeclaration"
+  )
+    return node.source?.value;
+  if (
+    node.type === "CallExpression" &&
+    node.callee?.name === "require" &&
+    node.arguments.length === 1
+  )
+    return node.arguments[0].value;
+}
+
+function isFile(file) {
+  return fs.statSync(file, { throwIfNoEntry: false })?.isFile() === true;
+}
+
+function resolveLocalImport(root, relative, request, browserModule) {
+  if (browserModule) {
+    try {
+      const url = new URL(request, `https://core.local/${relative.slice("public/core/".length)}`);
+      const servedPath = decodeURIComponent(url.pathname).slice(1);
+      return isFile(path.join(root, "public/core", servedPath));
+    } catch {
+      return false;
+    }
+  }
+  const target = path.resolve(root, path.dirname(relative), request);
+  return [
+    target,
+    `${target}.js`,
+    `${target}.cjs`,
+    `${target}.mjs`,
+    `${target}.json`,
+    path.join(target, "index.js"),
+  ].some(isFile);
+}
+
 function audit(root = ROOT) {
   const files = sourceFiles(undefined, root).filter((file) => /\.(?:js|cjs|mjs)$/.test(file));
   const fingerprints = new Map();
@@ -42,27 +83,15 @@ function audit(root = ROOT) {
     function visit(node) {
       if (!node || typeof node !== "object") return;
       if (node.type === "IfStatement") branches++;
+      const request = localImport(node);
+      const browserModule = relative.startsWith("public/core/") && node.type !== "CallExpression";
       if (
-        node.type === "CallExpression" &&
-        node.callee?.name === "require" &&
-        node.arguments.length === 1
+        typeof request === "string" &&
+        (/^\.{1,2}\//.test(request) || (browserModule && /^\/(?!\/)/.test(request)))
       ) {
-        const request = node.arguments[0].value;
-        if (typeof request === "string" && request.startsWith(".")) {
-          const target = path.resolve(root, path.dirname(relative), request);
-          if (
-            ![
-              target,
-              `${target}.js`,
-              `${target}.cjs`,
-              `${target}.json`,
-              path.join(target, "index.js"),
-            ].some((file) => fs.existsSync(file) && fs.statSync(file).isFile())
-          ) {
-            errors.push(`${relative}: unresolved local import ${request}`);
-          }
-          imports++;
-        }
+        if (!resolveLocalImport(root, relative, request, browserModule))
+          errors.push(`${relative}: unresolved local import ${request}`);
+        imports++;
       }
       for (const [key, value] of Object.entries(node)) {
         if (key === "tokens") continue;

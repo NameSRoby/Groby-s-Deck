@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>RaveLink Now Playing</title>
+    <title>Groby’s Deck Now Playing</title>
     <style>
       html {
         color-scheme: normal !important;
@@ -675,6 +675,42 @@
     animation: song-ticker var(--marquee-duration) linear infinite !important;
   }
 }
+
+.song-overlay.canvas-layout > .shape-triangle {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  border-radius: 0;
+}
+.song-overlay.canvas-layout > .shape-diamond {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  border-radius: 0;
+}
+.song-overlay.canvas-layout > .shape-hexagon {
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  border-radius: 0;
+}
+.song-overlay.canvas-layout > .shape-chevron {
+  clip-path: polygon(0 0, 75% 0, 100% 50%, 75% 100%, 0 100%, 25% 50%);
+  border-radius: 0;
+}
+.song-overlay.canvas-layout > .shape-parallelogram {
+  clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+  border-radius: 0;
+}
+.song-overlay.canvas-layout > .shape-star {
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 95%,
+    50% 72%,
+    21% 95%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  border-radius: 0;
+}
 </style>
 <!-- SONG_OVERLAY_STYLE_END -->
   </head>
@@ -1125,6 +1161,21 @@
         if (n) stage.append(n);
       }
     }
+    if (c.layoutMode === "canvas")
+      for (const segment of c.segments) {
+        const layer = [...stage.children].find((n) => n.dataset.segmentId === segment.id);
+        for (const [data, element] of [
+          [segment, layer],
+          ...segment.blocks.map((block) => [
+            block,
+            layer?.querySelector('[data-block-id="' + block.id + '"]'),
+          ]),
+        ]) {
+          if (!element || !data.frame || !data.crop) continue;
+          const r = data.crop;
+          element.style.clip = `rect(${r.top || 0}px, ${data.frame.width - (r.right || 0)}px, ${data.frame.height - (r.bottom || 0)}px, ${r.left || 0}px)`;
+        }
+      }
     resizeObservers.get(stage)?.disconnect();
     const observer = new ResizeObserver(() => marquee(stage));
     resizeObservers.set(stage, observer);

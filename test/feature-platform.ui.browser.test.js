@@ -19,7 +19,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   // including one installed under a noncanonical folder name.
   const legacy = path.join(root, "installed", "old-music-facade");
   fs.cpSync(installed, legacy, { recursive: true });
-  const manifestPath = path.join(legacy, "ravelink.feature.json");
+  const manifestPath = path.join(legacy, "groby.feature.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   manifest.id = "music-to-light";
   manifest.name = "Music-to-Light";
@@ -568,7 +568,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   await workspace.locator('[data-page="obs-overlay"].active').waitFor();
   await workspace.locator(".overlaySourceTools").waitFor({ state: "visible" });
   const songVersion = JSON.parse(
-    fs.readFileSync(path.join(installed, "ravelink.feature.json"), "utf8"),
+    fs.readFileSync(path.join(installed, "groby.feature.json"), "utf8"),
   ).version;
   assert.equal(
     await workspace.locator(".overlaySourceTools input").first().inputValue(),

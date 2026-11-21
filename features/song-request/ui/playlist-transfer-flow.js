@@ -74,10 +74,10 @@ window.installTransferFlow = function ({
       }),
     );
   for (const [provider, detail] of [
-    ["youtube", "Save matched tracks in RaveLink"],
+    ["youtube", "Save matched tracks in Groby’s Deck"],
     ["tidal", "Create a playlist in your account"],
     ["spotify", "Create a playlist through your desktop companion"],
-    ["soundcloud", "Save matched tracks in RaveLink"],
+    ["soundcloud", "Save matched tracks in Groby’s Deck"],
     ["csv", "Download the original track details"],
     ["library", "Save an original local copy"],
   ])

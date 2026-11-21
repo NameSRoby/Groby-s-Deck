@@ -52,7 +52,7 @@ function compiled() {
     `/reference:${path.join(deps, "Microsoft.Web.WebView2.WinForms.dll")}`,
     `/out:${exe}`,
     ...[
-      "RaveLinkCoreHost.cs",
+      "GrobyDeckHost.cs",
       "DashboardWindow.cs",
       "DesktopPolicy.cs",
       "DesktopBrowserActions.cs",

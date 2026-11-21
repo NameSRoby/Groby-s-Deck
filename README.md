@@ -1,28 +1,32 @@
-# RaveLink Core
+# Groby’s Deck
 
-<img src="assets/RaveLink-Core.png" alt="RaveLink Core" width="96" height="96">
+<img src="assets/Grobys-Deck.png" alt="Groby’s Deck" width="96" height="96">
 
-**Your music, lights and Twitch controls in one Windows app.**
+**Your stream. Your controls. Your deck.**
 
-- Control compatible **Hue, WiZ and Govee LAN lights**.
-- Make your lights react to music with **Music-to-Light**.
-- Build a **button deck** for music, volume, OBS and lighting.
-- Let Twitch viewers **request songs and change your lights**.
+Build a modular control surface for your stream, desktop, phone or tablet:
 
-Twitch and Song Request are optional. Local lighting works without them.
+- **Button decks:** music, audio mixers, OBS scenes, microphones, lights and custom actions.
+- **Twitch automations:** chat commands, Channel Points rewards, timers, raids and subscriber events.
+- **Flow builder:** combine actions, conditions, waits, repeats and temporary changes you can restore.
+- **Overlay designer:** named layouts, editable layers, animated widgets, chat and song information.
+- **Song requests:** shared moderation for supported music players and Twitch request sources.
+- **Smart lighting:** Hue, WiZ and Govee LAN controls, saved scenes and Music-to-Light.
 
-[Download 0.7.6b](https://github.com/NameSRoby/RaveLink-Core/releases/tag/v0.7.6b) |
+Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
+
+[Download 0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) |
 [User guide](docs/USER_GUIDE.md) |
-[Report a bug](https://github.com/NameSRoby/RaveLink-Core/issues/new?template=bug_report.yml)
+[Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
 ## Install
 
-1. Download **RaveLink-Core-Windows-v0.7.6b-setup-installer.exe**.
+1. Download **Grobys-Deck-Windows-v0.8-setup-installer.exe**.
 2. Run Setup and choose the features you want.
-3. Open **RaveLink Core** from the Start menu or desktop shortcut.
+3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
 
-**Portable:** extract **RaveLink-Core-Windows-v0.7.6b-self-contained.zip** completely,
-then run **RaveLink-Core.exe**.
+**Portable:** extract **Grobys-Deck-Windows-v0.8-self-contained.zip** completely,
+then run **Groby's Deck.exe**.
 
 The runtime and optional packages are included. No developer tools are needed.
 Your account sign-ins and online music services still need internet.
@@ -32,11 +36,11 @@ Your account sign-ins and online music services still need internet.
 
 - **Windows 10 x64, build 19041 or later**, or Windows 11.
 - Music-to-Light app capture needs **build 20348 or later**; Windows 11 is recommended.
-- Setup installs WebView2 when needed. Portable users can run its included installer
-  from **optional-components/prerequisites**.
+- Setup detects WebView2 and runs its bundled offline Evergreen installer only
+  when it is missing. Portable users can run **scripts/install-webview2.ps1**.
 - The release is unsigned, so Windows may show an unknown-publisher warning.
   Compare downloads with **SHA256SUMS.txt**.
-- **Code > Download ZIP** downloads source code. Run **Start-RaveLink.cmd** for
+- **Code > Download ZIP** downloads source code. Run **Start-Grobys-Deck.cmd** for
   first-time source setup; it downloads a verified runtime bundle.
 - Use a separate folder from an old RaveLink Bridge installation.
 
@@ -57,7 +61,7 @@ Your account sign-ins and online music services still need internet.
 
 Core opens in its own desktop window. You can also use
 [localhost:5050](http://127.0.0.1:5050) in a browser.
-Closing the window keeps Core in the tray; **RaveLink > Exit** stops it.
+Closing the window keeps Core in the tray; **Groby’s Deck > Exit** stops it.
 
 ## Build your button deck
 
@@ -170,16 +174,18 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
-## What's new in 0.7.6b
+## What's new in 0.8
 
-- More memory headroom for Song Request and Twitch.
-- Delayed requests time out without shutting down the integration.
-- A visible crash warning with a link to Packages for recovery.
+- Groby's Deck branding and a clearer workspace for stream controls.
+- Shared automation flows for deck buttons, Twitch rewards, commands, events and timers.
+- Editable command recipes, saved player records and optional XP seasons.
+- Full-canvas overlay editing with layers, live widgets, animated presets and custom fonts.
+- Soundboard buttons with multiple Windows outputs, a Bingo deck and saved button appearances.
+- More runtime headroom, bounded requests and visible recovery warnings.
 
-Update **Song Request to 0.45.12** and **Twitch Integration to 0.12.10** in Packages.
+Update the optional **Song Request** and **Twitch Integration** packages under **Packages & updates** to use their latest features.
 
-[Full release notes](https://github.com/NameSRoby/RaveLink-Core/releases/tag/v0.7.6b) |
-[Earlier releases](https://github.com/NameSRoby/RaveLink-Core/releases)
+[Command language](docs/COMMAND-VARIABLES.md) | [Twitch automations](docs/TWITCH_AUTOMATIONS.md) | [Earlier releases](docs/RELEASE_ARCHIVE.md)
 
 ## Things to know
 
@@ -220,3 +226,11 @@ Remove tokens, account details and private paths from screenshots and logs.
 
 Apache-2.0. Third-party code and provider marks retain their own licenses.
 See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Earlier versions
+
+Groby’s Deck 0.8 is the current release. Previous releases remain available in the
+[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8 for new installations.
+
+Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
+The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.

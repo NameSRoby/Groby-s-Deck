@@ -26,7 +26,7 @@ for (const dependency of [
 const featureRoot = path.join(root, "features");
 for (const entry of fs.readdirSync(featureRoot, { withFileTypes: true })) {
   if (!entry.isDirectory() || entry.name === "installed") continue;
-  const manifest = path.join(featureRoot, entry.name, "ravelink.feature.json");
+  const manifest = path.join(featureRoot, entry.name, "groby.feature.json");
   if (!fs.existsSync(manifest)) continue;
   const featureNotices = path.join(featureRoot, entry.name, "THIRD_PARTY_NOTICES.md");
   // Song Request bundles provider marks; Twitch Integration uses first-party code only.
@@ -68,6 +68,20 @@ if (fs.existsSync(spotifyRoot)) {
   if (!notices.includes("**Spicetify contributors**"))
     errors.push("Spotify companion attribution missing");
 }
+for (const library of require("../integrations/soundboard/libraries.json")) {
+  const file = path.join(root, "integrations/soundboard/vendor", library.file);
+  if (
+    !fs.existsSync(file) ||
+    require("node:crypto").createHash("sha256").update(fs.readFileSync(file)).digest("hex") !==
+      library.sha256
+  )
+    errors.push(`Soundboard library integrity mismatch: ${library.file}`);
+}
+if (
+  !notices.includes("**NAudio.Core and NAudio.Wasapi**") ||
+  !fs.existsSync(path.join(root, "integrations/soundboard/vendor/LICENSE.NAudio.txt"))
+)
+  errors.push("Soundboard library license missing");
 if (errors.length) {
   for (const error of errors) console.error(`[THIRD-PARTY] ${error}`);
   process.exit(1);

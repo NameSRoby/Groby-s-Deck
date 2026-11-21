@@ -3,7 +3,7 @@
  * Developer context and change constraints:
  * docs/DEVELOPMENT.md#desktop-companions
  */
-// Read-only developer probe for the minimal RaveLink runtime or an existing Spicetify client.
+// Read-only developer probe for the minimal Groby’s Deck runtime or an existing Spicetify client.
 // It does not install anything, contact a server, read tokens or modify playback.
 function inspectSpotifyDesktop(api) {
   const method = (owner, name) => typeof owner?.[name] === "function";

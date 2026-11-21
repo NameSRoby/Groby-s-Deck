@@ -893,6 +893,7 @@ body[data-canvas-editing="true"] #composition {
   border-right: 1px solid var(--line);
   max-height: 680px;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 .canvas-library h3 {
   margin: 0 0 12px;
@@ -904,6 +905,10 @@ body[data-canvas-editing="true"] #composition {
   padding: 5px 8px;
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+.canvas-library .canvas-object:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
 }
 .canvas-library .canvas-object-child {
   margin-left: 10px;
@@ -947,8 +952,7 @@ body[data-canvas-editing="true"] #composition {
 }
 .preview-heading {
   flex-wrap: wrap;
-}
-.preview-heading {
+  align-items: center;
   padding: 12px 16px;
   gap: 8px;
 }
@@ -1000,4 +1004,49 @@ body[data-canvas-editing="true"] #composition {
   .canvas-library .canvas-object-child {
     margin-left: 3px;
   }
+}
+
+.canvas-handle.n {
+  left: 50%;
+  top: 0;
+  cursor: ns-resize;
+  transform: translate(-50%, -50%);
+}
+.canvas-handle.s {
+  left: 50%;
+  top: 100%;
+  cursor: ns-resize;
+  transform: translate(-50%, -50%);
+}
+.canvas-handle.e {
+  left: 100%;
+  top: 50%;
+  cursor: ew-resize;
+  transform: translate(-50%, -50%);
+}
+.canvas-handle.w {
+  left: 0;
+  top: 50%;
+  cursor: ew-resize;
+  transform: translate(-50%, -50%);
+}
+
+#canvas-inspector > label:not(.switchLabel) {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+#canvas-inspector input:not([type="checkbox"]):not([type="range"]):not([type="color"]),
+#canvas-inspector select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  background: var(--input-bg, #0c1320);
+  color: inherit;
+  border: 1px solid var(--border, #303c54);
+  border-radius: 7px;
+}
+.layer-crop {
+  margin: 12px 0;
 }

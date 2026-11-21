@@ -16,7 +16,7 @@ const {
 } = require("./protocol.cjs");
 const HELPER = path.resolve(
   __dirname,
-  "../../runtime/music-to-light/cargo/release/ravelink-audio-probe.exe",
+  "../../runtime/music-to-light/cargo/release/groby-audio-probe.exe",
 );
 const fault = (code) => Object.assign(new Error(code), { code });
 let captureActive = false;

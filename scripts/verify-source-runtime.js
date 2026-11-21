@@ -18,8 +18,8 @@ function verify(source, runtime) {
       throw new Error(`Runtime dependency is missing or incompatible: ${name}`);
   }
   for (const file of [
-    "runtime/RaveLink-Core-Node.exe",
-    "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe",
+    "runtime/Grobys-Deck-Node.exe",
+    "runtime/music-to-light/cargo/release/groby-audio-probe.exe",
     "runtime/NODE-LICENSE.txt",
   ]) {
     if (!fs.statSync(path.join(runtime, file)).isFile()) throw new Error(`Missing ${file}`);

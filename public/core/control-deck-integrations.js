@@ -1,4 +1,5 @@
 /** Integration setup stays with Core; LAN browsers never receive provider tokens. */
+import { createPillInput } from "./pill-input.js";
 export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
   const dialog = document.createElement("dialog");
   dialog.className = "deckEditor deckIntegrations";
@@ -6,7 +7,7 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
   document.body.append(dialog);
   dialog.setAttribute("aria-labelledby", "deckIntegrationTitle");
   dialog.innerHTML =
-    '\n<div class="deckEditorHeading"><h2 id="deckIntegrationTitle">Connections</h2><button id="deckIntegrationsClose" type="button" aria-label="Close connections">Close</button></div>\n<nav class="deckSettingsTabs" aria-label="Connections"><button id="deckKeyboardTab" type="button" aria-pressed="true">Keyboard keys</button><button id="deckTwitchTab" type="button" aria-pressed="false">Twitch</button></nav>\n<p id="deckIntegrationNotice" class="deckEditorNotice" role="status" aria-live="polite"></p>\n<div class="deckIntegrationPanels">\n<div id="deckKeyboardPanel">\n<section><h3>Keyboard buttons</h3><p>Add a Keyboard shortcut action to any button. Choose F13–F24 or enter a key combination. Input is sent on the RaveLink PC, including when pressed from a LAN browser.</p><p>No Discord connection or mod is required.</p></section>\n</div>\n<div id="deckTwitchPanel" hidden>\n<section><h3>Twitch connection</h3><p id="deckClipStatus" class="deckConnectionStatus" role="status"></p><p>Choose permissions in Twitch Connection. You can grant clipping, chat or rewards access separately and see which features are ready.</p><button id="deckClipAuthorize" type="button">Choose Twitch permissions</button></section>\n<section><h3>Chat clipping</h3><label class="deckCheck"><input id="deckClipChat" type="checkbox"><span>Allow viewers to use !clip</span></label><label class="deckField"><span>Who can request a clip?</span><select id="deckClipChatAccess"><option value="everyone">Everyone</option><option value="moderators">Broadcaster and moderators</option></select></label><p class="deckEditorHint">Viewers can add a title: <code>!clip 3k on tracer</code>. Requires clip and chat access. Your broadcast must be live and allow clips.</p></section>\n</div>\n</div>';
+    '\n<div class="deckEditorHeading"><h2 id="deckIntegrationTitle">Connections</h2><button id="deckIntegrationsClose" type="button" aria-label="Close connections">Close</button></div>\n<nav class="deckSettingsTabs" aria-label="Connections"><button id="deckKeyboardTab" type="button" aria-pressed="true">Keyboard keys</button><button id="deckTwitchTab" type="button" aria-pressed="false">Twitch</button></nav>\n<p id="deckIntegrationNotice" class="deckEditorNotice" role="status" aria-live="polite"></p>\n<div class="deckIntegrationPanels">\n<div id="deckKeyboardPanel">\n<section><h3>Keyboard buttons</h3><p>Add a Keyboard shortcut action to any button. Choose F13–F24 or enter a key combination. Input is sent on the Groby’s Deck PC, including when pressed from a LAN browser.</p><p>No Discord connection or mod is required.</p></section>\n</div>\n<div id="deckTwitchPanel" hidden>\n<section><h3>Twitch connection</h3><p id="deckClipStatus" class="deckConnectionStatus" role="status"></p><p>Choose permissions in Twitch Connection. You can grant clipping, chat or rewards access separately and see which features are ready.</p><button id="deckClipAuthorize" type="button">Choose Twitch permissions</button></section>\n<section><h3>Chat clipping</h3><label class="deckCheck"><input id="deckClipChat" type="checkbox"><span>Allow viewers to use !clip</span></label><label class="deckField"><span>Who can request a clip?</span><select id="deckClipChatAccess"><option value="everyone">Everyone</option><option value="moderators">Broadcaster and moderators</option></select></label><p class="deckEditorHint">Viewers can add a title: <code>!clip 3k on tracer</code>. Requires clip and chat access. Your broadcast must be live and allow clips.</p></section>\n</div>\n</div>';
   const $ = (id) => document.getElementById("deck" + id);
   $("TwitchPanel").insertAdjacentHTML(
     "beforeend",
@@ -20,10 +21,10 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
         <label class="deckCheck"><input id="deckClipDefaultWords" type="checkbox"><span>Use the English profanity filter</span></label>
         <details><summary>Custom words &amp; exceptions</summary>
           <div class="deckClipWordLists">
-            <label class="deckField"><span>Blocked words or phrases</span><textarea id="deckClipBlocked" rows="4" maxlength="8319" placeholder="One word or phrase per line"></textarea></label>
-            <label class="deckField"><span>Allowed exceptions</span><textarea id="deckClipAllowed" rows="4" maxlength="8319" placeholder="One word or phrase per line"></textarea></label>
+            <div class="deckField"><label for="deckClipBlocked">Blocked words or phrases</label><input id="deckClipBlocked" placeholder="Add a word or phrase" aria-describedby="deckClipWordsHelp"></div>
+            <div class="deckField"><label for="deckClipAllowed">Allowed exceptions</label><input id="deckClipAllowed" placeholder="Add an exception" aria-describedby="deckClipWordsHelp"></div>
           </div>
-          <p class="deckEditorHint">Up to 128 entries per list, 64 characters each. Custom entries match whole words or phrases, ignoring case. Exceptions override matching words inside that phrase. The English filter also checks common disguised spellings; add your own terms for other languages.</p>
+          <p id="deckClipWordsHelp" class="deckEditorHint">Enter adds a pill; Backspace removes the last when the field is empty. Up to 128 entries, 64 characters each. Matches ignore case; exceptions override blocked phrases.</p>
         </details>
         <div class="deckClipTest">
           <label class="deckField"><span>Try a title</span><input id="deckClipPreviewTitle" type="text" maxlength="100" placeholder="Preview without making a clip"></label>
@@ -33,6 +34,17 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
       </div>
       <div class="deckEditorActions"><button id="deckClipSaveFilter" type="button">Save title filter</button></div>
     </section>`,
+  );
+  const wordPills = Object.fromEntries(
+    ["ClipBlocked", "ClipAllowed"].map((id) => [
+      id,
+      createPillInput($(id), {
+        label: id === "ClipBlocked" ? "Blocked words or phrases" : "Allowed exceptions",
+        maxItems: 128,
+        maxLength: 64,
+        normalize: (value) => value.trim().toLowerCase(),
+      }),
+    ]),
   );
   function chooseTab(twitch) {
     $("KeyboardPanel").hidden = twitch;
@@ -78,8 +90,8 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
     $("ClipFilter").checked = policy.enabled !== false;
     $("ClipFilterMode").value = policy.mode || "mask";
     $("ClipDefaultWords").checked = policy.useDefaultList !== false;
-    $("ClipBlocked").value = (policy.blockedWords || []).join("\n");
-    $("ClipAllowed").value = (policy.allowedWords || []).join("\n");
+    wordPills.ClipBlocked.set(policy.blockedWords || []);
+    wordPills.ClipAllowed.set(policy.allowedWords || []);
     controls();
   }
   async function run(fn, reload = true) {
@@ -118,22 +130,17 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
     });
   $("ClipChat").onchange = configure;
   $("ClipChatAccess").onchange = configure;
-  const words = (id) =>
-    $(id)
-      .value.split(/\r?\n/)
-      .map((v) => v.trim())
-      .filter(Boolean);
   const policy = () => ({
     enabled: $("ClipFilter").checked,
     mode: $("ClipFilterMode").value,
     useDefaultList: $("ClipDefaultWords").checked,
-    blockedWords: words("ClipBlocked"),
-    allowedWords: words("ClipAllowed"),
+    blockedWords: wordPills.ClipBlocked.read(),
+    allowedWords: wordPills.ClipAllowed.read(),
   });
   $("ClipFilter").onchange = controls;
   $("ClipSaveFilter").onclick = () => {
-    const titleModeration = policy();
     void run(async () => {
+      const titleModeration = policy();
       await request("/api/control-deck/integrations/twitch-clips/configure", "POST", {
         titleModeration,
       });
@@ -141,8 +148,8 @@ export function createDeckIntegrations({ request, refresh, onTwitchSetup }) {
     });
   };
   $("ClipPreview").onclick = () => {
-    const draft = { title: $("ClipPreviewTitle").value, titleModeration: policy() };
     void run(async () => {
+      const draft = { title: $("ClipPreviewTitle").value, titleModeration: policy() };
       const result = await request(
         "/api/control-deck/integrations/twitch-clips/preview",
         "POST",

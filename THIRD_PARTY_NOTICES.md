@@ -61,3 +61,5 @@ The silent WebM/MP4 files in `public/core/wake-media` are from
 **NoSleep.js** v0.12.0, Copyright (c) Rich Tibbett, MIT License.
 Source: https://github.com/richtr/NoSleep.js/tree/v0.12.0/src
 The full license accompanies the media as `LICENSE.txt`.
+
+**NAudio.Core and NAudio.Wasapi** 2.3.0, copyright Mark Heath, MIT License. Windows soundboard decoding and per-output WASAPI playback. Pinned NuGet package and DLL hashes: `integrations/soundboard/libraries.json`; full license: `integrations/soundboard/vendor/LICENSE.NAudio.txt`. Source: https://github.com/naudio/NAudio/tree/c89fee940ee6f8d7374d18714a6b85d8b7a18ab0

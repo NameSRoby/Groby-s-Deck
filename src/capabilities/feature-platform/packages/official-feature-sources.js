@@ -5,8 +5,8 @@
  */
 // A release must download every manifest and payload from one immutable tree.
 // A moving branch can be cached per file by GitHub and briefly mix revisions.
-const OFFICIAL_FEATURE_REVISION = "61b14b6eba94bcfeb8961ceffdb56932438a8612";
-const GITHUB_RAW_ROOT = `https://raw.githubusercontent.com/NameSRoby/RaveLink-Core/${OFFICIAL_FEATURE_REVISION}/features/`;
+const OFFICIAL_FEATURE_REVISION = "d6f5e7f32d155ca443957ef3c0440b132580f2da";
+const GITHUB_RAW_ROOT = `https://raw.githubusercontent.com/NameSRoby/Groby-s-Deck/${OFFICIAL_FEATURE_REVISION}/features/`;
 
 const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   Object.freeze({
@@ -16,7 +16,7 @@ const OFFICIAL_FEATURE_SOURCES = Object.freeze([
     description:
       "YouTube, Spotify, TIDAL and SoundCloud requests, community playlists, reviewed transfers, moderation and OBS overlays.",
     baseUrl: `${GITHUB_RAW_ROOT}song-request/`,
-    displaySource: "RaveLink GitHub repository",
+    displaySource: "Groby’s Deck GitHub repository",
   }),
   Object.freeze({
     id: "twitch-integration",
@@ -25,7 +25,7 @@ const OFFICIAL_FEATURE_SOURCES = Object.freeze([
     description:
       "Twitch OAuth, EventSub, Channel Points rewards, chat responses, and redemption settlement.",
     baseUrl: `${GITHUB_RAW_ROOT}twitch-integration/`,
-    displaySource: "RaveLink GitHub repository",
+    displaySource: "Groby’s Deck GitHub repository",
   }),
 ]);
 

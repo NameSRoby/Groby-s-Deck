@@ -400,6 +400,51 @@ test("supervisor rejects malformed or oversized requests before queueing", async
   fs.rmSync(fixture.root, { recursive: true, force: true });
 });
 
+test("correlated replies settle admitted work during message bursts while unsolicited flooding remains bounded", async (t) => {
+  const fixture = createFixture();
+  let child;
+  const fork = fakeForkWithSuccessfulHandshake((message, target) => {
+    setImmediate(() =>
+      target.emit(
+        "message",
+        envelope("response", {
+          replyTo: message.id,
+          ok: true,
+          payload: { echoed: true },
+        }),
+      ),
+    );
+  });
+  const timestamp = Date.now();
+  const supervisor = createModProcessSupervisor({
+    manifest: fixture.manifest,
+    modRoot: fixture.root,
+    permissionSupport: ENFORCED_SUPPORT,
+    now: () => timestamp,
+    forkFn: () => {
+      child = fork();
+      return child;
+    },
+  });
+  t.after(async () => {
+    await supervisor.stop();
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  });
+  await supervisor.start();
+  for (let i = 0; i < 180; i++)
+    assert.equal((await supervisor.request("test.echo.v1", "echo", {})).ok, true);
+  assert.equal(supervisor.getStatus().protocolViolations, 0);
+  assert.equal(supervisor.getStatus().pendingCount, 0);
+  for (let i = 0; i < 119; i++)
+    child.emit("message", envelope("response", { replyTo: "unknown", ok: true, payload: null }));
+  assert.equal(supervisor.getStatus().protocolViolations, 1);
+  assert.equal((await supervisor.request("test.echo.v1", "echo", {})).ok, true);
+  assert.equal(supervisor.getStatus().protocolViolations, 1);
+  for (let i = 0; i < 2; i++)
+    child.emit("message", envelope("response", { replyTo: "unknown", ok: true, payload: null }));
+  assert.equal(supervisor.getStatus().lifecycle, "quarantined");
+});
+
 test("supervisor quarantines repeated invalid IPC", async () => {
   const fixture = createFixture();
   let fakeChild;

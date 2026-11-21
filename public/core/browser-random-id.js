@@ -9,4 +9,4 @@ function browserRandomId() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 if (typeof module !== "undefined" && module.exports) module.exports = browserRandomId;
-else globalThis.RaveLinkRandomId = browserRandomId;
+else globalThis.GrobyRandomId = browserRandomId;

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a problem with RaveLink Core.
+description: Report a problem with Groby’s Deck.
 title: "[Bug]: "
 body:
   - type: markdown

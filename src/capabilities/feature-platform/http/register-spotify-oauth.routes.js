@@ -40,8 +40,8 @@ module.exports = function registerSpotifyOAuth(app, getCatalog) {
       spotify_sign_in_required:
         "Spotify rejected the sign-in exchange. Check your app setup and try again.",
       connected:
-        "Spotify connected. Return to RaveLink and refresh the account status. You can close this window.",
-      spotify_oauth_denied: "Sign-in cancelled. Return to RaveLink to try again.",
+        "Spotify connected. Return to Groby’s Deck and refresh the account status. You can close this window.",
+      spotify_oauth_denied: "Sign-in cancelled. Return to Groby’s Deck to try again.",
       spotify_oauth_state_invalid:
         "This callback does not match the active sign-in. Start a new sign-in from RaveLink.",
       spotify_oauth_session_expired:
@@ -56,11 +56,11 @@ module.exports = function registerSpotifyOAuth(app, getCatalog) {
     const message =
       typeof req.query.result === "string" && Object.hasOwn(messages, req.query.result)
         ? messages[req.query.result]
-        : "Spotify sign-in failed. Return to RaveLink and try again.";
+        : "Spotify sign-in failed. Return to Groby’s Deck and try again.";
     res
       .type("html")
       .send(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>RaveLink · Spotify</title><style>body{background:#10131c;color:#f4f5f7;font:18px system-ui;margin:48px;max-width:640px;line-height:1.6}</style></head><body><h1>Spotify sign-in</h1><p>${message}</p></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Groby’s Deck · Spotify</title><style>body{background:#10131c;color:#f4f5f7;font:18px system-ui;margin:48px;max-width:640px;line-height:1.6}</style></head><body><h1>Spotify sign-in</h1><p>${message}</p></body></html>`,
       );
   });
 };

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "name": "D20 arena",
+  "description": "An editable example made entirely from public command functions. No fight-specific runtime is required.",
+  "stages": [
+    {
+      "title": "Choose the players",
+      "source": "${set attacker sender}\n${set defender username 1}\n${set self same attacker defender}"
+    },
+    {
+      "title": "Read their records",
+      "source": "${set attackerRating stat attacker rating 1000}\n${set defenderRating stat defender rating 1000}\n${set attackerStreak stat attacker streak}\n${set defenderStreak stat defender streak}"
+    },
+    {
+      "title": "Roll once",
+      "source": "${set roll random 1 20}"
+    },
+    {
+      "title": "Set the difficulty",
+      "source": "${set difficulty 16}\n${set pressure attackerStreak}\n${limit pressure 0 2}\n${add difficulty pressure}\n${set comeback 0 - attackerStreak}\n${limit comeback 0 3}\n${subtract difficulty comeback}\n${set ratingGap (defenderRating - attackerRating) / 150}\n${round ratingGap}\n${limit ratingGap -2 2}\n${add difficulty ratingGap}\n${limit difficulty 10 19}\n${set chance (21 - difficulty) * 5}"
+    },
+    {
+      "title": "Choose the winner",
+      "source": "${set won roll >= difficulty}\n${if roll == 1}${set won 0}${end}\n${if roll == 20}${set won 1}${end}\n${if won == 1}\n  ${set winner attacker}${set loser defender}\n${else}\n  ${set winner defender}${set loser attacker}\n${end}"
+    },
+    {
+      "title": "Award XP for odds, margin and critical rolls",
+      "source": "${if self == 0}\n${set winnerChance chance}\n${set margin roll - difficulty}\n${if won == 0}\n  ${set winnerChance 100 - chance}\n  ${set margin difficulty - roll - 1}\n${end}\n${limit margin 0 5}\n${set xpAward 10 + (100 - winnerChance) * 2 / 5 + margin}\n${set xpLoss 2 + (100 - winnerChance) / 5 + margin / 2}\n${if roll == 1 || roll == 20}\n  ${add xpAward 5}\n  ${add xpLoss 3}\n${end}\n${round xpAward}\n${round xpLoss}\n${set loserXP stat loser xp}\n${if xpLoss > loserXP}${set xpLoss loserXP}${end}\n${set xpDebit 0 - xpLoss}\n${addstat winner wins 1}\n${addstat loser losses 1}\n${addstat winner xp xpAward}\n${addstat loser xp xpDebit}\n${end}"
+    },
+    {
+      "title": "Update streaks",
+      "source": "${if self == 0}\n${if won == 1}\n  ${limit attackerStreak 0 1000000}${add attackerStreak 1}\n  ${limit defenderStreak -1000000 0}${subtract defenderStreak 1}\n${else}\n  ${limit attackerStreak -1000000 0}${subtract attackerStreak 1}\n  ${limit defenderStreak 0 1000000}${add defenderStreak 1}\n${end}\n${setstat attacker streak attackerStreak}\n${setstat defender streak defenderStreak}\n${end}"
+    },
+    {
+      "title": "Update ratings",
+      "source": "${if self == 0}\n${set ratingChange (won - chance / 100) * 24}\n${round ratingChange}\n${add attackerRating ratingChange}\n${subtract defenderRating ratingChange}\n${limit attackerRating 800 2000}\n${limit defenderRating 800 2000}\n${setstat attacker rating attackerRating}\n${setstat defender rating defenderRating}\n${end}"
+    },
+    {
+      "title": "Announce the challenge",
+      "source": " ${attacker} challenges ${defender}! ${if self == 1}Mirror match: exhibition rules.${else}Roll for initiative!${end} "
+    },
+    {
+      "title": "Show the die and difficulty",
+      "source": " • NEED: ${difficulty}+ on a D20 (${chance}% chance). • ROLLED: ${attacker} rolled ${roll}/20. • ${if roll == 1}CRITICAL FAILURE!${else}${if roll == 20}CRITICAL SUCCESS!${else}${if won == 1}SUCCESS!${else}FAILED!${end}${end}${end} "
+    },
+    {
+      "title": "Self-fight scenes (no progress)",
+      "source": " ${if self == 1}${random.pick \"${attacker} hurt themself in their confusion! It was super embarrassing.\" \"${attacker} challenged their reflection. The mirror filed a restraining order.\" \"${attacker} got their ass kicked by their shadow. A flawless demonstration of clownery.\" \"${attacker} rolled initiative against their last brain cell. The brain cell fled.\" \"${attacker} cast Fireball at their feet. The dungeon master needs a drink.\" \"${attacker} used Self-Destruct! The audience politely stepped back. Death\" \"${attacker} tried to parry an intrusive thought and punched their own face.\" \"${attacker} fought their inner demons. The demons asked for a different party.\" \"${attacker} defeated their trousers. Please close the curtains, you menace.\" \"${attacker} failed a wisdom save against a revolving door.\"} No XP, wins, losses or rating changes.${end} "
+    },
+    {
+      "title": "Critical failure scenes",
+      "source": " ${if self == 0}${if roll == 1}${random.pick \"${attacker} trips over a banana and critically fails to remain upright. Death\" \"${attacker} rolls to intimidate a chair. The chair wins.\" \"${attacker} swings so hard their weapon joins another adventuring party.\" \"${attacker} casts a spell with the microphone muted. Nothing happens.\" \"${attacker} mistakes the mimic for a loot chest. The loot bites back.\" \"${attacker} fails the tutorial. Even the goblins look concerned.\"}${end}${end} "
+    },
+    {
+      "title": "Critical success scenes",
+      "source": " ${if self == 0}${if roll == 20}${random.pick \"${attacker} lands a legendary finishing blow. The bard is already writing the song. Death\" \"${attacker} used Hyper Beam! It was super effective!\" \"${attacker} parries fate itself and lands the final strike.\" \"${attacker} summons a spectral goose. Peace was never an option.\" \"${attacker} lands a sneak attack in broad daylight. Nobody questions it.\" \"${attacker} wins so decisively the dungeon master checks the dice.\"}${end}${end} "
+    },
+    {
+      "title": "Ordinary wins, close misses and defeats",
+      "source": " ${if self == 0 && roll > 1 && roll < 20}${if won == 1}${random.pick \"${attacker} breaks through the guard with a perfectly timed counterattack!\" \"${attacker} lands the winning strike. Loot goblin instincts immediately activate.\" \"${attacker} wins the skill check. The party erupts into questionable applause.\" \"${attacker} dodges, feints and sends their opponent back to the tavern.\" \"${attacker} rolls through the attack. Somewhere, a bonfire has been lit.\" \"${attacker} wins! The quest log updates: act surprised.\"}${else}${if roll == difficulty - 1}${random.pick \"${defender} dodges by one hit point, then lands the winning counterattack!\" \"${attacker} misses by a whisker. The dice demand a sacrifice.\" \"${defender} passes the saving throw with a suspiciously smug grin.\" \"${attacker} almost lands the combo, then presses the wrong key.\" \"${defender} wins the duel by the width of a goblin toenail.\" \"${attacker} needed just one more point. The bard plays a tiny violin.\"}${else}${random.pick \"${defender} parries and wins the duel. The healer refuses responsibility.\" \"${attacker} attacks the tank and discovers why that was a bad idea.\" \"${defender} counters with Vicious Mockery. Emotional damage!\" \"${attacker} drinks a potion labelled probably fine. It was not fine.\" \"${defender} wins the encounter. The respawn screen offers unsolicited advice.\" \"${attacker} loses the duel but insists it was lag.\"}${end}${end}${end} "
+    },
+    {
+      "title": "Award summary and progression",
+      "source": " ${if self == 0}• RESULT: ${winner} wins (+${xpAward} XP); ${loser} loses (-${xpLoss} XP).${end} "
+    }
+  ]
+}

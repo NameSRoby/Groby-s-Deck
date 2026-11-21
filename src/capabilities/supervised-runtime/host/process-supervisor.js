@@ -64,6 +64,7 @@ module.exports = function createProcessSupervisor(options = {}) {
   if (typeof validateManifest !== "function") throw new TypeError("validateManifest is required");
   const manifestResult = validateManifest(options.manifest);
   const manifest = manifestResult.value;
+  const payloadLimits = require("../contracts/payload-limits")(manifest?.resources?.ipcFrameBytes);
   const workloadKind = String(options.workloadKind || "workload");
   const displayName = String(options.displayName || "Workload");
   const identityField = String(options.identityField || "workloadId");
@@ -205,6 +206,7 @@ module.exports = function createProcessSupervisor(options = {}) {
     const validation = parseBrokerFrameV1(frame, {
       now: Number(now()),
       maxFrameBytes: manifest.resources.ipcFrameBytes,
+      ...payloadLimits,
       maxDeadlineMs: 60000,
     });
     if (!validation.ok) return false;
@@ -300,15 +302,26 @@ module.exports = function createProcessSupervisor(options = {}) {
       inboundRate.messages = 0;
       inboundRate.bytes = 0;
     }
-    inboundRate.messages += 1;
-    inboundRate.bytes += Buffer.byteLength(frame, "utf8");
-    if (inboundRate.messages > 120 || inboundRate.bytes > manifest.resources.ipcFrameBytes * 32) {
+    // A host-admitted request already owns a bounded pending slot. Its one reply
+    // must settle that slot even during a burst of worker requests/events.
+    // Unknown or duplicate replies still consume the unsolicited-message budget;
+    // every frame, including an expected reply, is validated below.
+    const expectedReply = message?.type === "response" && pending.has(message.replyTo);
+    if (!expectedReply) {
+      inboundRate.messages += 1;
+      inboundRate.bytes += Buffer.byteLength(frame, "utf8");
+    }
+    if (
+      !expectedReply &&
+      (inboundRate.messages > 120 || inboundRate.bytes > manifest.resources.ipcFrameBytes * 32)
+    ) {
       recordProtocolViolation("ipc_rate_limit");
       return;
     }
     const validation = parseBrokerFrameV1(frame, {
       now: Number(now()),
       maxFrameBytes: manifest.resources.ipcFrameBytes,
+      ...payloadLimits,
       maxDeadlineMs: 60000,
     });
     if (!validation.ok) {
@@ -465,31 +478,7 @@ module.exports = function createProcessSupervisor(options = {}) {
           });
         }),
       ])
-        .then((result) => {
-          if (result?.ok) {
-            sendEnvelope({
-              protocolVersion: 1,
-              type: "response",
-              sentAt: Number(now()),
-              replyTo: envelope.id,
-              ok: true,
-              payload: result.value,
-            });
-          } else {
-            sendEnvelope({
-              protocolVersion: 1,
-              type: "response",
-              sentAt: Number(now()),
-              replyTo: envelope.id,
-              ok: false,
-              error: result?.error || {
-                code: "broker_failed",
-                message: "Capability broker rejected the request",
-                retryable: false,
-              },
-            });
-          }
-        })
+        .then((result) => require("./send-broker-result")(sendEnvelope, envelope.id, result, now))
         .catch((error) => {
           const timedOut = error?.code === "broker_timeout";
           sendEnvelope({
@@ -711,6 +700,7 @@ module.exports = function createProcessSupervisor(options = {}) {
     const requestValidation = parseBrokerFrameV1(requestFrame, {
       now: Number(now()),
       maxFrameBytes: manifest.resources.ipcFrameBytes,
+      ...payloadLimits,
       maxDeadlineMs: 60000,
     });
     if (!requestValidation.ok) {

@@ -22,7 +22,7 @@ test("feature integrity check hashes actual checkout bytes and never repairs fil
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(path.join(directory, "payload.txt"), "line\n");
     fs.writeFileSync(
-      path.join(directory, "ravelink.feature.json"),
+      path.join(directory, "groby.feature.json"),
       JSON.stringify({ integrity: { files: { "payload.txt": hash } } }),
     );
   }
@@ -72,6 +72,24 @@ test("health audit catches copied implementations despite notes/spacing and catc
   assert.match(audit(root).errors.join("\n"), /duplicate implementation/);
   fs.writeFileSync(path.join(root, "src/copied.js"), "module.exports = require('./missing');");
   assert.match(audit(root).errors.join("\n"), /unresolved local import/);
+  fs.mkdirSync(path.join(root, "public/core"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "public/core/page.js"),
+    "import './missing-static.js'; export * from './missing-export.js'; import('./missing-lazy.js');",
+  );
+  const diagnostics = audit(root).errors.join("\n");
+  for (const name of ["static", "export", "lazy"])
+    assert.ok(diagnostics.includes("unresolved local import ./missing-" + name + ".js"));
+  fs.writeFileSync(path.join(root, "public/core/part.js"), "export const part = 1;");
+  fs.writeFileSync(
+    path.join(root, "public/core/page.js"),
+    "import '/part.js?v=1'; import './part'; import('/missing-root.js');",
+  );
+  const browserErrors = audit(root).errors.filter((error) => error.startsWith("public/core/"));
+  assert.deepEqual(browserErrors, [
+    "public/core/page.js: unresolved local import ./part",
+    "public/core/page.js: unresolved local import /missing-root.js",
+  ]);
 });
 
 test("retired previews cannot return through catalog, authored source or generated player setup", () => {

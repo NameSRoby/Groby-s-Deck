@@ -10,7 +10,7 @@ const {
 } = require("../../../shared/packages/package-directory-integrity");
 const { validateFeatureManifestV1 } = require("../contracts/feature-manifest-v1");
 
-const MANIFEST_NAME = "ravelink.feature.json";
+const MANIFEST_NAME = "groby.feature.json";
 
 async function verifyFeaturePackageDirectory(rootPath, options = {}) {
   const scanned = await scanPackageDirectory(rootPath, options.limits);

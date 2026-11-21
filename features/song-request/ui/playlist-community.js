@@ -30,7 +30,7 @@ window.installCommunityPlaylists = function (libraryView) {
       label.setAttribute("role", "status");
       label.textContent =
         {
-          local: "Saved in RaveLink",
+          local: "Saved in Groby’s Deck",
           synced: "Account playlist synced",
           pending: "Saved locally - account sync pending",
           review: "Saved locally - check account playlist before retrying",
@@ -59,7 +59,7 @@ window.installCommunityPlaylists = function (libraryView) {
           list.phase === "review"
             ? "A write was not confirmed. Check the account playlist first to avoid duplicate songs."
             : list.provider === "spotify"
-              ? "Open Spotify with the updated RaveLink companion to sync."
+              ? "Open Spotify with the updated Groby’s Deck companion to sync."
               : "Connect TIDAL playlist access in Transfers, then retry.";
         row.append(note);
         const retry = document.createElement("button");

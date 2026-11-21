@@ -67,10 +67,7 @@ function checkInstallation({ root = path.resolve(__dirname, ".."), music = true 
         throw Error(
           "Application audio capture needs Windows build 20348 or later; use Windows 11.",
         );
-      const helper = path.join(
-        root,
-        "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe",
-      );
+      const helper = path.join(root, "runtime/music-to-light/cargo/release/groby-audio-probe.exe");
       const result = spawnSync(helper, ["--installation-check"], {
         encoding: "utf8",
         windowsHide: true,

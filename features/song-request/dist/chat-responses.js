@@ -56,6 +56,8 @@ const REASONS = Object.freeze({
   tidal_oauth_sign_in_required: "TIDAL needs to be connected in Setup",
   player_inactive: "that player is no longer selected",
   requester_limit: "you have reached your request limit",
+  request_limits_unavailable:
+    "your pending requests could not be checked; please try again shortly",
   queue_full: "the queue is full",
   intake_paused: "requests are paused",
   requester_blocked: "you are blocked from Song Request",

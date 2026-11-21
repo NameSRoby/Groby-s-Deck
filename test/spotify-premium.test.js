@@ -19,7 +19,7 @@ const unprotect = (encrypted) => ({
   plain: JSON.parse(Buffer.from(encrypted.fixture, "base64").toString()),
 });
 
-test("Premium OAuth uses single-use PKCE, playback-only scopes, encrypted storage and refresh tokens", async (t) => {
+test("Premium OAuth uses single-use PKCE, playback and library scopes, encrypted storage and refresh tokens", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-oauth-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const vaultPath = path.join(root, "vault.json"),
@@ -57,6 +57,7 @@ test("Premium OAuth uses single-use PKCE, playback-only scopes, encrypted storag
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
   assert.equal(url.searchParams.get("scope").includes("playlist"), false);
   assert.equal(url.searchParams.get("scope").includes("streaming"), false);
+  assert.equal(url.searchParams.get("scope").includes("user-library-modify"), true);
   assert.equal(
     (await auth.callback({ code: "fixture-code", state: "z".repeat(43) }, redirect)).error,
     "spotify_oauth_state_invalid",

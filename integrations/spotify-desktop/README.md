@@ -2,8 +2,8 @@
 
 One Spotify player combines two optional connections:
 
-- **Desktop companion:** target support for Spotify Free through a minimal RaveLink companion, using a reduced Spicetify-derived native hook. The full Spicetify CLI, marketplace, themes and extension runtime are not required by the generated bundle. No developer client ID or token extraction is required by the companion. Artist/title search and native queue insertion while paused were verified locally on Store Spotify 1.3.5.3058. Broader account compatibility and playback restrictions still need validation.
-- **Official API:** optional Spotify Premium playback control with OAuth PKCE. Premium is Spotify's subscription, not a RaveLink fee. Spotify app allowlisting/quota restrictions also apply. No queue-removal endpoint is assumed.
+- **Desktop companion:** target support for Spotify Free through a minimal Groby’s Deck companion, using a reduced Spicetify-derived native hook. The full Spicetify CLI, marketplace, themes and extension runtime are not required by the generated bundle. No developer client ID or token extraction is required by the companion. Artist/title search and native queue insertion while paused were verified locally on Store Spotify 1.3.5.3058. Broader account compatibility and playback restrictions still need validation.
+- **Official API:** optional Spotify Premium playback control with OAuth PKCE. Premium is Spotify's subscription, not a Groby’s Deck fee. Spotify app allowlisting/quota restrictions also apply. No queue-removal endpoint is assumed.
 
 The Spotify Desktop companion is connected to Song Request Playback, Setup and Moderation through `provider.cjs` and a paired loopback transport. They make no calls merely by being imported. The desktop adapter requires an explicit local-device verification function before queue writes; the official adapter requires an access-token supplier and chosen device. The desktop path now owns a persisted request/UID journal and a ten-upcoming-request window. `playback-provider.cjs` combines both paths with optional host-only OAuth PKCE, DPAPI credential storage and Setup UI. Device identity must match before official controls are mixed with native queue ownership. Official-only fallback requires an explicitly selected active device. Entry-to-transport bindings are persisted before dispatch, preventing an uncertain write from being repeated through the other path. Both paths share ten upcoming request slots; queued official entries have no individual removal endpoint.
 
@@ -13,11 +13,11 @@ The minimal renderer is built with `node scripts/build-spotify-desktop.js`. It c
 
 The `dist` bundle includes its editable linked sources, rebuild script, integrity inventory and LGPL component notices. The supported Setup flow stages a verified runtime sidecar without changing the original Spotify installation. The source hook rejects missing or ambiguous markers, already patched input and detected Spicetify modifications.
 
-The separate `readiness-probe.js` is read-only and can be pasted into Spotify DevTools. It detects the minimal RaveLink runtime or reports capabilities of an existing Spicetify client. Its output does not certify playback readiness. Do not paste credentials or account tokens into it.
+The separate `readiness-probe.js` is read-only and can be pasted into Spotify DevTools. It detects the minimal Groby’s Deck runtime or reports capabilities of an existing Spicetify client. Its output does not certify playback readiness. Do not paste credentials or account tokens into it.
 
 ## Local client preparation
 
-Use **Song Request > Player > Spotify > Setup > Prepare companion**. Fully quit Spotify, including its tray icon, then choose **Open Spotify with RaveLink**. Playback also shows this launch action while disconnected. A normal Spotify launch does not load the companion.
+Use **Song Request > Player > Spotify > Setup > Prepare companion**. Fully quit Spotify, including its tray icon, then choose **Open Spotify with Groby’s Deck**. Playback also shows this launch action while disconnected. A normal Spotify launch does not load the companion.
 
 Setup discovers regular and Microsoft Store installations, validates the installed archive, renderer integrity and exact platform hook, then stages a sidecar under local runtime storage. Newer clients keep JavaScript in a V8 snapshot; the source is parsed in memory without executing it during preparation. Spotify-owned copied assets and extracted code remain in ignored runtime storage and must never be published.
 
@@ -47,4 +47,4 @@ Mocked OAuth, transport, scheduler and browser tests cover the combined flow, sh
 
 The companion now exposes a narrow playlist command for Transfers. It uses native RootlistAPI/PlaylistAPI services to list visible library playlists and read ordered pages of 25 entries. Spotify playlist URLs are normalized to playlist URIs; no authenticated URL proxy, collaborator invitations or playback changes are exposed by this command. Unsupported clients or inaccessible playlists fail visibly. Repeated tracks and unavailable entry positions survive source loading. This path has fixture/paired-bridge/browser coverage; live playlist-source acceptance remains outstanding and requires the updated companion to be prepared and reopened.
 
-Community rewards can create a uniquely named native playlist and append bounded batches through RootlistAPI/PlaylistAPI. RaveLink keeps a local backup and mutation journal, reads the account playlist back before confirming sync, and holds uncertain writes for review. Prepare/reopen the companion after updating. General Spotify transfer destinations are not exposed.
+Community rewards can create a uniquely named native playlist and append bounded batches through RootlistAPI/PlaylistAPI. Groby’s Deck keeps a local backup and mutation journal, reads the account playlist back before confirming sync, and holds uncertain writes for review. Prepare/reopen the companion after updating. General Spotify transfer destinations are not exposed.

@@ -43,7 +43,7 @@ async function createPackage(root, options = {}) {
     },
   };
   await fs.promises.writeFile(
-    path.join(root, "ravelink.mod.json"),
+    path.join(root, "groby.mod.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
     "utf8",
   );

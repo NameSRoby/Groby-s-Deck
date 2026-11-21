@@ -1,4 +1,20 @@
 import { deckScreens } from "./control-deck-screen-layout.js";
+
+export function renderDeckPageTabs(nav, pages, selected, onPage, extraTab) {
+  nav.hidden = false;
+  nav.replaceChildren(
+    ...pages.map(({ id, name }) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = name;
+      button.setAttribute("aria-pressed", String(id === selected));
+      button.onclick = () => onPage(id);
+      return button;
+    }),
+    extraTab,
+  );
+}
+
 /** Fullscreen screens reuse the real buttons; swiping never executes one. */
 export function createDeckPager({
   host,
@@ -39,6 +55,7 @@ export function createDeckPager({
     );
   const enabled = () =>
     host.dataset.focus === "true" &&
+    host.dataset.bingoPage !== "true" &&
     (getConfig()?.layout?.fullscreenMode === "pages" ||
       getConfig()?.layout?.fullscreenSwipe ||
       getConfig()?.layout?.fullscreenKeyboard);
@@ -64,6 +81,7 @@ export function createDeckPager({
       (pages.length > 1 ? (pages[at]?.name || `Page ${at + 1}`) + " · " : "") +
       `${index + 1} / ${total}`;
     if (document.activeElement?.closest?.("[data-deck-button][hidden]")) next.focus();
+    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
   }
   function measure() {
     frame = null;
@@ -170,13 +188,15 @@ export function createDeckPager({
   host.addEventListener(
     "pointerdown",
     (event) => {
+      // A new deliberate press is separate from the previous swipe's synthetic click.
+      if (event.isPrimary) suppressUntil = 0;
       if (
         !enabled() ||
         !getConfig()?.layout?.fullscreenSwipe ||
         event.pointerType !== "touch" ||
         !event.isPrimary ||
         event.target.closest(
-          "input:not([type=range]),select,textarea,.deckScreenNav,.deckExitFullscreen,.deckKeepAwake",
+          "input:not([type=range]),select,textarea,.deckScreenNav,.deckExitFullscreen,.deckKeepAwake,.deckSliderStep,.deckHapticsSettings",
         )
       )
         return;
@@ -231,7 +251,7 @@ export function createDeckPager({
       if (
         event.detail > 0 &&
         performance.now() < suppressUntil &&
-        !event.target.closest(".deckScreenNav")
+        !event.target.closest(".deckScreenNav,.deckExitFullscreen,.deckKeepAwake")
       ) {
         event.preventDefault();
         event.stopImmediatePropagation();

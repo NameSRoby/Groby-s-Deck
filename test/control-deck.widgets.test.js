@@ -59,6 +59,17 @@ test("music status uses confirmed requester ownership, native next requests and 
   assert.deepEqual(adapt(source), value);
   source.nativeStatus.handoffs[0].title = "Another recording";
   assert.equal(adapt(source).current.requester, "");
+  const queue = {
+    queue: {
+      queue: Array.from({ length: 20 }, (_, i) => ({
+        id: "q" + i,
+        candidate: { title: "Track " + i },
+      })),
+    },
+  };
+  assert.equal(adapt(queue).next.length, 5);
+  assert.equal(adapt(queue, { limit: 20 }).next.length, 20);
+  assert.equal(adapt(queue, { limit: 999 }).next.length, 20);
 });
 test("widget accounts share cached reads, keep optional subscriber access explicit and never expose credentials", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "rvl-widgets-"));

@@ -406,7 +406,7 @@ export function initTwitchLightProgram({
   }
   $("addTwitchFixtureGroup").onclick = () => {
     draftRules.push({
-      id: globalThis.RaveLinkRandomId(),
+      id: globalThis.GrobyRandomId(),
       name: "New group",
       prefix: "",
       enabled: true,

@@ -35,9 +35,15 @@ test("Discord setup only connects mute and deafen without owning the app lifecyc
       .type("css")
       .send(fs.readFileSync(path.join(__dirname, "../public/core/control-deck.css"), "utf8")),
   );
+  app.get("/pill-input.js", (_req, res) =>
+    res.type("js").sendFile(path.join(__dirname, "../public/core/pill-input.js")),
+  );
+  app.get("/pill-input.css", (_req, res) =>
+    res.type("css").sendFile(path.join(__dirname, "../public/core/pill-input.css")),
+  );
   app.get("/", (_req, res) =>
     res.type("html")
-      .send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/deck.css"><style>:root{--panel:#0b0e18;--surface:#11182a;--bg:#050507;--edge:#263554;--text:#fff;--accent:#a90036;--muted:#9ab2d6}body{background:var(--bg);color:var(--text);font:16px Arial}</style></head><body><button id="open">Open integrations</button><script type="module">
+      .send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/deck.css"><link rel="stylesheet" href="/pill-input.css"><style>:root{--panel:#0b0e18;--surface:#11182a;--bg:#050507;--edge:#263554;--text:#fff;--accent:#a90036;--muted:#9ab2d6}body{background:var(--bg);color:var(--text);font:16px Arial}</style></head><body><button id="open">Open integrations</button><script type="module">
 import {createDeckIntegrations} from '/integrations.js';
 window.calls=[];
 window.snapshot={discord:{available:true,bound:true,muted:false},twitchClips:{connected:true,scopeGranted:true,config:{chatEnabled:false,chatAccess:'everyone'}}};
@@ -86,9 +92,10 @@ document.getElementById('open').onclick=()=>ui.open();
   assert.deepEqual(clips.status().config.titleModeration.blockedWords, []);
   assert.equal(
     await page.locator("#deckClipBlocked").inputValue(),
-    "spoiler",
+    "",
     "preview retains the draft",
   );
+  assert.equal(await page.getByRole("button", { name: "Remove spoiler", exact: true }).count(), 1);
   await page.locator("#deckClipFilterMode").selectOption("reject");
   await page.locator("#deckClipPreview").click();
   await page.waitForFunction(() =>

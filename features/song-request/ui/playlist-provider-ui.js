@@ -11,8 +11,8 @@ window.PlaylistProviderUI = (() => {
     tidal: "TIDAL",
     soundcloud: "SoundCloud",
     csv: "CSV file",
-    library: "RaveLink library",
-    local: "RaveLink library",
+    library: "Groby’s Deck library",
+    local: "Groby’s Deck library",
   };
   const colors = {
     url: "#9ec9ee",

@@ -59,7 +59,7 @@ export function initModUiRelay(frame) {
   return {
     open(id, panel) {
       close();
-      nonce = globalThis.RaveLinkRandomId();
+      nonce = globalThis.GrobyRandomId();
       modId = id;
       frame.src = `/mods-ui/${encodeURIComponent(id)}/${encodeURIComponent(panel)}#ravelinkRelay=${encodeURIComponent(nonce)}`;
     },

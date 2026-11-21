@@ -1,5 +1,5 @@
 // [TITLE] Module: app/core/create-lighting-core.js
-// [TITLE] Purpose: compose the independently runnable RaveLink lighting core
+// [TITLE] Purpose: compose the independently runnable Groby’s Deck lighting core
 // [TITLE] Functionality Index:
 // [TITLE] - custom color library and human directive parser
 // [TITLE] - fixture registry and Hue/WiZ output adapters

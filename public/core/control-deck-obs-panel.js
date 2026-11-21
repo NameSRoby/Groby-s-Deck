@@ -76,7 +76,7 @@ export function createObsPanel({ request, add, explain }) {
   });
   const credentials = el(
     "p",
-    "Your OBS password stays protected on the RaveLink PC. Phone and tablet buttons use Core’s connection.",
+    "Your OBS password stays protected on the Groby’s Deck PC. Phone and tablet buttons use Core’s connection.",
     "deckEditorHint",
   );
   advanced.append(
@@ -187,7 +187,7 @@ export function createObsPanel({ request, add, explain }) {
     local.disabled = !next.local?.serverEnabled;
     guide.textContent =
       next.local?.found && !next.local.serverEnabled
-        ? "OBS is installed here. Enable its WebSocket server in Tools → WebSocket Server Settings → Enable WebSocket server → Apply, then press Refresh OBS list. RaveLink does not restart OBS."
+        ? "OBS is installed here. Enable its WebSocket server in Tools → WebSocket Server Settings → Enable WebSocket server → Apply, then press Refresh OBS list. Groby’s Deck does not restart OBS."
         : "OBS Studio 28+ includes everything needed. Enable WebSocket Server Settings in OBS’s Tools menu, then connect. No extra plugin is needed.";
     pin.disabled = !next.connection.connected || next.connection.loading || !selection;
     return next;
@@ -253,7 +253,7 @@ function obsMessage(error, explain) {
       obs_authentication_failed: "OBS rejected the password. Check its WebSocket Server Settings.",
       obs_connection_timeout: "OBS did not answer. Check the server, port and local firewall.",
       obs_disconnected:
-        "OBS disconnected. RaveLink will reconnect while the connection is enabled.",
+        "OBS disconnected. Groby’s Deck will reconnect while the connection is enabled.",
       obs_enable_websocket_in_obs:
         "Enable the WebSocket server in OBS, press Apply, then refresh this list.",
       obs_scene_missing: "That scene is no longer available. Refresh the OBS list.",

@@ -11,6 +11,7 @@ module.exports = function createWindowsBridge({
   maxPending = 16,
   scriptName = "windows-control-deck.ps1",
   maxLineBytes = 16384,
+  idleTimeoutMs = 60000,
 } = {}) {
   let current,
     waiting,
@@ -172,8 +173,8 @@ module.exports = function createWindowsBridge({
         } catch (error) {
           complete(error);
         } finally {
-          if (current) {
-            idle = setTimeout(() => terminate(current), 60000);
+          if (current && idleTimeoutMs > 0) {
+            idle = setTimeout(() => terminate(current), idleTimeoutMs);
             idle.unref?.();
           }
         }

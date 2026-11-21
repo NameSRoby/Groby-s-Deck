@@ -21,7 +21,7 @@ test("package verifier accepts an exact complete SHA-256 inventory", async (t) =
   assert.equal(result.manifest.id, "example.package-mod");
   assert.deepEqual(
     result.files.map((row) => row.path),
-    ["dist/main.js", "ravelink.mod.json"],
+    ["dist/main.js", "groby.mod.json"],
   );
 });
 

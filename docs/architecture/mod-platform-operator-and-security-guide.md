@@ -22,9 +22,10 @@ The host defaults to `127.0.0.1`, four active mod processes, a root `mods/` inbo
 
 1. Place a locally obtained `.zip` or unpacked package folder directly under `mods/`.
 2. Review publisher, version, license, exact fingerprint, permissions, resource requests, and approval changes in the Mods tab.
-3. Confirm approval and execution; RaveLink copies the verified package to private runtime storage before starting it.
-4. Disable before update, rollback, or uninstall.
-5. Uninstall retains mod data by default. Data deletion must be a separate explicit choice through the API.
+3. Confirm approval and execution; Groby’s Deck copies the verified package to private runtime storage before starting it.
+4. Approved runtime consent and your enabled switch survive app restarts for the exact reviewed package. Disabling stops it but retains its review; changing package content requires another review.
+5. Disable before update, rollback, or uninstall.
+6. Uninstall retains mod data by default. Data deletion must be a separate explicit choice through the API.
 
 Package uploads are capped at 16 MiB compressed and 32 MiB expanded. Installation rejects traversal, links, special files, path collisions, high compression ratios, undeclared files, and SHA-256 mismatches. Upload staging files are private and removed after each attempt.
 

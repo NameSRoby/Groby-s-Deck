@@ -147,7 +147,7 @@ window.installPlaylistWorkspace = function installPlaylistWorkspace({
           : job.count;
     const waitLabel =
       job.rateLimitSource === "local"
-        ? "Waiting for RaveLink search allowance"
+        ? "Waiting for Groby’s Deck search allowance"
         : job.rateLimitSource === "soundcloud"
           ? "SoundCloud asked us to wait"
           : job.rateLimitSource === "concurrency"

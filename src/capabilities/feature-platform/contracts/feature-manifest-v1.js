@@ -10,8 +10,11 @@ const { RESOURCE_LIMITS } = require("../../supervised-runtime/resource-limits-v1
 // Third-party mods continue to use the shared 1000 ms minimum in their own validator.
 const FEATURE_RESOURCE_LIMITS = Object.freeze({
   ...RESOURCE_LIMITS,
-  activeRssMiB: [8, 256, "integer"],
+  activeRssMiB: [8, 384, "integer"],
+  idleCpuPercent: [0, 0.75, "number"],
   minTimerMs: [50, 86400000, "integer"],
+  // Bounded flow trees and the shared action catalog travel through first-party panels.
+  ipcFrameBytes: [1024, 524288, "integer"],
 });
 
 const MANIFEST_SCHEMA_VERSION = 1;
@@ -112,7 +115,7 @@ function validateFeatureManifestV1(input) {
   if (description.length > 500) error(errors, "$.description", "invalid_description");
   const version = typeof input.version === "string" ? input.version.trim() : "";
   if (!SEMVER_RE.test(version)) error(errors, "$.version", "invalid_version");
-  if (input.publisher !== "ravelink") error(errors, "$.publisher", "publisher_not_first_party");
+  if (input.publisher !== "grobys-deck") error(errors, "$.publisher", "publisher_not_first_party");
   const entry = typeof input.entry === "string" ? input.entry.trim() : "";
   if (!isSafePackagePath(entry) || !/\.(?:js|cjs|mjs)$/.test(entry))
     error(errors, "$.entry", "unsafe_entry");
@@ -306,7 +309,7 @@ function validateFeatureManifestV1(input) {
       name,
       description,
       version,
-      publisher: "ravelink",
+      publisher: "grobys-deck",
       entry,
       engine: Object.freeze({
         featureApi: engine.featureApi,

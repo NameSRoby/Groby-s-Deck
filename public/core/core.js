@@ -9,9 +9,7 @@ let fixtureConnectivity = new Map();
 let fixtureTestState = new Map();
 let fixtureGroups = [];
 let twitchProgramUi;
-let widgetSecurityStatus = {};
 let songRequestAvailable = false;
-let coreUpdateStatus = null;
 window.RaveLinkCoreUi = {
   request: (...args) => request(...args),
   fixtures: () => fixtures.slice(),
@@ -28,62 +26,7 @@ async function request(path, options = {}) {
   if (!response.ok || body.ok === false) throw new Error(body.error || `HTTP ${response.status}`);
   return body;
 }
-const sensitiveDisplayKey =
-  /(?:authorization|cookie|credential|password|secret|token|jwt|username|clientkey)/i;
-const networkDisplayKey = /(?:ip|host|url|bridgeid|deviceid)$/i;
-function redactDisplayString(value) {
-  return String(value ?? "")
-    .replace(
-      /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
-      (address) => `${address.split(".").slice(0, 2).join(".")}.x.x`,
-    )
-    .replace(/\beyJ[A-Za-z0-9_-]{12,}(?:\.[A-Za-z0-9_-]{8,}){1,2}\b/g, "[REDACTED TOKEN]")
-    .replace(/\b[a-fA-F0-9]{24,}\b/g, (value) => `${value.slice(0, 4)}...[REDACTED]`);
-}
-function safeDisplayValue(value, key = "", depth = 0) {
-  if (sensitiveDisplayKey.test(key) && !/(?:configured|present)$/i.test(key)) return "[REDACTED]";
-  if (networkDisplayKey.test(key)) return value ? redactDisplayString(value) : value;
-  if (depth >= 5) return "[TRUNCATED]";
-  if (Array.isArray(value))
-    return value.slice(0, 20).map((item) => safeDisplayValue(item, key, depth + 1));
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value)
-        .slice(0, 40)
-        .map(([childKey, child]) => [childKey, safeDisplayValue(child, childKey, depth + 1)]),
-    );
-  return typeof value === "string" ? redactDisplayString(value) : value;
-}
-function showResult(id, value, failed = false) {
-  const output = byId(id);
-  output.hidden = false;
-  const safe = safeDisplayValue(value);
-  const previousDetails = byId(`${id}DeveloperDetails`);
-  previousDetails?.remove();
-  if (typeof safe === "string") output.textContent = safe;
-  else {
-    const count = Array.isArray(safe?.installed)
-      ? safe.installed.length
-      : Array.isArray(safe?.fixtures)
-        ? safe.fixtures.length
-        : null;
-    output.textContent =
-      failed || safe?.ok === false
-        ? "ACTION FAILED"
-        : count !== null
-          ? `${count} FIXTURE${count === 1 ? "" : "S"} SAVED`
-          : safe?.operation
-            ? `${String(safe.operation).replaceAll("_", " ").toUpperCase()} COMPLETE`
-            : "ACTION COMPLETED";
-    const details = document.createElement("pre");
-    details.id = `${id}DeveloperDetails`;
-    details.className = "result developerDetails";
-    details.dataset.developerOnly = "true";
-    details.textContent = JSON.stringify(safe, null, 2);
-    output.after(details);
-  }
-  output.style.color = failed ? "var(--bad)" : "#c9d8ff";
-}
+const { showResult, redactDisplayString } = globalThis.initCoreResults(byId);
 function maskedAddress(value) {
   return redactDisplayString(value || "hidden");
 }
@@ -135,7 +78,7 @@ function applyLightingReadiness() {
     ready.length ? "ok" : "warn",
   );
   byId("lightStatus").title = ready.length ? "" : directReason;
-  updateWidgetReadiness();
+  widgetSetup.updateReadiness();
 }
 
 function showDiscoveryResult(result) {
@@ -382,7 +325,7 @@ document.querySelectorAll("[data-tab]").forEach((button) =>
     document
       .querySelectorAll("[data-tab]")
       .forEach((item) => item.classList.toggle("active", item === button));
-    document.querySelectorAll("[data-panel]").forEach((panel) => {
+    document.querySelectorAll("main > [data-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.panel !== button.dataset.tab;
     });
   }),
@@ -396,41 +339,14 @@ const themes = {
     text: "#eaeaea",
     glow: 65,
   },
-  ember: {
-    accent: "#d94118",
-    bg: "#090606",
-    surface: "#24120e",
-    text: "#fff1e8",
-    glow: 58,
-  },
-  ocean: {
-    accent: "#007ea8",
-    bg: "#03080b",
-    surface: "#0a2028",
-    text: "#e8fbff",
-    glow: 58,
-  },
-  matrix: {
-    accent: "#14a64a",
-    bg: "#020704",
-    surface: "#092013",
-    text: "#e9ffef",
-    glow: 48,
-  },
-  aurora: {
-    accent: "#9b287b",
-    bg: "#07050a",
-    surface: "#201229",
-    text: "#f9edff",
-    glow: 62,
-  },
-  solar: {
-    accent: "#d99a00",
-    bg: "#090805",
-    surface: "#27200b",
-    text: "#fff9df",
-    glow: 44,
-  },
+  ember: { accent: "#b95538", bg: "#100e10", surface: "#251e22", text: "#f8ede9", glow: 28 },
+  ocean: { accent: "#227b9d", bg: "#0b111b", surface: "#172638", text: "#e9f3fc", glow: 24 },
+  matrix: { accent: "#287d61", bg: "#0b1311", surface: "#192a25", text: "#edf7f1", glow: 20 },
+  aurora: { accent: "#7755ac", bg: "#100e1a", surface: "#241f36", text: "#f3eefc", glow: 28 },
+  solar: { accent: "#876626", bg: "#14120d", surface: "#2c261b", text: "#fbf4df", glow: 20 },
+  slate: { accent: "#516a94", bg: "#0e1219", surface: "#202a39", text: "#eef2f8", glow: 16 },
+  rosewood: { accent: "#a04b68", bg: "#160e14", surface: "#2d1e29", text: "#faedf3", glow: 24 },
+  forest: { accent: "#577640", bg: "#10140f", surface: "#242d20", text: "#f1f5eb", glow: 18 },
 };
 
 let themeEditRevision = 0;
@@ -584,7 +500,7 @@ function fixtureTestFailure(error) {
     hue_lights_query_failed:
       "The Hue bridge did not return its light inventory. Check bridge power and network access, then test again.",
     hue_lights_transport_unavailable:
-      "Hue networking is unavailable. Restart RaveLink and check the local network connection.",
+      "Hue networking is unavailable. Restart Groby’s Deck and check the local network connection.",
     wiz_probe_timeout:
       "The WiZ light did not answer. Confirm it is powered and on the same local network, then rediscover WiZ.",
     wiz_probe_failed:
@@ -871,377 +787,15 @@ byId("controlRoutingTestInput").addEventListener("keydown", (event) => {
   }
 });
 
-byId("baseUrl").value = location.origin;
-function applyWidgetSensitiveVisibility() {
-  const reveal = byId("showWidgetSensitive").checked;
-  byId("baseUrl").type = reveal ? "text" : "password";
-  byId("intakeToken").type = reveal ? "text" : "password";
-  byId("widgetOutput").style.webkitTextSecurity = reveal ? "none" : "disc";
-}
-byId("showWidgetSensitive").onchange = applyWidgetSensitiveVisibility;
-applyWidgetSensitiveVisibility();
-
-function applyWidgetSecurity(status = {}) {
-  widgetSecurityStatus = status;
-  const managed = status.managementAvailable === true;
-  const configured = status.configured === true;
-  const widgetStatusText =
-    status.mode === "environment_read_only"
-      ? "ENV TOKEN ACTIVE"
-      : configured
-        ? status.overlapActive
-          ? "TOKEN ROTATING"
-          : "HOSTED INTAKE READY"
-        : "SERVER TOKEN REQUIRED";
-  setStatus(
-    "widgetStatus",
-    widgetStatusText,
-    configured ? (status.overlapActive ? "warn" : "ok") : "warn",
-  );
-  byId("rotateIntakeToken").disabled = !managed;
-  byId("clearIntakeToken").disabled = !managed || !configured;
-  byId("rotateIntakeToken").textContent = configured ? "ROTATE TOKEN" : "GENERATE TOKEN";
-  byId("rotateIntakeToken").title = managed
-    ? "Generate and reveal a server-managed intake token once"
-    : "Token is controlled by RAVELINK_WIDGET_INTAKE_TOKEN";
-  updateWidgetReadiness();
-}
-function widgetGenerationProblem() {
-  if (
-    !byId("colorRewardId").value.trim() &&
-    !byId("teachRewardId").value.trim() &&
-    !byId("songRewardId").value.trim() &&
-    !byId("playlistRewardId").value.trim()
-  )
-    return "ADD AT LEAST ONE REWARD ID";
-  if (byId("colorRewardId").value.trim() && configuredLightFixtures().length === 0)
-    return "PAIR OR ADD A USABLE FIXTURE FOR THE LIGHT REWARD";
-  if (
-    (byId("songRewardId").value.trim() || byId("playlistRewardId").value.trim()) &&
-    !songRequestAvailable
-  )
-    return "INSTALL AND ENABLE SONG REQUEST BEFORE ROUTING ITS REWARD";
-  if (!byId("intakeToken").value.trim())
-    return widgetSecurityStatus.overlapActive
-      ? "TOKEN WAS ROTATED // ROTATE ONCE MORE TO REVEAL A TOKEN, THEN VERIFY, GENERATE, AND REPLACE THE STREAM ELEMENTS CODE"
-      : "GENERATE OR ENTER AN INTAKE TOKEN";
-  try {
-    const url = new URL(byId("baseUrl").value);
-    if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname))
-      return "BRIDGE URL MUST BE LOOPBACK HTTP";
-  } catch {
-    return "BRIDGE URL IS INVALID";
-  }
-  return "";
-}
-
-function updateWidgetReadiness() {
-  const problem = widgetGenerationProblem();
-  byId("generateWidget").disabled = Boolean(problem);
-  const rebuildProblem =
-    !byId("colorRewardId").value.trim() &&
-    !byId("teachRewardId").value.trim() &&
-    !byId("songRewardId").value.trim() &&
-    !byId("playlistRewardId").value.trim()
-      ? "Add at least one reward ID before rebuilding the widget."
-      : byId("colorRewardId").value.trim() && configuredLightFixtures().length === 0
-        ? "Pair or add a usable fixture before rebuilding the lights widget."
-        : (byId("songRewardId").value.trim() || byId("playlistRewardId").value.trim()) &&
-            !songRequestAvailable
-          ? "Install and enable Song Request before rebuilding its widget route."
-          : "";
-  setUnavailable(
-    byId("rebuildWidget"),
-    !widgetSecurityStatus.managementAvailable || Boolean(rebuildProblem),
-    !widgetSecurityStatus.managementAvailable
-      ? "The intake token is managed by the server environment."
-      : rebuildProblem,
-  );
-  byId("widgetNotice").textContent = problem || "READY TO GENERATE";
-  byId("widgetNotice").className = `notice${problem ? " bad" : ""}`;
-  const hasOutput = Boolean(byId("widgetOutput").value);
-  setUnavailable(byId("copyWidget"), !hasOutput, "Generate widget code before copying it.");
-  setUnavailable(
-    byId("testIntakeToken"),
-    !byId("intakeToken").value.trim(),
-    "Generate or enter an intake token before verifying it.",
-  );
-}
-for (const id of [
-  "colorRewardId",
-  "teachRewardId",
-  "songRewardId",
-  "playlistRewardId",
-  "baseUrl",
-  "intakeToken",
-])
-  byId(id).oninput = updateWidgetReadiness;
-byId("rotateIntakeToken").onclick = async () => {
-  if (
-    byId("rotateIntakeToken").textContent === "ROTATE TOKEN" &&
-    !confirm(
-      "Rotate the widget token? Existing widgets keep working briefly during the overlap window.",
-    )
-  )
-    return;
-  try {
-    const result = await request("/system/widget-token/rotate", {
-      method: "POST",
-      body: "{}",
-    });
-    byId("intakeToken").value = result.token || "";
-    byId("intakeToken").focus();
-    byId("intakeToken").select();
-    applyWidgetSecurity(result.widgetSecurity);
-  } catch (error) {
-    byId("widgetOutput").value = error.message;
-  }
-};
-byId("clearIntakeToken").onclick = async () => {
-  if (
-    !confirm(
-      "Revoke the current and overlapping widget tokens? Hosted widgets will stop until a new token is generated.",
-    )
-  )
-    return;
-  try {
-    const result = await request("/system/widget-token/clear", {
-      method: "POST",
-      body: "{}",
-    });
-    byId("intakeToken").value = "";
-    applyWidgetSecurity(result.widgetSecurity);
-  } catch (error) {
-    byId("widgetOutput").value = error.message;
-  }
-};
-byId("testIntakeToken").onclick = async () => {
-  try {
-    const token = byId("intakeToken").value.trim();
-    const result = await request("/widget/events", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        contract: "widget.events.v2",
-        source: "streamelements",
-        eventEnvelope: {
-          detail: {
-            listener: "message",
-            event: { text: "ravelink-intake-health-check" },
-          },
-        },
-        widgetConfig: {
-          colorRewardId: byId("colorRewardId").value.trim(),
-          teachRewardId: byId("teachRewardId").value.trim(),
-          playlistRewardId: byId("playlistRewardId").value.trim(),
-          songRewardId: byId("songRewardId").value.trim(),
-        },
-      }),
-    });
-    byId("widgetNotice").textContent =
-      result.disposition === "irrelevant"
-        ? "INTAKE TOKEN VERIFIED // GENERATE AND REPLACE THE STREAM ELEMENTS WIDGET CODE"
-        : "INTAKE TOKEN VERIFIED";
-    byId("widgetNotice").className = "notice";
-  } catch (error) {
-    byId("widgetNotice").textContent = `INTAKE TOKEN REJECTED // ${error.message}`;
-    byId("widgetNotice").className = "notice bad";
-  }
-};
-byId("generateWidget").onclick = async () => {
-  const problem = widgetGenerationProblem();
-  if (problem) return updateWidgetReadiness();
-  try {
-    const result = await request("/system/widget-template-get", {
-      method: "POST",
-      body: JSON.stringify({
-        colorRewardId: byId("colorRewardId").value,
-        teachRewardId: byId("teachRewardId").value,
-        playlistRewardId: byId("playlistRewardId").value,
-        songRewardId: byId("songRewardId").value,
-        baseUrl: byId("baseUrl").value,
-        widgetIntakeToken: byId("intakeToken").value,
-      }),
-    });
-    byId("widgetOutput").value = result.script || "";
-    byId("intakeToken").value = "";
-    byId("generateWidget").disabled = true;
-    setUnavailable(byId("copyWidget"), false);
-    applyWidgetSensitiveVisibility();
-    byId("widgetNotice").textContent = "WIDGET CODE GENERATED";
-    byId("widgetNotice").className = "notice";
-  } catch (error) {
-    byId("widgetNotice").textContent = error.message;
-    byId("widgetNotice").className = "notice bad";
-  }
-};
-byId("rebuildWidget").onclick = async () => {
-  if (
-    !confirm(
-      "Create replacement widget code? This rotates the intake token. The currently deployed widget remains valid for ten minutes while you replace its JavaScript.",
-    )
-  )
-    return;
-  try {
-    const result = await request("/system/widget-template-rebuild", {
-      method: "POST",
-      body: JSON.stringify({
-        colorRewardId: byId("colorRewardId").value,
-        teachRewardId: byId("teachRewardId").value,
-        playlistRewardId: byId("playlistRewardId").value,
-        songRewardId: byId("songRewardId").value,
-        baseUrl: byId("baseUrl").value,
-      }),
-    });
-    byId("widgetOutput").value = result.script || "";
-    byId("intakeToken").value = "";
-    applyWidgetSecurity(result.widgetSecurity);
-    setUnavailable(byId("copyWidget"), false);
-    applyWidgetSensitiveVisibility();
-    byId("widgetNotice").textContent =
-      "REPLACEMENT READY // COPY IT INTO THE STREAM ELEMENTS CUSTOM WIDGET JS AND SAVE";
-    byId("widgetNotice").className = "notice";
-  } catch (error) {
-    byId("widgetNotice").textContent = `REBUILD FAILED // ${error.message}`;
-    byId("widgetNotice").className = "notice bad";
-  }
-};
-async function refreshWidgetConnection() {
-  try {
-    const diagnostics = await request("/system/diagnostics");
-    const counters = diagnostics.domains?.widget?.counters || {};
-    const received = Number(counters.received || 0),
-      ready = Number(counters.ready || 0),
-      handled = Number(counters.handled || 0),
-      rejected = Number(counters.rejected || 0);
-    const message =
-      handled > 0
-        ? `DEPLOYMENT ACTIVE // ${handled} REDEMPTION${handled === 1 ? "" : "S"} HANDLED`
-        : ready > 0
-          ? `DEPLOYMENT CONNECTED // ${ready} AUTHENTICATED WIDGET LOAD${ready === 1 ? "" : "S"}; NO MATCHING REDEMPTION YET`
-          : rejected > 0
-            ? `DEPLOYED WIDGET TOKEN REJECTED ${rejected} TIME${rejected === 1 ? "" : "S"} // REBUILD AND REPLACE THE STREAM ELEMENTS JS`
-            : "NO WIDGET CONTACT YET // REBUILD, PASTE THE JS INTO STREAM ELEMENTS, SAVE, THEN REFRESH ITS OBS SOURCE";
-    byId("widgetConnectionNotice").textContent = message;
-    byId("widgetConnectionNotice").className = `notice${handled > 0 || received > 0 ? "" : " bad"}`;
-  } catch (error) {
-    byId("widgetConnectionNotice").textContent = `DEPLOYMENT CHECK FAILED // ${error.message}`;
-    byId("widgetConnectionNotice").className = "notice bad";
-  }
-}
-byId("refreshWidgetConnection").onclick = refreshWidgetConnection;
-byId("copyWidget").onclick = async () => {
-  if (!byId("widgetOutput").value) return;
-  try {
-    await navigator.clipboard.writeText(byId("widgetOutput").value);
-    byId("widgetNotice").textContent = "WIDGET CODE COPIED";
-    byId("widgetNotice").className = "notice";
-  } catch {
-    byId("widgetNotice").textContent =
-      "COPY BLOCKED BY BROWSER // SELECT THE GENERATED OUTPUT MANUALLY";
-    byId("widgetNotice").className = "notice bad";
-  }
-};
-
-function renderCoreUpdateStatus(value) {
-  coreUpdateStatus = value;
-  byId("installedVersion").textContent = value.currentVersion || "UNKNOWN";
-  byId("latestVersion").textContent = value.latest?.version || "NOT CHECKED";
-  byId("stagedVersion").textContent = value.staged?.version || "NONE";
-  byId("rollbackVersion").textContent = value.rollback?.version || "NONE";
-  byId("checkUpdatesOnLaunch").checked = value.checkOnLaunch === true;
-  const available = value.latest?.available === true;
-  byId("downloadUpdate").disabled = !available;
-  byId("applyUpdate").disabled = value.staged?.verified !== true || value.hosted !== true;
-  byId("rollbackUpdate").disabled = !value.rollback || value.hosted !== true;
-  byId("updateStatus").textContent = value.checking
-    ? "CHECKING"
-    : value.staged
-      ? "READY TO INSTALL"
-      : available
-        ? "UPDATE AVAILABLE"
-        : "CURRENT";
-  byId("updateNotice").textContent = value.lastError
-    ? `UPDATE CHECK FAILED // ${value.lastError.replaceAll("_", " ").toUpperCase()}`
-    : available
-      ? `VERSION ${value.latest.version} IS AVAILABLE. DOWNLOAD VERIFIES THE RELEASE CHECKSUM BEFORE INSTALLATION.`
-      : value.latest
-        ? "THIS INSTALLATION MATCHES THE LATEST STABLE RELEASE."
-        : "AUTOMATIC CHECKS ARE OPT-IN. UPDATES ARE NEVER INSTALLED WITHOUT YOUR ACTION.";
-  byId("updateNotice").className = `notice${value.lastError ? " bad" : ""}`;
-}
-
-async function updateAction(path, body) {
-  const value = await request(path, {
-    method: "POST",
-    body: JSON.stringify(body || {}),
-  });
-  if (value.currentVersion) renderCoreUpdateStatus(value);
-  return value;
-}
-
-byId("saveUpdatePreference").onclick = async () => {
-  try {
-    renderCoreUpdateStatus(
-      await updateAction("/system/update/configure", {
-        checkOnLaunch: byId("checkUpdatesOnLaunch").checked,
-      }),
-    );
-  } catch (error) {
-    byId("updateNotice").textContent = `PREFERENCE NOT SAVED // ${error.message}`;
-    byId("updateNotice").className = "notice bad";
-  }
-};
-byId("checkForUpdate").onclick = async () => {
-  try {
-    renderCoreUpdateStatus(await updateAction("/system/update/check"));
-  } catch (error) {
-    byId("updateNotice").textContent = `UPDATE CHECK FAILED // ${error.message}`;
-    byId("updateNotice").className = "notice bad";
-  }
-};
-byId("downloadUpdate").onclick = async () => {
-  byId("downloadUpdate").disabled = true;
-  byId("updateNotice").textContent = "DOWNLOADING AND VERIFYING RELEASE...";
-  try {
-    renderCoreUpdateStatus(await updateAction("/system/update/download"));
-  } catch (error) {
-    byId("updateNotice").textContent = `DOWNLOAD FAILED // ${error.message}`;
-    byId("updateNotice").className = "notice bad";
-  }
-};
-byId("applyUpdate").onclick = async () => {
-  if (
-    !confirm(
-      `Install RaveLink Core ${coreUpdateStatus?.staged?.version || "update"} now? The server will restart after creating a rollback snapshot.`,
-    )
-  )
-    return;
-  try {
-    await updateAction("/system/update/apply");
-    byId("updateNotice").textContent =
-      "UPDATE STARTED // RAVELINK CORE WILL REOPEN AFTER ITS HEALTH CHECK";
-  } catch (error) {
-    byId("updateNotice").textContent = `INSTALL FAILED // ${error.message}`;
-    byId("updateNotice").className = "notice bad";
-  }
-};
-byId("rollbackUpdate").onclick = async () => {
-  if (
-    !confirm(
-      `Restore RaveLink Core ${coreUpdateStatus?.rollback?.version || "previous version"} now? Current settings and installed feature state will be preserved.`,
-    )
-  )
-    return;
-  try {
-    await updateAction("/system/update/rollback");
-    byId("updateNotice").textContent =
-      "ROLLBACK STARTED // RAVELINK CORE WILL REOPEN ON THE PREVIOUS VERSION";
-  } catch (error) {
-    byId("updateNotice").textContent = `ROLLBACK FAILED // ${error.message}`;
-    byId("updateNotice").className = "notice bad";
-  }
-};
+const widgetSetup = globalThis.initWidgetSetup({
+  byId,
+  request,
+  setStatus,
+  setUnavailable,
+  hasFixtures: () => configuredLightFixtures().length > 0,
+  hasSongRequest: () => songRequestAvailable,
+});
+const loadUpdateStatus = globalThis.initCoreUpdates({ byId, request });
 
 async function boot() {
   try {
@@ -1254,9 +808,9 @@ async function boot() {
       (status.fixtures?.connectivity?.rows || []).map((row) => [row.id, row]),
     );
     songRequestAvailable = status.capabilities?.songRequest === true;
-    renderCoreUpdateStatus(await request("/system/update/status"));
+    void loadUpdateStatus();
     renderFixtures();
-    applyWidgetSecurity(status.widgetSecurity);
+    widgetSetup.applySecurity(status.widgetSecurity);
     twitchProgramUi = await import("/twitch-light-program.js").then((module) =>
       module.initTwitchLightProgram({
         request,
@@ -1274,7 +828,8 @@ async function boot() {
       await import("/features.js").then((module) => module.initFeaturePlatform());
     }
     if (status.capabilities?.mods === true) {
-      byId("modsTab").hidden = false;
+      byId("modsSectionTab").hidden = false;
+      byId("featuresTab").hidden = false;
       await import("/mods.js").then((module) => module.initModPlatform());
     }
   } catch (error) {

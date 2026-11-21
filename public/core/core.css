@@ -534,3 +534,24 @@ tr:last-child td {
     display: none;
   }
 }
+
+body.overlayStudioOpen {
+  overflow: hidden;
+}
+body.overlayStudioOpen [data-panel="overlays"] {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+}
+body.overlayStudioOpen #overlayDesignerFrame {
+  display: block;
+  width: 100%;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+}

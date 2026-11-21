@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quotes</title>
+<style>
+body{margin:0;padding:24px;color-scheme:dark;background:var(--surface,#0b101b);color:var(--text,#edf1ff);font:15px/1.5 system-ui}main{max-width:1100px;margin:auto}h1{font-size:25px}p,small{color:var(--muted,#aab7d1)}button,input,select,textarea{font:inherit;color:inherit;background:#121a2a;border:1px solid #394762;border-radius:8px;padding:10px;box-sizing:border-box}button,select{min-height:44px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}textarea{width:100%;resize:vertical}label{display:block;margin:12px 0}#source{min-height:180px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{padding:12px 8px;border-bottom:1px solid #394762;text-align:left;vertical-align:top}td textarea{min-height:90px}td:first-child{width:60px}td:last-child{width:180px}input[type=checkbox]{width:24px;height:24px;accent-color:#b52057;cursor:pointer}.scroll{overflow-x:auto}#status{min-height:24px}details{margin:16px 0}summary{cursor:pointer;min-height:44px;align-content:center}@media(max-width:650px){body{padding:16px}table{min-width:560px}}
+.quoteRow{border-bottom:1px solid #394762;padding:16px 0}.quoteRow p{color:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}.quoteRow small{display:block;margin:8px 0}#quoteEditor{padding:16px;border:1px solid #394762;border-radius:10px}#quoteSearch{display:block;min-width:260px}dialog{max-width:440px;border:1px solid #394762;border-radius:12px;color:inherit;background:#121a2a}dialog::backdrop{background:#0009}</style></head><body><main>
+<h1>Quotes</h1>
+<div class="toolbar"><label>Search<input id="quoteSearch" type="search" placeholder="Find a quote or number"></label><button id="quoteNew" type="button">Add quote</button><button id="quoteRefresh" type="button">Refresh</button><small id="quoteCount"></small></div>
+<p id="quoteListStatus" role="status"></p>
+<section id="quoteEditor" hidden><h2 id="quoteEditorTitle">Edit quote</h2><label>Quote text<textarea id="quoteText" rows="5" maxlength="2000"></textarea></label><p id="quoteEditStatus" role="status"></p><div class="toolbar"><button id="quoteSave" type="button">Save quote</button><button id="quoteCancel" type="button">Cancel</button></div></section>
+<div id="quoteRows"></div><div class="toolbar"><button id="quotePrevious" type="button" disabled>Previous</button><small id="quotePage"></small><button id="quoteNext" type="button" disabled>Next</button></div>
+<dialog id="quoteDeleteDialog" aria-labelledby="quoteDeleteText"><div class="visibleDialogContent"><p id="quoteDeleteText"></p><p id="quoteDeleteStatus" role="status"></p></div><div class="toolbar"><button id="quoteDeleteConfirm" type="button">Delete quote</button><button id="quoteDeleteCancel" type="button" autofocus>Cancel</button></div></dialog>
+<details id="quoteImport"><summary>Import quotes</summary><p>Paste copied StreamElements quote rows or a list of quotes. Review and edit them before importing.</p>
+<label>Format <select id="format"><option value="auto">Detect copied rows automatically</option><option value="lines">One quote per line</option></select></label>
+<label>Copied quotes<textarea id="source" maxlength="100000" placeholder="Paste the copied rows, including their numbers and dates."></textarea></label>
+<div class="toolbar"><button id="preview">Preview quotes</button><button id="apply" disabled>Import selected quotes</button></div>
+<p id="status" role="status">Quote numbers, dates, categories and usernames are kept separate from the quote text.</p>
+<details id="notes" hidden><summary>Parsing notes</summary><ul id="warnings"></ul></details>
+<div class="scroll"><table id="review" hidden><thead><tr><th>Import</th><th>Quote</th><th>Original details</th></tr></thead><tbody id="rows"></tbody></table></div>
+<small>Imported quotes receive the next available numbers. Use !quote, !quote add and !deletequote in chat.</small>
+</details></main>
+<!-- QUOTE_PARSER_START -->
+<script>const QuoteImport={parse:function parse(source, mode = "auto") {
+  if (typeof source !== "string" || source.length > 100000)
+    throw Error("Paste up to 100,000 characters at a time.");
+  const entities = { amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " " };
+  const decode = (text) =>
+    text
+      .replace(/&(#x[0-9a-f]+|#\d+|amp|quot|apos|lt|gt|nbsp);/gi, (token, key) => {
+        if (key[0] !== "#") return entities[key.toLowerCase()] || token;
+        const n =
+          key[1].toLowerCase() === "x" ? parseInt(key.slice(2), 16) : parseInt(key.slice(1), 10);
+        return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : token;
+      })
+      .replace(/\\([_*])/g, "$1")
+      .trim();
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const marker = (line) => /^(?:\|\s*)?#(\d+)(?:\s*\|[\s|]*)?$/.exec(line.trim());
+  const numbered = mode !== "lines" && lines.some(marker);
+  const rows = [],
+    warnings = [];
+  let current = null,
+    ignored = 0;
+  const date =
+    /^(?:\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}|\d{4}-\d{2}-\d{2})$/i;
+  function finish() {
+    if (!current) return;
+    const text = current.parts.join(" ").replace(/\s+/g, " ").trim();
+    if (text) rows.push({ text, ...current.metadata, ...(current.id ? { id: current.id } : {}) });
+    else warnings.push("Quote #" + current.id + " has no text and was skipped.");
+    current = null;
+  }
+  for (const raw of lines) {
+    const line = decode(raw);
+    if (!line || /^["']$/.test(line)) continue;
+    const id = marker(line);
+    if (numbered && id) {
+      finish();
+      current = { id: Number(id[1]), parts: [], metadata: {} };
+      continue;
+    }
+    if (
+      /^\|?[\s:|\-]+\|?$/.test(line) ||
+      /^(?:quotes|quote|actions|search quotes|add quote)$/i.test(line)
+    ) {
+      ignored++;
+      continue;
+    }
+    let cells = line.startsWith("|")
+      ? line
+          .slice(1)
+          .replace(/\|$/, "")
+          .split("|")
+          .map((v) => v.trim())
+      : line.split(/\t+|\s{2,}/).map((v) => v.trim());
+    if (numbered && date.test(cells[0]) && cells.length >= 2) {
+      if (current)
+        current.metadata = {
+          sourceDate: cells[0],
+          category: cells[1] === "-" ? "" : cells[1],
+          author: cells[2] === "-" ? "" : cells[2] || "",
+        };
+      ignored++;
+      continue;
+    }
+    if (
+      numbered &&
+      /^(?:quote|added|date|game|category|added by|user)(?:\s|\||\t)/i.test(line) &&
+      line.includes("|")
+    ) {
+      ignored++;
+      continue;
+    }
+    if (!numbered) {
+      rows.push({ text: line });
+      continue;
+    }
+    if (!current) {
+      ignored++;
+      continue;
+    }
+    current.parts.push(line);
+  }
+  finish();
+  if (rows.length > 1000) throw Error("Import at most 1,000 quotes per batch.");
+  const seen = new Set();
+  const quotes = rows.filter((row) => {
+    const key = row.text.normalize("NFC");
+    if (seen.has(key)) {
+      warnings.push("A repeated quote in this paste was skipped.");
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+  if (numbered) quotes.sort((a, b) => a.id - b.id);
+  for (const row of quotes)
+    if (row.text.length > 2000)
+      throw Error("A quote exceeds 2,000 characters. Edit it before importing.");
+  return { quotes, ignored, warnings, format: numbered ? "copied rows" : "one quote per line" };
+}};</script>
+<!-- QUOTE_PARSER_END -->
+<script>
+/* global QuoteImport */
+const $=id=>document.getElementById(id), channel="ravelink-feature-ui-v1", pending=new Map();
+let sequence=0, sourceDirty=true, records=[], reviewed="", rich=false, busy=false;
+new ResizeObserver(()=>parent.postMessage({channel,type:"feature-height",height:document.documentElement.scrollHeight},"*")).observe(document.body);
+addEventListener("message",event=>{
+  if(event.source!==parent||event.data?.channel!==channel)return;
+  const item=pending.get(event.data.id);if(!item)return;
+  clearTimeout(item.timer);pending.delete(event.data.id);
+  if(event.data.ok&&event.data.value?.ok!==false)item.resolve(event.data.value);else item.reject(Error(event.data.value?.error||event.data.error||"Quote import unavailable."));
+});
+function call(method,payload={}){const id="quotes-"+ ++sequence;return new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{pending.delete(id);reject(Error("Could not reach Core. Your pasted quotes are still here."));},10000);
+  pending.set(id,{resolve,reject,timer});parent.postMessage({channel,type:"call",id,capability:"twitch.automations.v1",method,payload},location.origin);
+});}
+function stale(){reviewed="";$("apply").disabled=true;}
+for(const id of ["source","format"])$(id).oninput=()=>{sourceDirty=true;stale();};
+function selected(){return records.filter(row=>row.checkbox.checked).map(row=>({...row.quote,text:row.input.value.trim()}));}
+function paint(quotes){$("rows").replaceChildren();records=quotes.map(quote=>{
+  const tr=document.createElement("tr"),check=document.createElement("td"),body=document.createElement("td"),metadata=document.createElement("td"),checkbox=document.createElement("input"),input=document.createElement("textarea");
+  checkbox.type="checkbox";checkbox.checked=true;checkbox.setAttribute("aria-label","Import this quote");input.value=quote.text;input.maxLength=2000;input.setAttribute("aria-label","Quote text");
+  checkbox.onchange=stale;input.oninput=stale;check.append(checkbox);body.append(input);
+  metadata.textContent=[quote.id?"Source #"+quote.id:"",quote.sourceDate,quote.category,quote.author].filter(Boolean).join(" · ");
+  tr.append(check,body,metadata);$("rows").append(tr);return {quote,checkbox,input};
+});$("review").hidden=!records.length;}
+async function task(fn){if(busy)return;busy=true;$("preview").disabled=true;$("apply").disabled=true;try{await fn();}catch(error){$("status").textContent=error.message;}finally{busy=false;$("preview").disabled=false;}}
+$("preview").onclick=()=>task(async()=>{
+  if(sourceDirty){const parsed=QuoteImport.parse($("source").value,$("format").value);paint(parsed.quotes);sourceDirty=false;
+    $("warnings").replaceChildren(...parsed.warnings.map(text=>{const li=document.createElement("li");li.textContent=text;return li;}));$("notes").hidden=!parsed.warnings.length;
+  }
+  const quotes=selected();if(!quotes.length)throw Error("No quotes selected. Paste quote rows above or select a quote.");
+  const catalog=await call("catalog");rich=catalog.supportsRichQuoteImport===true;
+  if(!rich)throw Error(quotes.length+" quotes found. Restart Core to enable the improved importer; your preview is ready below.");
+  const result=await call("community-preview",{quotes});reviewed=JSON.stringify(quotes);
+  $("status").textContent=result.quotes+" new quotes ready"+(result.duplicates?"; "+result.duplicates+" already saved or repeated":"")+".";
+  $("apply").disabled=!result.quotes;
+});
+$("apply").onclick=()=>task(async()=>{
+  const quotes=selected();if(!rich||JSON.stringify(quotes)!==reviewed)throw Error("Preview your changes first.");
+  const result=await call("community-import",{quotes});reviewed="";
+  $("status").textContent=result.quotes+" quotes imported"+(result.duplicates?"; duplicates skipped":"")+".";dispatchEvent(new Event("quotes-imported"));
+});
+</script>
+<!-- QUOTE_MANAGER_START -->
+<style>
+dialog.visibleDialog {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+dialog.visibleDialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.visibleDialogContent {
+  min-height: 0;
+  overflow: auto;
+}
+.visibleDialogContent > :first-child {
+  margin-top: 0;
+}
+.visibleDialogContent > :last-child {
+  margin-bottom: 0;
+}
+dialog.visibleDialog > .toolbar {
+  flex: none;
+  margin: 0;
+}
+dialog.visibleDialog > .toolbar button {
+  min-height: 44px;
+}
+
+</style><script>
+/** Native dialogs follow the visible part of a tall, possibly sandboxed iframe. */
+function createVisibleDialog(dialog, { maxWidth = 480 } = {}) {
+  let generation = 0,
+    opener = null,
+    intersection = null,
+    resize = null,
+    updating = false,
+    queued = false;
+  dialog.classList.add("visibleDialog");
+  function visibleArea() {
+    return new Promise((resolve) => {
+      const observer = new IntersectionObserver(([entry]) => {
+        observer.disconnect();
+        resolve(entry.intersectionRect);
+      });
+      observer.observe(document.body);
+    });
+  }
+  function position(area) {
+    if (area.width <= 0 || area.height <= 0) return false;
+    dialog.style.left = area.left + area.width / 2 + "px";
+    dialog.style.top = area.top + area.height / 2 + "px";
+    dialog.style.width = Math.min(maxWidth, Math.max(0, area.width - 32)) + "px";
+    dialog.style.maxHeight = Math.max(0, area.height - 32) + "px";
+    return true;
+  }
+  async function update() {
+    if (!dialog.open) return;
+    if (updating) {
+      queued = true;
+      return;
+    }
+    updating = true;
+    const token = generation,
+      area = await visibleArea();
+    updating = false;
+    if (token === generation && dialog.open && !position(area)) dialog.close();
+    if (queued) {
+      queued = false;
+      void update();
+    }
+  }
+  function stop() {
+    generation++;
+    queued = false;
+    intersection?.disconnect();
+    resize?.disconnect();
+    window.removeEventListener("resize", update);
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
+    opener = null;
+  }
+  dialog.addEventListener("close", stop);
+  window.addEventListener("pagehide", () => {
+    if (dialog.open) dialog.close();
+  });
+  return {
+    async open() {
+      const token = ++generation;
+      opener = document.activeElement;
+      const area = await visibleArea();
+      if (token !== generation || !position(area)) return false;
+      if (!dialog.open) dialog.showModal();
+      dialog.querySelector("[autofocus]")?.focus({ preventScroll: true });
+      intersection?.disconnect();
+      resize?.disconnect();
+      intersection = new IntersectionObserver(update, { threshold: [0, 1] });
+      intersection.observe(dialog);
+      resize = new ResizeObserver(update);
+      resize.observe(dialog);
+      window.addEventListener("resize", update);
+      return true;
+    },
+  };
+}
+
+/* global call, createVisibleDialog */
+/** Quote text is plain data. UI writes use the exact record token that was displayed. */
+(() => {
+  const q = (id) => document.getElementById(id),
+    rpc = (payload) => call("community-quotes", payload);
+  const deleteDialog = createVisibleDialog(q("quoteDeleteDialog"));
+  let state = { offset: 0, limit: 25, total: 0, matched: 0, rows: [] },
+    editing = null,
+    deleting = null,
+    busy = false,
+    ready = false,
+    searchTimer;
+  const status = (text) => {
+    q("quoteListStatus").textContent = text;
+  };
+  function controls() {
+    for (const id of ["quoteNew", "quoteRefresh", "quoteSave", "quoteDeleteConfirm"])
+      q(id).disabled = busy;
+    q("quotePrevious").disabled = busy || state.offset === 0;
+    q("quoteNext").disabled = busy || state.offset + state.rows.length >= state.matched;
+  }
+  async function task(work) {
+    if (busy) return;
+    busy = true;
+    controls();
+    try {
+      await work();
+    } catch (error) {
+      status(error.message);
+      q("quoteEditStatus").textContent = error.message;
+      q("quoteDeleteStatus").textContent = error.message;
+    } finally {
+      busy = false;
+      controls();
+    }
+  }
+  function open(row) {
+    editing = row || { number: 0 };
+    q("quoteEditorTitle").textContent = row ? "Edit quote #" + row.number : "Add quote";
+    q("quoteText").value = row?.text || "";
+    q("quoteEditStatus").textContent = "";
+    q("quoteEditor").hidden = false;
+    q("quoteText").focus();
+    q("quoteEditor").scrollIntoView({ block: "nearest" });
+  }
+  function close() {
+    editing = null;
+    q("quoteEditor").hidden = true;
+  }
+  const button = (label, run) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.textContent = label;
+    el.onclick = () => {
+      if (!busy) run();
+    };
+    return el;
+  };
+  async function load(offset = state.offset) {
+    if (!ready) ready = (await call("catalog")).supportsQuoteManagement === true;
+    if (!ready)
+      throw Error("Restart Core to load the editable quote list. Your saved quotes are kept.");
+    state = await rpc({ operation: "list", offset, limit: 25, search: q("quoteSearch").value });
+    q("quoteNew").hidden = false;
+    q("quoteRows").replaceChildren(
+      ...state.rows.map((row) => {
+        const article = document.createElement("article"),
+          number = document.createElement("strong"),
+          text = document.createElement("p"),
+          meta = document.createElement("small"),
+          actions = document.createElement("div");
+        article.className = "quoteRow";
+        number.textContent = "#" + row.number;
+        text.textContent = row.text;
+        meta.textContent = [row.category, row.sourceDate, row.author].filter(Boolean).join(" · ");
+        actions.className = "toolbar";
+        actions.append(
+          button("Edit", () => {
+            if (editing) {
+              status("Save or cancel your current edit first.");
+              return;
+            }
+            open(row);
+          }),
+          button("Delete", () => {
+            deleting = row;
+            q("quoteDeleteText").textContent =
+              "Delete quote #" + row.number + "? Remaining quotes will be renumbered.";
+            q("quoteDeleteStatus").textContent = "";
+            void deleteDialog.open();
+          }),
+        );
+        article.append(number, text, meta, actions);
+        return article;
+      }),
+    );
+    q("quoteCount").textContent =
+      state.matched === state.total
+        ? state.total + " quotes"
+        : state.matched + " of " + state.total + " quotes match";
+    q("quotePage").textContent = state.matched
+      ? state.offset + 1 + "–" + (state.offset + state.rows.length)
+      : "";
+    status(
+      !state.total
+        ? "No quotes yet. Add one or open Import quotes below."
+        : !state.matched
+          ? "No matching quotes."
+          : "",
+    );
+    controls();
+  }
+  function browse(offset) {
+    if (editing) {
+      status("Save or cancel your current edit first.");
+      return;
+    }
+    void task(() => load(offset));
+  }
+  q("quoteRefresh").onclick = () => browse(state.offset);
+  q("quotePrevious").onclick = () => browse(Math.max(0, state.offset - 25));
+  q("quoteNext").onclick = () => browse(state.offset + 25);
+  q("quoteSearch").oninput = () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => browse(0), 250);
+  };
+  q("quoteNew").onclick = () => {
+    if (editing) {
+      status("Save or cancel your current edit first.");
+      return;
+    }
+    open();
+  };
+  q("quoteCancel").onclick = close;
+  q("quoteSave").onclick = () =>
+    task(async () => {
+      if (!editing) return;
+      const text = q("quoteText").value.trim();
+      if (!text) throw Error("Enter the quote text before saving.");
+      await rpc({
+        operation: editing.number ? "edit" : "add",
+        text,
+        ...(editing.number ? { number: editing.number, token: editing.token } : {}),
+      });
+      close();
+      await load();
+      status("Quote saved.");
+    });
+  q("quoteDeleteCancel").onclick = () => q("quoteDeleteDialog").close();
+  q("quoteDeleteConfirm").onclick = () =>
+    task(async () => {
+      await rpc({ operation: "delete", number: deleting.number, token: deleting.token });
+      q("quoteDeleteDialog").close();
+      close();
+      await load();
+      status("Quote deleted. Numbers updated.");
+    });
+  window.addEventListener("quotes-imported", () => {
+    if (!editing) void task(() => load(0));
+  });
+  void task(async () => {
+    const catalog = await call("catalog");
+    if (!catalog.supportsQuoteManagement) {
+      status("Restart Core to load the editable quote list. Your saved quotes are kept.");
+      q("quoteNew").hidden = true;
+      return;
+    }
+    ready = true;
+    await load(0);
+  });
+})();
+
+</script>
+<!-- QUOTE_MANAGER_END -->
+</body></html>

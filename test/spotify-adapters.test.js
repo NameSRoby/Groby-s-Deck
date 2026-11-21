@@ -216,3 +216,31 @@ test("desktop volume uses a bounded normalized value and requires the local devi
   );
   assert.deepEqual(calls, [0.4]);
 });
+
+test("favorites use current URI-based library APIs, support empty HTTP 200, and never replay uncertain writes", async () => {
+  const calls = [];
+  let fail = false;
+  const api = official({
+    getAccessToken: async () => "local-token",
+    fetch: async (url, init) => {
+      calls.push({ url: new URL(url), method: init.method });
+      if (fail) throw Error("lost response");
+      return new Response(init.method === "GET" ? "[true]" : null, { status: 200 });
+    },
+  });
+  assert.equal((await api.favorite(A, true)).saved, true);
+  assert.equal((await api.favorite(A, false)).saved, false);
+  assert.equal((await api.saved(A)).saved, true);
+  assert.deepEqual(
+    calls.map((r) => r.method),
+    ["PUT", "DELETE", "GET"],
+  );
+  assert.equal(calls[0].url.pathname, "/v1/me/library");
+  assert.equal(calls[0].url.searchParams.get("uris"), A);
+  assert.equal(calls[2].url.pathname, "/v1/me/library/contains");
+  assert.equal((await api.favorite("https://attacker.invalid/private", true)).ok, false);
+  assert.equal(calls.length, 3);
+  fail = true;
+  assert.equal((await api.favorite(A, true)).error, "spotify_delivery_unconfirmed");
+  assert.equal(calls.length, 4);
+});

@@ -382,7 +382,7 @@ function renderTidalRequests({ state, installation, requesters, refresh, refresh
       actions.append(
         actionButton(
           phase === "playing" ? "SKIP" : "REMOVE",
-          "Remove this request from RaveLink and TIDAL",
+          "Remove this request from Groby’s Deck and TIDAL",
           () => run("remove"),
         ),
       );

@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "id": "twitch-integration",
+  "name": "Twitch Integration",
+  "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
+  "version": "0.12.57",
+  "publisher": "grobys-deck",
+  "entry": "dist/main.js",
+  "engine": {
+    "featureApi": "^1.0.0",
+    "node": ">=22"
+  },
+  "consumes": [
+    "twitch.host.v1"
+  ],
+  "provides": [
+    "twitch.connection.read.v1",
+    "twitch.oauth.admin.v1",
+    "twitch.monitor.admin.v1",
+    "twitch.rewards.read.v1",
+    "twitch.rewards.admin.v1",
+    "twitch.redemptions.v1",
+    "twitch.chat.send.v1",
+    "twitch.rewards.catalog.v1",
+    "twitch.automations.v1"
+  ],
+  "contracts": [
+    "contracts/twitch-integration-v1.contracts.json",
+    "contracts/twitch-automations-v1.contracts.json"
+  ],
+  "permissions": {
+    "network": [
+      "id.twitch.tv",
+      "api.twitch.tv",
+      "eventsub.wss.twitch.tv"
+    ],
+    "storage": false,
+    "secrets": [
+      "twitch.oauth.tokens"
+    ],
+    "process": false,
+    "hardware": []
+  },
+  "resources": {
+    "idleCpuPercent": 0.75,
+    "idleRssMiB": 64,
+    "activeRssMiB": 256,
+    "timers": 1,
+    "minTimerMs": 1000,
+    "ipcFrameBytes": 524288,
+    "inFlightCalls": 2,
+    "queuedCalls": 4,
+    "externalInFlight": 1,
+    "storageBytes": 0,
+    "historyEntries": 128,
+    "shutdownGraceMs": 3000
+  },
+  "contributes": {
+    "pages": [
+      {
+        "id": "connection",
+        "title": "Connection",
+        "entry": "ui/connection.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.connection.read.v1",
+          "twitch.oauth.admin.v1",
+          "twitch.monitor.admin.v1",
+          "twitch.rewards.read.v1",
+          "twitch.rewards.admin.v1",
+          "twitch.redemptions.v1"
+        ]
+      },
+      {
+        "id": "automations",
+        "title": "Rewards & automations",
+        "entry": "ui/automations.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.automations.v1"
+        ]
+      },
+      {
+        "id": "command-list",
+        "title": "Command list",
+        "entry": "ui/command-list.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.automations.v1"
+        ]
+      },
+      {
+        "id": "syntax",
+        "title": "Syntax & examples",
+        "entry": "ui/syntax.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.automations.v1"
+        ]
+      },
+      {
+        "id": "quotes",
+        "title": "Quotes",
+        "entry": "ui/quotes.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.automations.v1"
+        ]
+      },
+      {
+        "id": "watchtime",
+        "title": "Watchtime & points",
+        "entry": "ui/watchtime.html",
+        "surface": "panel",
+        "embedHosts": [],
+        "imageHosts": [],
+        "capabilities": [
+          "twitch.automations.v1"
+        ]
+      }
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "contracts/twitch-automations-v1.contracts.json": "1f6ff0b606041981ea4fe4111ca854a7fe1127adcd458f2b1a7cccdd392d9aee",
+      "contracts/twitch-integration-v1.contracts.json": "2a7fe3534f0082f9f3f0e27f2b8ae67e400e11e3363122b113fd29a7f6bf38ab",
+      "dist/arena-language.json": "39437a095d98790c98c2aae5869bd35230d75772cfb861449e549cb2878544d0",
+      "dist/counter-syntax.js": "699a09e7073ffb02b9faec8c5963400fe49b7a152ebf12fa2a2cfcdd2f1f0741",
+      "dist/main.js": "0c9ef1d981b01fe4a5611d54122430e7b3e23490c121c38fdf78f220fecf03b7",
+      "dist/syntax-migration.js": "f82f80ebbe840e565eb5e51bf0b996f4e417741c1f22648625b483dbd9a77f69",
+      "dist/variable-arguments.js": "49aa60905b66a85b1c533b7f618c7331c784fbf56470d753dbecd288420a14b9",
+      "dist/variable-recipe-storage.js": "667e8e7749ebfde1ab443c96e33ec5d2e79e243be6d2cb35f907fb12f0c40c53",
+      "dist/variable-recipe.js": "6b3930e4e3353b811fbc44d127b9dde47e5027db7fe565f1610167ce2bc50ae3",
+      "ui/automations-controller.js": "5f52e959a11d0448c13fc794e1df1147717530d6c6e0944f41155bfc93de61ff",
+      "ui/automations-layout.css": "7631b94b01d2f521fad9f05edd77ed9f6d36b5b29963e0d123de4a066d43073c",
+      "ui/automations-list.js": "aba990a8d3504cf3513b7cc7a5c5530b789402517dde769aa103220b0ef03d52",
+      "ui/automations.html": "a79745799008e31cc8d7c63f54ace915156e28d9d76e5650de41ce1f3ef70212",
+      "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
+      "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
+      "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",
+      "ui/command-list-ui.js": "46295d60f8e9a86521955e7935daa1c4fc3db4cb027f3c84c611833931d164b0",
+      "ui/command-list.css": "40e1a5711d7cd76fcc7c2d8e930ea3bd3b346442cd917b94df76659e6c965ff8",
+      "ui/command-list.html": "4e2b5b54ee7629028c12b3ac08e5a84fd8b1f005a928da601301d2e8ac2a0dd9",
+      "ui/command-manual.html": "3f0c33f72f1336520a427cef7e25e0edbc7b56d2209ebae1c05ced5f25a2b7de",
+      "ui/connection.html": "d0f4a44f0ebc31996eb2cbb5a9fa47b56928b66458b8352d07a8e9791a5c3b77",
+      "ui/duration-input.js": "d37303482538b419af104e660f99ffd2a89df0565f17b780a8ff6ed7979943a4",
+      "ui/quotes-manager.js": "165025d9ce7c3ef7231a24a14164b085a529bf09254b56f0fcef58ed6a55041b",
+      "ui/quotes.html": "f59980ea8b0e646809e88ba5cb7fac192476c2308546c197fd7f64937e9c69be",
+      "ui/syntax.html": "bf3eed96b952be34d8c2da4cdf9991b917d26106521ed7c4871ca93f719d6552",
+      "ui/watchtime.html": "0f794b81622df7eebd719ddf2cecbe4503cfcdca4d6e200388d63d72c8bb537c"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+dialog.visibleDialog {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+dialog.visibleDialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.visibleDialogContent {
+  min-height: 0;
+  overflow: auto;
+}
+.visibleDialogContent > :first-child {
+  margin-top: 0;
+}
+.visibleDialogContent > :last-child {
+  margin-bottom: 0;
+}
+dialog.visibleDialog > .toolbar {
+  flex: none;
+  margin: 0;
+}
+dialog.visibleDialog > .toolbar button {
+  min-height: 44px;
+}

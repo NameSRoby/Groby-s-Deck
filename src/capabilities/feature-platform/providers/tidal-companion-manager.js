@@ -25,8 +25,20 @@ module.exports = function createManager({
           installed: false,
           error: "Regular TIDAL Desktop installation not found.",
         };
-      if (payload.action === "status")
-        return { ok: true, available: true, ...installer.inspect(resources) };
+      if (payload.action === "status") {
+        const status = installer.inspect(resources),
+          pairingFile = path.join(runtimeDir, "experimental-tidal-pairing.json");
+        const binding =
+          status.installed && require("node:fs").existsSync(pairingFile)
+            ? installer.repairPairing?.({ resources, pairingFile })
+            : null;
+        return {
+          ok: true,
+          available: true,
+          ...status,
+          ...(binding?.changed ? { restartRequired: true } : {}),
+        };
+      }
       if (["install", "update"].includes(payload.action) && !getBridge())
         return {
           ok: false,

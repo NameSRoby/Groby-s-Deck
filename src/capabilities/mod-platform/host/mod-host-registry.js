@@ -16,9 +16,18 @@ const { validateManifestV1 } = require("../contracts/mod-manifest-v1");
 const { verifyPackageDirectory } = require("../packages/mod-package-integrity");
 const createModApprovalStore = require("../packages/mod-approval-store");
 
-const MANIFEST_NAME = "ravelink.mod.json";
+const MANIFEST_NAME = "groby.mod.json";
 const MAX_MANIFEST_BYTES = 65536;
 const MAX_DISCOVERED_DIRECTORIES = 256;
+
+const activationResult = (status) =>
+  status?.lifecycle === "active"
+    ? status
+    : {
+        ...status,
+        ok: false,
+        error: status?.error || status?.lastError || "mod_activation_failed",
+      };
 
 function safeReadManifest(filePath) {
   try {
@@ -84,9 +93,9 @@ module.exports = function createModHostRegistry(options = {}) {
         };
   const catalog = new Map();
   const supervisors = new Map();
-  function saveEnabledPreference(id, enabled) {
+  function saveEnabledPreference(id, enabled, fingerprint) {
     try {
-      options.onEnabledPreference?.(id, enabled);
+      options.onEnabledPreference?.(id, enabled, fingerprint);
     } catch {
       (options.log || console).warn?.(`[MOD] ${id}: enabled preference could not be saved`);
     }
@@ -133,6 +142,12 @@ module.exports = function createModHostRegistry(options = {}) {
       resources: row.valid ? { ...row.manifest.resources } : null,
       provides: row.valid ? [...row.manifest.provides] : [],
       consumes: row.valid ? [...row.manifest.consumes] : [],
+      runtimeApproved:
+        row.valid &&
+        options.hasRuntimeConsent?.(
+          row.id,
+          require("../packages/mod-content-fingerprint")(row.manifest),
+        ) === true,
       packageFingerprint: row.valid
         ? require("../packages/mod-content-fingerprint")(row.manifest)
         : "",
@@ -290,8 +305,8 @@ module.exports = function createModHostRegistry(options = {}) {
     if (!row.valid) return { ok: false, error: "manifest_invalid", modId: id };
     let supervisor = supervisors.get(id);
     const current = supervisor?.getStatus?.();
-    if (["enabling", "active", "draining"].includes(current?.lifecycle)) return current;
-    if (current?.lifecycle === "quarantined") return current;
+    if (["enabling", "active", "draining", "quarantined"].includes(current?.lifecycle))
+      return activationResult(current);
     if (activeSupervisorCount() >= maxActiveMods)
       return { ok: false, error: "active_mod_limit", modId: id, maxActiveMods };
     const providerRows = (row.manifest.consumes || []).flatMap((capability) =>
@@ -314,6 +329,21 @@ module.exports = function createModHostRegistry(options = {}) {
         detail: admission?.detail || "",
         approval: admission?.approval || null,
       };
+    const fingerprint = require("../packages/mod-content-fingerprint")(
+      admission.manifest || row.manifest,
+    );
+    const runtimeApproved =
+      activationOptions.allowUnsafeRuntime === true ||
+      options.hasRuntimeConsent?.(id, fingerprint) === true;
+    activationOptions = { ...activationOptions, allowUnsafeRuntime: runtimeApproved };
+    // A stopped or blocked worker captured the earlier permission choice. Recreate it only
+    // after admission succeeds so a newly confirmed choice can take effect.
+    if (supervisor && ["permission-required", "installed-disabled"].includes(current?.lifecycle)) {
+      await supervisor.stop();
+      resourceMonitor.unregister(id);
+      supervisors.delete(id);
+      supervisor = null;
+    }
     if (!supervisor) {
       supervisor = supervisorFactory({
         ...supervisorOptions,
@@ -335,10 +365,11 @@ module.exports = function createModHostRegistry(options = {}) {
       supervisors.set(id, supervisor);
     }
     const started = await supervisor.start();
-    if (started?.lifecycle === "active") saveEnabledPreference(id, true);
+    if (started?.lifecycle === "active")
+      saveEnabledPreference(id, true, runtimeApproved ? fingerprint : undefined);
     if (started?.lifecycle === "active" && started.pid > 0)
       resourceMonitor.register(id, started.pid, admission.manifest || row.manifest);
-    return started;
+    return activationResult(started);
   }
 
   async function disable(modId) {
@@ -350,6 +381,14 @@ module.exports = function createModHostRegistry(options = {}) {
     const stopped = await supervisor.stop();
     resourceMonitor.unregister(id);
     return stopped;
+  }
+
+  async function startInstalled() {
+    const results = [];
+    for (const id of catalog.keys()) {
+      if (options.getEnabledPreference?.(id) === true) results.push(await enable(id));
+    }
+    return results;
   }
 
   function request(modId, capability, method, payload, requestOptions) {
@@ -482,6 +521,7 @@ module.exports = function createModHostRegistry(options = {}) {
     disable,
     discover,
     enable,
+    startInstalled,
     getBrokerStatus: broker.getStatus,
     getResourceStatus: resourceMonitor.getStatus,
     list,

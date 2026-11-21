@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { packageMod, validate } = require("../scripts/ravelink-mod");
+const { packageMod, validate } = require("../scripts/groby-mod");
 const {
   extractZipArchive,
 } = require("../src/capabilities/mod-platform/packages/mod-package-archive");

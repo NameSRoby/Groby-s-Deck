@@ -1,0 +1,112 @@
+<main id="commandListWorkspace">
+  <div class="commandListBody">
+    <div class="commandListOptions">
+      <label
+        >List title<input id="commandListHeading" value="Chat commands" maxlength="100"
+      /></label>
+      <label
+        >Destination<select id="commandListFormat">
+          <option value="discord">Discord</option>
+          <option value="twitch">Twitch About panel</option>
+        </select></label
+      >
+      <label
+        >Detail<select id="commandListDetail">
+          <option value="detailed">Commands and descriptions</option>
+          <option value="compact">Commands only</option>
+        </select></label
+      >
+      <label id="discordLimitField"
+        >Message size<select id="commandListDiscordLimit">
+          <option value="2000">2,000 characters (standard)</option>
+          <option value="4000">4,000 characters (Nitro)</option>
+        </select></label
+      >
+      <label id="commandListStyleField"
+        >Discord layout<select id="commandListStyle">
+          <option value="boxed">Command boxes</option>
+          <option value="list">Markdown list</option>
+        </select></label
+      >
+      <label id="twitchLimitField" hidden
+        >Characters per panel<input
+          id="commandListTwitchLimit"
+          type="number"
+          min="1000"
+          max="10000"
+          value="2000"
+          step="100"
+      /></label>
+    </div>
+    <div class="commandListFlags">
+      <label class="check"
+        ><input id="commandListAccess" type="checkbox" checked />Access level</label
+      ><label class="check"
+        ><input id="commandListAliases" type="checkbox" checked />Other command names</label
+      ><label class="check"
+        ><input id="commandListPhrases" type="checkbox" />Exact trigger phrases</label
+      ><label class="check"
+        ><input id="commandListExamples" type="checkbox" />Bot reply examples</label
+      ><label class="check"><input id="commandListCooldowns" type="checkbox" />Cooldowns</label>
+    </div>
+    <div class="commandListColumns">
+      <section class="commandListSelection" aria-label="Choose commands">
+        <div class="commandListSearch">
+          <label
+            >Find a command<input
+              id="commandListSearch"
+              type="search"
+              placeholder="Name, description or alias" /></label
+          ><label
+            >Show<select id="commandListFilter">
+              <option value="active">Active commands</option>
+              <option value="all">All commands</option>
+              <option value="selected">Selected commands</option>
+              <option value="builtin">Built-in commands</option>
+            </select></label
+          >
+        </div>
+        <div class="commandListActions">
+          <button type="button" id="commandListSelect">Select shown</button
+          ><button type="button" id="commandListClear">Clear selection</button
+          ><span id="commandListCount" role="status"></span>
+        </div>
+        <p class="commandListHint">
+          Descriptions and examples here only change this list. Bot reply examples use sample names
+          and never send chat or change counters. Review them before sharing.
+        </p>
+        <div id="commandListChoices"></div>
+        <button type="button" id="commandListAdd">+ Add another entry</button>
+      </section>
+      <section class="commandListOutput" aria-label="Generated list">
+        <div class="commandListActions">
+          <h3>Ready to share</h3>
+          <button type="button" id="commandListGenerate">Update output</button>
+        </div>
+        <p id="commandListHelp"></p>
+        <div id="commandListParts"></div>
+        <p id="commandListStatus" role="status" aria-live="polite"></p>
+        <details>
+          <summary>Formatting help</summary>
+          <p>
+            Bold: **text**. Lists: * item. Links: [label](https://example.com). Twitch panel line
+            breaks use two spaces before a new line. Output is editable; edits stay until you update
+            it or change your selection.
+          </p>
+          <p>
+            Each command gets its own copyable Discord code block. Replies, descriptions and limits
+            stay outside the box. Rich embed cards require a bot or webhook and cannot be created by
+            pasting ordinary text. Standard messages allow 2,000 characters; Discord Nitro allows
+            4,000. Formatting and line breaks count toward the limit. Each output part shows its
+            actual size.
+          </p>
+          <p>
+            Discord parts are copied individually. Add more parts or use Update output if a manual
+            edit exceeds the limit. For Twitch, choose a panel size and paste each part into a
+            separate panel description.
+          </p>
+        </details>
+      </section>
+    </div>
+  </div>
+</main>

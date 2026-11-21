@@ -1,0 +1,161 @@
+.overlayLayer .overlayItem {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: var(--item-background);
+  border-radius: var(--item-radius);
+  padding: var(--item-padding);
+  margin-bottom: var(--item-gap);
+}
+.overlayLayer .itemText {
+  display: block;
+}
+.overlayLayer[data-widget-type="chat"] > .widgetBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.overlayLayer[data-entrance="fade"] {
+  --entry-name: overlayFade;
+}
+.overlayLayer[data-entrance="slide"] {
+  --entry-name: overlaySlide;
+}
+.overlayLayer[data-entrance="pop"] {
+  --entry-name: overlayPop;
+}
+.overlayLayer[data-entrance="wipe"] {
+  --entry-name: overlayWipe;
+}
+.overlayLayer:not([data-widget-type="chat"]):not([data-widget-type="activity"]):not(
+    [data-widget-type="queue"]
+  )
+  > .widgetBody,
+.overlayLayer[data-motion-target="box"] .overlayItem,
+.overlayLayer[data-motion-target="text"] .overlayItem .itemText {
+  animation: var(--entry-name, none) var(--entrance-ms) ease-out both;
+}
+.overlayLayer [data-leaving="true"] {
+  animation: overlayLeave var(--entrance-ms) ease-in both !important;
+  pointer-events: none;
+}
+.overlayLayer[data-motion-target="text"] [data-leaving="true"] {
+  animation: none !important;
+}
+.overlayLayer[data-motion-target="text"] [data-leaving="true"] .itemText {
+  animation: overlayLeave var(--entrance-ms) ease-in both !important;
+}
+.overlayLayer[data-ambient="float"] > .widgetBody {
+  animation: overlayFloat var(--ambient-seconds) ease-in-out infinite;
+}
+.overlayLayer[data-ambient="breathe"] > .widgetBody {
+  animation: overlayBreathe var(--ambient-seconds) ease-in-out infinite;
+}
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes overlaySlide {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes overlayPop {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes overlayWipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes overlayLeave {
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+@keyframes overlayFloat {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes overlayBreathe {
+  50% {
+    opacity: 0.65;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlayLayer .widgetBody,
+  .overlayLayer .overlayItem,
+  .overlayLayer .itemText {
+    animation: none !important;
+  }
+}
+
+.creditsViewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.creditsTrack {
+  display: flex;
+  flex-direction: column;
+  animation: creditsVertical var(--credit-seconds) linear infinite;
+}
+.creditsGroup {
+  box-sizing: border-box;
+  min-height: var(--credit-height);
+  flex-shrink: 0;
+}
+.creditsGroup > div {
+  padding: 0.25em 0.5em;
+}
+.creditsViewport[data-direction="horizontal"] .creditsTrack {
+  flex-direction: row;
+  width: max-content;
+  animation-name: creditsHorizontal;
+}
+.creditsViewport[data-direction="horizontal"] .creditsGroup {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  min-width: var(--credit-width);
+  white-space: nowrap;
+}
+@keyframes creditsVertical {
+  to {
+    transform: translateY(-50%);
+  }
+}
+@keyframes creditsHorizontal {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .creditsTrack {
+    animation: none !important;
+  }
+}
+
+.overlayLayer > .widgetBody {
+  position: relative;
+}

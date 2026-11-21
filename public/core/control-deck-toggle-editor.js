@@ -1,4 +1,52 @@
 /** Both toggle states are local drafts; editing never invokes an action. */
+export function createButtonEditorTabs(dialog, actions, appearance, meta) {
+  const bar = document.createElement("div");
+  bar.className = "deckEditorTabs";
+  bar.setAttribute("role", "tablist");
+  bar.setAttribute("aria-label", "Button settings");
+  const panels = [actions, appearance],
+    tabs = [];
+  function activate(index, focus = false) {
+    panels.forEach((panel, i) => {
+      panel.hidden = i !== index;
+      tabs[i].setAttribute("aria-selected", String(i === index));
+      tabs[i].tabIndex = i === index ? 0 : -1;
+    });
+    if (focus) tabs[index].focus();
+  }
+  for (const [i, label] of ["Actions", "Appearance"].entries()) {
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.id = "deckEditorTab" + i;
+    tab.textContent = label;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-controls", i ? "deckAppearancePanel" : "deckActionsPanel");
+    panels[i].id = i ? "deckAppearancePanel" : "deckActionsPanel";
+    panels[i].classList.add("deckEditorTabPanel");
+    panels[i].setAttribute("role", "tabpanel");
+    panels[i].setAttribute("aria-labelledby", tab.id);
+    tab.onclick = () => activate(i);
+    tab.onkeydown = (event) => {
+      const index =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? 1
+            : ["ArrowLeft", "ArrowRight"].includes(event.key)
+              ? 1 - i
+              : null;
+      if (index === null) return;
+      event.preventDefault();
+      activate(index, true);
+    };
+    tabs.push(tab);
+    bar.append(tab);
+  }
+  dialog.classList.add("deckButtonEditor");
+  dialog.append(meta, bar, ...panels);
+  activate(0);
+  return { showActions: () => activate(0), showAppearance: () => activate(1) };
+}
 export function createToggleStates({ node, field, input, value, symbol }) {
   const element = node("section", "deckToggleStates"),
     controls = {};

@@ -22,6 +22,7 @@ const defaults = {
   sliderOrientation: "vertical",
   sliderStyle: "mixer",
   sliderPlacement: "dock",
+  sliderFill: false,
   sliderDock: "end",
   sliderSnap: false,
   sliderIncrement: 5,
@@ -32,6 +33,7 @@ export function applyDeckLayout(host, config) {
   const layout = { ...defaults, ...config.layout };
   host.dataset.sliderOrientation = layout.sliderOrientation;
   host.dataset.sliderDock = layout.sliderDock;
+  host.dataset.sliderFill = String(layout.sliderFill);
   for (const [name, value] of Object.entries({
     columns: config.columns,
     "phone-columns": layout.phoneColumns,
@@ -180,8 +182,9 @@ export function createDeckLayout({ host, getConfig, save, explain, request }) {
   for (const [key, label] of [
     ["fullscreenSwipe", "Swipe between fullscreen pages"],
     ["fullscreenKeyboard", "Keyboard page navigation"],
-    ["keyboardButtons", "Enable button keyboard triggers (RaveLink focused)"],
+    ["keyboardButtons", "Enable button keyboard triggers (Groby’s Deck focused)"],
     ["sliderSnap", "Snap sliders to the chosen increment"],
+    ["sliderFill", "Fill available space with audio sliders"],
   ]) {
     const field = document.createElement("label"),
       input = document.createElement("input");
@@ -220,7 +223,7 @@ export function createDeckLayout({ host, getConfig, save, explain, request }) {
   const screen = createScreenEditor({ request, onChange: () => applyDeckLayout(host, read()) });
   fields.append(screen.element);
   function read() {
-    const layout = {};
+    const layout = { ...getConfig().layout };
     for (const [key, input] of Object.entries(controls))
       if (key !== "columns")
         layout[key] =

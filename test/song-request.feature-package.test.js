@@ -15,7 +15,7 @@ const root = path.join(__dirname, "..", "features", "song-request");
 test("Song Request is a verified first-party feature package, not a mod", async () => {
   const verified = await verifyFeaturePackageDirectory(root);
   assert.equal(verified.ok, true, JSON.stringify(verified));
-  assert.equal(verified.manifest.publisher, "ravelink");
+  assert.equal(verified.manifest.publisher, "grobys-deck");
   assert.equal(verified.manifest.permissions.network.length, 0);
   assert.deepEqual(verified.manifest.provides, [
     "song.playlist.read.v1",
@@ -53,22 +53,22 @@ test("Song Request is a verified first-party feature package, not a mod", async 
       ["overlay-editor", "panel"],
     ],
   );
-  assert.equal(fs.existsSync(path.join(root, "ravelink.mod.json")), false);
+  assert.equal(fs.existsSync(path.join(root, "groby.mod.json")), false);
 });
 
-test("feature manifest rejects non-RaveLink publishers and capability overlap", () => {
-  const input = JSON.parse(fs.readFileSync(path.join(root, "ravelink.feature.json"), "utf8"));
+test("feature manifest rejects non-Groby’s Deck publishers and capability overlap", () => {
+  const input = JSON.parse(fs.readFileSync(path.join(root, "groby.feature.json"), "utf8"));
   assert.equal(
     validateFeatureManifestV1({
       ...input,
-      resources: { ...input.resources, activeRssMiB: 256 },
+      resources: { ...input.resources, activeRssMiB: 384 },
     }).ok,
     true,
   );
   assert.equal(
     validateFeatureManifestV1({
       ...input,
-      resources: { ...input.resources, activeRssMiB: 257 },
+      resources: { ...input.resources, activeRssMiB: 385 },
     }).ok,
     false,
   );

@@ -9,10 +9,25 @@ let state = null;
 let eventSource = null;
 let panelRelay;
 
+function activationError(code) {
+  return (
+    {
+      runtime_isolation_unavailable:
+        "Runtime approval is required. Choose Enable and review the activation prompt.",
+      permission_approval_required: "Review and approve this mod's API access before enabling it.",
+      mod_activation_failed: "The mod did not become active. Review its status and try again.",
+      active_mod_limit: "The active mod limit has been reached. Disable another mod first.",
+      dependencies_unavailable:
+        "A service this mod needs is unavailable. Check its required connections.",
+    }[code] || code
+  );
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, options);
   const body = await response.json().catch(() => ({ ok: false, error: `HTTP ${response.status}` }));
-  if (!response.ok || body.ok === false) throw new Error(body.error || `HTTP ${response.status}`);
+  if (!response.ok || body.ok === false)
+    throw new Error(activationError(body.error) || `HTTP ${response.status}`);
   return body;
 }
 
@@ -85,11 +100,11 @@ function renderInstalled() {
               : "",
             active
               ? `<button data-action="disable" data-id="${escapeHtml(mod.id)}">DISABLE</button>`
-              : `<button data-action="enable" data-id="${escapeHtml(mod.id)}" ${!approved || !mod.valid ? "disabled" : ""}>ENABLE</button>`,
+              : `<button data-action="enable" data-id="${escapeHtml(mod.id)}" ${!approved || !mod.valid ? "disabled" : ""}>${mod.lifecycle === "permission-required" ? "REVIEW &amp; ENABLE" : "ENABLE"}</button>`,
             `<button data-action="rollback" data-id="${escapeHtml(mod.id)}" ${active || !mod.rollbackAvailable ? "disabled" : ""}>ROLLBACK</button>`,
             `<button class="danger" data-action="uninstall" data-id="${escapeHtml(mod.id)}" ${active ? "disabled" : ""}>UNINSTALL</button>`,
           ].join("");
-          return `<tr><td class="modIdentity"><strong>${escapeHtml(mod.name)}</strong><span>${escapeHtml(mod.id)} ${escapeHtml(mod.version)}</span></td><td>${escapeHtml(mod.lifecycle)}${mod.error ? `<br><span class="notice bad">${escapeHtml(mod.error)}</span>` : ""}</td><td class="permissionList"><strong>${approved ? "APPROVED" : "REVIEW REQUIRED"}</strong><br>${escapeHtml(permissionSummary(mod))}</td><td class="resourceCell"><span>RSS ${escapeHtml(resource.rssMiB ?? "-")} MiB</span><span>CPU ${escapeHtml(resource.cpuPercent ?? "-")}%</span></td><td><div class="modActions">${actions}</div></td></tr>`;
+          return `<tr><td class="modIdentity"><strong>${escapeHtml(mod.name)}</strong><span>${escapeHtml(mod.id)} ${escapeHtml(mod.version)}</span></td><td>${escapeHtml(mod.lifecycle === "permission-required" ? "Runtime approval required" : mod.lifecycle)}${mod.error ? `<br><span class="notice bad">${escapeHtml(activationError(mod.error))}</span>` : ""}</td><td class="permissionList"><strong>${approved ? "APPROVED" : "REVIEW REQUIRED"}</strong><br>${escapeHtml(permissionSummary(mod))}</td><td class="resourceCell"><span>RSS ${escapeHtml(resource.rssMiB ?? "-")} MiB</span><span>CPU ${escapeHtml(resource.cpuPercent ?? "-")}%</span></td><td><div class="modActions">${actions}</div></td></tr>`;
         })
         .join("")
     : '<tr><td colspan="5">NO MODS INSTALLED</td></tr>';
@@ -113,7 +128,7 @@ async function refresh() {
 async function acceptCandidate(candidateId) {
   const candidate = state.inbox.candidates.find((row) => row.candidateId === candidateId);
   if (!candidate?.valid) return;
-  const review = `${candidate.name} ${candidate.version}\n\n${permissionSummary(candidate)}\n${resourceSummary(candidate)}\n\nActivate this mod? Its declared API access will be approved and its buttons and UI made available.\n\nOnly activate code you trust: Windows Node cannot fully block undeclared network access; activation accepts reduced OS isolation for this execution.`;
+  const review = `${candidate.name} ${candidate.version}\n\n${permissionSummary(candidate)}\n${resourceSummary(candidate)}\n\nActivate this mod? Its declared API access will be approved and its buttons and UI made available.\n\nOnly activate code you trust: Windows Node cannot fully block undeclared network access; approval accepts reduced OS isolation and is remembered for this exact package. Changed packages need another review.`;
   if (!window.confirm(review)) return;
   if (candidate.active)
     await api(`/api/mod-platform/${encodeURIComponent(candidate.id)}/disable`, {
@@ -134,6 +149,10 @@ async function acceptCandidate(candidateId) {
   });
   state = result.host;
   render();
+  if (
+    !state.mods.some((row) => row.id === candidate.id && row.enabled && row.lifecycle === "active")
+  )
+    throw new Error(activationError(result.activation?.error || "mod_activation_failed"));
   notice(`${candidate.name}: ACTIVE`);
 }
 
@@ -157,12 +176,13 @@ async function act(action, modId, panelId = "") {
   }
   if (action === "enable") {
     if (
+      !mod.runtimeApproved &&
       !window.confirm(
-        `Activate ${mod.name}?\n\n${permissionSummary(mod)}\n\nOnly activate code you trust. Windows Node cannot fully block undeclared network access; activation accepts reduced OS isolation for this execution.`,
+        `Activate ${mod.name}?\n\n${permissionSummary(mod)}\n\nOnly activate code you trust. Windows Node cannot fully block undeclared network access; approval accepts reduced OS isolation and is remembered for this exact package. Changed packages need another review.`,
       )
     )
       return;
-    body = JSON.stringify({ allowUnsafeRuntime: true });
+    body = JSON.stringify({ allowUnsafeRuntime: !mod.runtimeApproved });
   }
   if (action === "uninstall") {
     if (!window.confirm(`Uninstall ${mod.name}? Mod data will be retained.`)) return;
@@ -171,12 +191,19 @@ async function act(action, modId, panelId = "") {
   }
   notice(`${action.toUpperCase()} IN PROGRESS`);
   const suffix = action === "uninstall" ? "" : `/${action}`;
-  await api(`/api/mod-platform/${encodeURIComponent(modId)}${suffix}`, {
+  const result = await api(`/api/mod-platform/${encodeURIComponent(modId)}${suffix}`, {
     method,
     headers: { "Content-Type": "application/json" },
     body,
   });
   await refresh();
+  if (action === "enable") {
+    const current = state.mods.find((row) => row.id === modId);
+    if (result.lifecycle !== "active" || !current?.enabled || current.lifecycle !== "active")
+      throw new Error(activationError(result.error || result.lastError || "mod_activation_failed"));
+    notice(`${mod.name}: ACTIVE`);
+    return;
+  }
   notice(`${mod.name}: ${action.toUpperCase()} COMPLETE`);
 }
 

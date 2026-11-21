@@ -13,7 +13,7 @@ let build;
 function compiled() {
   if (build) return build;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rvl-host-"));
-  const source = path.join(root, "desktop/windows-host/RaveLinkCoreHost.cs");
+  const source = path.join(root, "desktop/windows-host/GrobyDeckHost.cs");
   const desktopSources = ["DashboardWindow.cs", "DesktopPolicy.cs", "DesktopBrowserActions.cs"].map(
     (file) => path.join(root, "desktop/windows-host", file),
   );
@@ -34,7 +34,7 @@ function compiled() {
   const harness = path.join(dir, "Harness.cs");
   fs.writeFileSync(
     harness,
-    `using System; using RaveLink.Core.WindowsHost;
+    `using System; using Groby.Deck.WindowsHost;
 class Harness { [STAThread] static void Main(string[] args) {
  AppDomain.CurrentDomain.AssemblyResolve += DesktopPolicy.ResolveDependency;
  if(args[0]=="blocked-ui") {
@@ -49,7 +49,7 @@ class Harness { [STAThread] static void Main(string[] args) {
 } }`,
   );
   const compiler = path.join(process.env.WINDIR, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
-  for (const name of ["Harness", "RaveLink-Core"]) {
+  for (const name of ["Harness", "Groby's Deck"]) {
     const args = [
       "/nologo",
       "/platform:x64",
@@ -71,7 +71,7 @@ class Harness { [STAThread] static void Main(string[] args) {
   return (build = {
     dir,
     harness: path.join(dir, "Harness.exe"),
-    host: path.join(dir, "RaveLink-Core.exe"),
+    host: path.join(dir, "Groby's Deck.exe"),
   });
 }
 function run(exe, args, options = {}) {
@@ -168,13 +168,13 @@ for (const starts of [false, true, "blocked"])
     { skip: !windows },
     async (t) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rvl-host-process-"));
-      const exe = path.join(dir, "RaveLink-Core.exe");
+      const exe = path.join(dir, "Groby's Deck.exe");
       fs.copyFileSync(compiled().host, exe);
       fs.mkdirSync(path.join(dir, "runtime"));
       fs.cpSync(path.join(compiled().dir, "runtime/desktop"), path.join(dir, "runtime/desktop"), {
         recursive: true,
       });
-      fs.copyFileSync(process.execPath, path.join(dir, "runtime/RaveLink-Core-Node.exe"));
+      fs.copyFileSync(process.execPath, path.join(dir, "runtime/Grobys-Deck-Node.exe"));
       const app = path.join(dir, "src/app/optional");
       fs.mkdirSync(app, { recursive: true });
       fs.writeFileSync(

@@ -68,7 +68,12 @@ export function createDeckAudioUi({
       host.dataset.mixerPage = String(page.mixer?.enabled === true);
       if (deck && page.mixer?.enabled) {
         mixer.element.dataset.editing = String(editing);
-        void mixer.open({ ...page.mixer, editing, orientation: config.layout.sliderOrientation });
+        void mixer.open({
+          ...page.mixer,
+          editing,
+          orientation: config.layout.sliderOrientation,
+          fillSpace: config.layout.sliderFill,
+        });
       } else mixer.close();
       for (const slider of host.querySelectorAll(".deckVolumeSlider"))
         sliderControl(slider)?.close();

@@ -132,6 +132,7 @@ test("operator can route mixed fixtures and apply a default profile from the HUD
   );
   await page.locator("#deckEdit").click();
   await profileButton.click();
+  await page.getByRole("tab", { name: "Appearance", exact: true }).click();
   await page.locator("#deckButtonColor").fill("#abcdef");
   assert.equal(await page.locator("#deckButtonProfileColors").isChecked(), false);
   await page.locator("#deckSaveButton").click();

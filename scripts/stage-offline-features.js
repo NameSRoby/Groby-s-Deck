@@ -18,7 +18,7 @@ async function stageOfflineFeatures(root, destination) {
     const target = path.join(destination, id);
     fs.mkdirSync(target, { recursive: true });
     fs.writeFileSync(
-      path.join(target, "ravelink.feature.json"),
+      path.join(target, "groby.feature.json"),
       JSON.stringify(manifest, null, 2) + "\n",
     );
     for (const name of Object.keys(manifest.integrity.files)) {

@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace RaveLink.Core.WindowsHost
+namespace Groby.Deck.WindowsHost
 {
     internal static class DesktopPolicy
     {

@@ -11,7 +11,7 @@ const VIDEO = Object.freeze({
   provider: "youtube",
   providerItemId: "dQw4w9WgXcQ",
   title: "Playback fixture",
-  artists: ["RaveLink"],
+  artists: ["Groby’s Deck"],
   durationMs: 180000,
 });
 
@@ -25,6 +25,8 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   let tidalRunning = true,
     reportedVersion = "",
     heartbeat;
+  const favorites = new Set();
+  const catalogFixture = require("./support/tidal-catalog-fixture.cjs");
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),
@@ -55,7 +57,19 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
         },
         uninstall: (args) => installer.uninstall({ ...args, probe: () => tidalRunning }),
       },
-      tidalCatalogFetch: require("./support/tidal-catalog-fixture.cjs"),
+      tidalCatalogFetch: (url, init) => {
+        if (new URL(url).pathname !== "/v2/userCollectionTracks/me/relationships/items")
+          return catalogFixture(url, init);
+        const [track] = JSON.parse(init.body).data;
+        assert.deepEqual(track, { type: "tracks", id: "789" });
+        if (init.method === "POST") {
+          favorites.add(track.id);
+          return Response.json({ data: [track], links: {} });
+        }
+        assert.equal(init.method, "DELETE");
+        favorites.delete(track.id);
+        return new Response(null, { status: 204 });
+      },
       providers: {
         "youtube.catalog.host.v1/status": () => ({
           ok: true,
@@ -289,6 +303,17 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
     .locator("#tidalPlaybackStatus")
     .filter({ hasText: "ready to queue songs" })
     .waitFor();
+  const favoriteButton = surface
+    .locator(".nowFacts")
+    .getByRole("button", { name: "Favorite current song" });
+  const removeFavoriteButton = surface.getByRole("button", { name: "Remove favorite" });
+  assert.ok((await favoriteButton.boundingBox()).height <= 32);
+  await favoriteButton.click();
+  await surface.getByText("Added to TIDAL My Tracks.", { exact: true }).waitFor();
+  assert.equal(favorites.has("789"), true);
+  await removeFavoriteButton.click();
+  await surface.getByText("Removed from TIDAL My Tracks.", { exact: true }).waitFor();
+  assert.equal(favorites.has("789"), false);
   assert.equal(
     await surface
       .locator("#tidalNowControls")
@@ -369,7 +394,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
     );
   };
   await surface.locator("#videoInput").fill("Artist TIDAL UI fixture");
-  await surface.locator("#addSong").click();
+  await surface.locator("#videoInput").press("Enter");
   await respond({
     candidate: {
       provider: "tidal",
@@ -966,7 +991,17 @@ test("Moderation edits shared command permissions and scope through the supervis
   const policy = (await read()).value;
   assert.equal(policy.commandPermissions.song.viewer, false);
   assert.equal(policy.commandPermissions.songqueue.viewer, true);
-  assert.deepEqual(Object.keys(policy).sort(), ["commandPermissions", "connected", "ok"]);
+  assert.deepEqual(Object.keys(policy).sort(), [
+    "commandPermissions",
+    "connected",
+    "effectiveSource",
+    "ok",
+    "songRequestChatEnabled",
+    "source",
+    "twitchAvailable",
+  ]);
+  assert.equal(typeof policy.songRequestChatEnabled, "boolean");
+  assert.equal(typeof policy.twitchAvailable, "boolean");
   assert.equal(policy.commandPermissions.volume.vip, true);
   assert.equal(policy.commandPermissions.skipAny.viewer, true);
   assert.equal(policy.commandPermissions.remove.viewer, false);

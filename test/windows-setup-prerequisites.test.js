@@ -22,7 +22,7 @@ const run = (file, args, env) =>
   });
 
 test(
-  "offline Setup skips installed runtimes, installs missing ones, and blocks failed/tampered prerequisites",
+  "Offline Setup skips installed runtimes, installs missing ones, and blocks failed or tampered payloads",
   { skip: process.platform !== "win32" || !compiler },
   (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-setup-prereq-"));
@@ -66,7 +66,12 @@ class Stub { static int Main(string[] args) {
         const code = require("../scripts/installer-prerequisite-code")()
           .join("\n")
           .replaceAll(actualKey, fixtureKey)
-          .replaceAll(spec.sha256, mode === "tampered" ? "0".repeat(64) : digest);
+          .replaceAll(spec.sha256, mode === "tampered" ? "0".repeat(64) : digest)
+          .replaceAll("install-webview2.ps1", spec.file)
+          .replace(
+            /Exec\(ExpandConstant\('\{sys\}[^]*?ResultCode\)/,
+            "Exec(InstallerPath, '/silent /install', ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ResultCode)",
+          );
         const payload = path.join(directory, "installed.txt");
         fs.writeFileSync(payload, "ready");
         const script = path.join(directory, "fixture.iss");
@@ -74,7 +79,7 @@ class Stub { static int Main(string[] args) {
           script,
           `[Setup]
 AppId=RaveLinkPrerequisiteFixture${id}
-AppName=RaveLink prerequisite test
+AppName=Groby’s Deck prerequisite test
 AppVersion=1
 DefaultDirName=${directory}\\app
 OutputDir=${directory}
@@ -92,7 +97,7 @@ Source: "${payload}"; DestDir: "{app}"
 [Code]
 ${code}
 function PrepareToInstall(var NeedsRestart: Boolean): String;
-begin Result := InstallBundledPrerequisites(NeedsRestart); end;
+begin Result := EnsureWebViewRuntime(NeedsRestart); end;
 `,
         );
         const compiled = run(compiler, ["/Qp", script], env);
@@ -120,5 +125,42 @@ begin Result := InstallBundledPrerequisites(NeedsRestart); end;
         assert.equal(run(stub, ["--cleanup"], env).status, 0);
       }
     }
+  },
+);
+
+test(
+  "portable WebView helper rejects an unsigned bundled payload",
+  { skip: process.platform !== "win32" },
+  (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "grobys-webview-signature-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(root, "scripts"));
+    fs.mkdirSync(path.join(root, "optional-components/prerequisites"), { recursive: true });
+    const bytes = Buffer.from("unsigned fixture executable"),
+      filename = "fixture.exe";
+    fs.writeFileSync(path.join(root, "optional-components/prerequisites", filename), bytes);
+    fs.writeFileSync(
+      path.join(root, "scripts/prerequisites.json"),
+      JSON.stringify({
+        webview2: {
+          file: filename,
+          sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+        },
+      }),
+    );
+    const helper = fs
+      .readFileSync(path.join(__dirname, "../scripts/install-webview2.ps1"), "utf8")
+      .replace("if (Test-WebViewRuntime) {", "if ($false) {");
+    const file = path.join(root, "scripts/install-webview2.ps1");
+    fs.writeFileSync(file, helper);
+    const result = run("powershell.exe", [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      file,
+    ]);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout, /signature verification failed/);
   },
 );

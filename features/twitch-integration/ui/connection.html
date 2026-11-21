@@ -206,6 +206,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 7px;
         margin: 12px 0;
+        max-height: 240px;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+        padding: 2px;
       }
       .permissionCard {
         display: grid;
@@ -349,12 +353,14 @@
       <section data-task-panel="Connection">
         <h2>Choose your Twitch features</h2>
         <p class="sectionHelp">
-          Select what RaveLink may request when you connect. Granted badges show what your current
-          connection can use.
+          Select what Groby’s Deck may request when you connect. Granted badges show what your
+          current connection can use.
         </p>
         <div
           id="permissionGroups"
           class="permissionList"
+          role="region"
+          tabindex="0"
           aria-label="Twitch feature permissions"
         ></div>
         <p id="permissionSelectionNote" class="sectionHelp">
@@ -423,14 +429,15 @@
         </div>
         <div class="actions">
           <button id="openActivation" class="primary">OPEN TWITCH AUTHORIZATION</button
-          ><button id="check">I AUTHORIZED - CHECK</button>
+          ><button id="check">I AUTHORIZED - CHECK</button
+          ><button id="cancelAuthorization">Cancel pending login</button>
         </div>
       </section>
-      <section data-task-panel="Event intake">
+      <section hidden inert aria-hidden="true" style="display: none !important">
         <h2>TWITCH EVENT INTAKE</h2>
         <p class="sectionHelp">
-          Choose where Twitch events enter RaveLink and how viewers submit song requests. Only one
-          event transport runs at a time.
+          Choose where Twitch events enter Groby’s Deck and how viewers submit song requests. Only
+          one event transport runs at a time.
         </p>
         <div class="choiceColumns">
           <div>
@@ -482,11 +489,18 @@
         </div>
         <p id="chatAccessNotice" class="sectionHelp" role="status"></p>
       </section>
-      <section data-task-panel="Rewards" id="managedRewardSection">
-        <h2>RAVELINK-MANAGED REWARDS</h2>
+      <section
+        id="managedRewardSection"
+        hidden
+        inert
+        aria-hidden="true"
+        style="display: none !important"
+      >
+        <h2>BUILT-IN REWARD SHORTCUTS</h2>
         <p class="sectionHelp">
-          Pick what the reward controls. RaveLink fills in a useful title and viewer prompt that you
-          can edit before creating it.
+          For custom rewards, chat commands, editing and removal, open the Rewards &amp; automations
+          tab. These shortcuts create a reward using one of the built-in handlers. No rewards are
+          created automatically.
         </p>
         <p id="rewardAccessNotice" class="sectionHelp" role="status"></p>
         <select id="rewardPurpose" class="srOnly" aria-label="Reward function">
@@ -522,7 +536,7 @@
             >REWARD TITLE<input
               id="rewardTitle"
               maxlength="45"
-              value="RaveLink: Change Lights" /></label
+              value="Groby’s Deck: Change Lights" /></label
           ><label style="grid-column: 1/-1"
             >VIEWER PROMPT<input
               id="rewardPrompt"
@@ -669,7 +683,12 @@
       }
       function syncClientControls() {
         const valid = /^[a-z0-9]{10,80}$/i.test($("clientId").value.trim());
-        unavailable("save", !developerMode || !valid, "Enter a valid public Client ID.");
+        const statusKnown = typeof last.configured === "boolean";
+        unavailable(
+          "save",
+          !developerMode || !statusKnown || !valid,
+          statusKnown ? "Enter a valid public Client ID." : "Refresh the Twitch connection first.",
+        );
         unavailable(
           "clearClientId",
           !developerMode || !last.configured,
@@ -813,7 +832,7 @@
           const input = row.querySelector("input"),
             badge = row.querySelector(".badge");
           input.checked = selected.includes(group.id);
-          input.disabled = authBusy || last.authorizationPending === true;
+          input.disabled = authBusy;
           badge.textContent = groupAvailable(group.id)
             ? "Granted"
             : last.connected
@@ -841,13 +860,13 @@
           "Choices apply to your next authorization. Unchecking a feature does not revoke access already granted in Twitch.";
         unavailable(
           "savePermissions",
-          !permissionDirty || !last.configured || authBusy || last.authorizationPending,
-          "Choose features before saving. Pending authorization must finish first.",
+          !permissionDirty || !last.configured || authBusy,
+          "Save choices to cancel an older pending login without disconnecting.",
         );
         unavailable(
           "begin",
           !last.configured ||
-            last.authorizationPending ||
+            (last.authorizationPending && !permissionDirty) ||
             authBusy ||
             (last.authorizationStored &&
               !last.connected &&
@@ -873,7 +892,7 @@
         const roles = last.roleDirectory || {};
         $("roleDirectory").textContent = !groupAvailable("roles")
           ? "Requester roles unavailable: authorize Moderator and VIP roles."
-          : roles.refreshing
+          : roles.refreshing || !roles.updatedAt
             ? "Requester roles synchronizing."
             : roles.lastError
               ? "Requester role synchronization will retry."
@@ -895,24 +914,29 @@
         last = value || {};
         const reconnectRequired = last.authorizationRecovery?.reauthorizationRequired === true,
           restoring = last.authorizationStored && !last.connected && !reconnectRequired;
-        $("state").textContent = last.connected
-          ? "CONNECTED"
-          : reconnectRequired
-            ? "RECONNECT REQUIRED"
-            : restoring
-              ? "RESTORING SESSION"
-              : last.configured
-                ? "READY TO AUTHORIZE"
-                : "CLIENT ID REQUIRED";
+        const statusKnown = typeof last.configured === "boolean";
+        $("state").textContent = !statusKnown
+          ? "CHECKING CONNECTION"
+          : last.connected
+            ? "CONNECTED"
+            : reconnectRequired
+              ? "RECONNECT REQUIRED"
+              : restoring
+                ? "RESTORING SESSION"
+                : last.configured
+                  ? "READY TO AUTHORIZE"
+                  : "CLIENT ID REQUIRED";
         $("state").className = "badge " + (last.connected ? "good" : restoring ? "" : "bad");
         $("activation").hidden = !last.authorizationPending;
         $("userCode").textContent = last.userCode || "";
         $("verificationUri").textContent = last.verificationUri || "";
-        $("identity").textContent = last.connected
-          ? "Connected as " + (last.login || "Twitch user")
-          : restoring
-            ? "Restoring saved authorization"
-            : "Not connected";
+        $("identity").textContent = !statusKnown
+          ? "Checking Twitch connection"
+          : last.connected
+            ? "Connected as " + (last.login || "Twitch user")
+            : restoring
+              ? "Restoring saved authorization"
+              : "Not connected";
         const rewards = Array.isArray(last.managedRewards) ? last.managedRewards : [];
         renderManagedRewards(rewards);
         const config = last.monitorConfig || {},
@@ -934,6 +958,11 @@
           "check",
           !last.authorizationPending || authBusy,
           "Start Device Login before checking authorization.",
+        );
+        unavailable(
+          "cancelAuthorization",
+          !last.authorizationPending || authBusy,
+          "No pending login to cancel.",
         );
         unavailable(
           "disconnect",
@@ -1028,6 +1057,10 @@
           render(await call("twitch.connection.read.v1", "status"));
           message("notice", "");
         } catch (error) {
+          if (typeof last.configured !== "boolean") {
+            $("state").textContent = "STATUS UNAVAILABLE";
+            $("identity").textContent = "Refresh to check the saved Twitch connection.";
+          }
           message("notice", error.message, true);
         }
       }
@@ -1057,7 +1090,7 @@
       $("clearClientId").onclick = async () => {
         if (
           !confirm(
-            "Permanently delete the saved Twitch Client ID? RaveLink cannot display or recover it. You must enter your own Client ID or redownload the server package to restore it.",
+            "Permanently delete the saved Twitch Client ID? Groby’s Deck cannot display or recover it. You must enter your own Client ID or redownload the server package to restore it.",
           )
         )
           return;
@@ -1095,7 +1128,7 @@
         }
       };
       $("savePermissions").onclick = async () => {
-        if (authBusy || last.authorizationPending) return;
+        if (authBusy) return;
         const permissionGroups = selectedPermissions();
         authBusy = true;
         render(last);
@@ -1118,6 +1151,29 @@
       $("openActivation").onclick = () => {
         if (!openActivationWindow(last.verificationUri))
           message("notice", "TWITCH AUTHORIZATION POPUP WAS BLOCKED", true);
+      };
+      $("cancelAuthorization").onclick = async () => {
+        if (authBusy) return;
+        authBusy = true;
+        render(last);
+        try {
+          render(
+            await call("twitch.oauth.admin.v1", "configure", {
+              permissionGroups: selectedPermissions(),
+            }),
+          );
+          permissionDraft = null;
+          permissionDirty = false;
+          message(
+            "notice",
+            "Pending login cancelled. Your existing Twitch access is unchanged. Choose features and start a new login when ready.",
+          );
+        } catch (error) {
+          message("notice", error.message, true);
+        } finally {
+          authBusy = false;
+          render(last);
+        }
       };
       $("check").onclick = async () => {
         if (authBusy) return;
@@ -1155,12 +1211,12 @@
           playlist = purpose === "add_to_playlist",
           song = purpose === "song_request" || playlist;
         $("rewardTitle").value = teach
-          ? "RaveLink: Teach Color"
+          ? "Groby’s Deck: Teach Color"
           : playlist
             ? "Add to playlist"
             : song
-              ? "RaveLink: Song Request"
-              : "RaveLink: Change Lights";
+              ? "Groby’s Deck: Song Request"
+              : "Groby’s Deck: Change Lights";
         $("rewardPrompt").value = teach
           ? "Enter a color name and hex value."
           : song

@@ -25,7 +25,7 @@ module.exports = function bindTwitchClips(registry, { getTwitchClips = () => nul
     },
   });
   registry.registerHostCapability({
-    providerId: "ravelink.twitch-clips",
+    providerId: "groby.twitch-clips",
     capability: "twitch.clips.host.v1",
     invoke: async (_capability, method, payload) => {
       const owner = getTwitchClips();

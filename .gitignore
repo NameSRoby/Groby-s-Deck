@@ -1,5 +1,5 @@
 node_modules/
-/RaveLink-Core.exe
+/Groby's Deck.exe
 /runtime/
 /.runtime/
 /dist/
@@ -11,6 +11,9 @@ mod/*
 !mod/.gitkeep
 mods/*
 !mods/.gitkeep
+!mods/README.md
+!mods/twitch-clips/
+!mods/twitch-clips/**
 features/installed/*
 !features/installed/.gitkeep
 config/*.enabled

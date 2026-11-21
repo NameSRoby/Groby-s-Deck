@@ -49,14 +49,15 @@ if (typeof importScripts === "function") importScripts("native-service.js");
       });
       if (!response.ok)
         return {
-          error: "This connection has expired. Return to RaveLink Setup and connect again.",
+          error: "This connection has expired. Return to Groby’s Deck Setup and connect again.",
         };
       const state = await response.json();
       if (state.prototype !== true || state.protocolVersion !== 1)
         return { error: "Update the companion and reconnect from RaveLink." };
       if (state.paired)
         return {
-          error: "A music tab is already connected. Use Disconnect in RaveLink before changing it.",
+          error:
+            "A music tab is already connected. Use Disconnect in Groby’s Deck before changing it.",
         };
       const tabs = await api.tabs.query({ url: "https://music.youtube.com/*" });
       return {
@@ -108,7 +109,7 @@ if (typeof importScripts === "function") importScripts("native-service.js");
           message.port > 65535 ||
           !/^[a-f0-9]{64}$/.test(message.token || "")
         )
-          return { error: "Return to RaveLink Setup and connect again." };
+          return { error: "Return to Groby’s Deck Setup and connect again." };
         if (pairingPage && !Number.isInteger(message.tabId))
           return { error: "Select a music tab first." };
         const tab =
@@ -123,7 +124,7 @@ if (typeof importScripts === "function") importScripts("native-service.js");
           signal: AbortSignal.timeout(5000),
         });
         if (!check.ok)
-          return { error: "Connection expired. Return to RaveLink Setup and connect again." };
+          return { error: "Connection expired. Return to Groby’s Deck Setup and connect again." };
         const state = await check.json();
         if (state.prototype !== true || state.protocolVersion !== 1)
           return {
@@ -133,7 +134,7 @@ if (typeof importScripts === "function") importScripts("native-service.js");
         if (state.paired)
           return {
             error:
-              "A music tab is already connected. Disconnect it in RaveLink before changing it.",
+              "A music tab is already connected. Disconnect it in Groby’s Deck before changing it.",
           };
         const owner = { tabId: tab.id, clientId: crypto.randomUUID() };
         const paired = await fetch(`${connection.base}/api/pair`, {
@@ -264,7 +265,7 @@ if (typeof importScripts === "function") importScripts("native-service.js");
     if (configRequest) configuration = operation.catch(() => {});
     operation.then(respond, () =>
       respond({
-        error: "Connection unavailable. Check that RaveLink is running.",
+        error: "Connection unavailable. Check that Groby’s Deck is running.",
         paired: false,
       }),
     );

@@ -8,8 +8,9 @@ for (const script of [
   "build-spotify-desktop.js",
   "build-tidal-desktop.js",
   "build-music-to-light-ui.js",
+  "build-twitch-automations-ui.js",
   "refresh-feature-integrity.js",
-  "refresh-bundled-mod-integrity.js",
+  "refresh-example-mod-integrity.js",
 ]) {
   const result = spawnSync(process.execPath, [path.join(__dirname, script), "--check"], {
     stdio: "inherit",

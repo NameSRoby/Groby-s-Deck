@@ -16,7 +16,7 @@ function browserRandomId() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 if (typeof module !== "undefined" && module.exports) module.exports = browserRandomId;
-else globalThis.RaveLinkRandomId = browserRandomId;
+else globalThis.GrobyRandomId = browserRandomId;
 
 </script>
 <!-- PLAYER RANDOM ID END -->
@@ -482,7 +482,7 @@ else globalThis.RaveLinkRandomId = browserRandomId;
       </section>
     </main>
     <script>
-      const DRIVER = `player-${globalThis.RaveLinkRandomId()}`;
+      const DRIVER = `player-${globalThis.GrobyRandomId()}`;
       const CHANNEL = "ravelink-feature-ui-v1";
       const PARENT_ORIGIN = location.origin;
       let sequence = 0;
@@ -1303,7 +1303,7 @@ else globalThis.RaveLinkRandomId = browserRandomId;
               }
             : null;
           const result = await call("song.queue.submit.v1", "submit", {
-            requestId: globalThis.RaveLinkRandomId(),
+            requestId: globalThis.GrobyRandomId(),
             requesterId: "local-operator",
             requesterName: "Local operator",
             requesterRole: "moderator",
@@ -1327,6 +1327,9 @@ else globalThis.RaveLinkRandomId = browserRandomId;
         }
       }
       $("requestForm").onsubmit = submitRequest;
+      $("requestForm").addEventListener("keydown", event => {
+        if(event.key === "Enter" && event.target.tagName === "INPUT") {event.preventDefault(); $("addSong").click();}
+      });
       $("addSong").onclick = submitRequest;
       $("skip").onclick = async () => {
         try {
@@ -2278,6 +2281,7 @@ main {
   font-size: 13px;
   line-height: 1.4;
   margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 .nowAlbum {
   font-size: 12px;
@@ -2307,9 +2311,37 @@ main {
   border-radius: 4px;
   padding: 2px 5px;
 }
+.playerFavorites:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.nowFacts .playerFavorites button {
+  min-width: 32px;
+  min-height: 28px;
+  padding: 2px 5px;
+  line-height: 1;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.favoriteNotice:not(:empty) {
+  padding-inline-start: 4px;
+  overflow-wrap: anywhere;
+}
+.favoriteNotice.failed {
+  color: var(--bad, #ff819b);
+}
+@media (pointer: coarse) {
+  .nowFacts .playerFavorites button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 #nowTimeline {
   max-width: 600px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 #nowProgress {
   display: block;
@@ -2351,6 +2383,7 @@ main {
   .tidal-mode .playerSide .nowPlayingCard {
     grid-template-columns: 72px minmax(0, 1fr);
     gap: 10px;
+    align-items: start;
   }
   .nowCover {
     width: 72px;
@@ -2972,12 +3005,12 @@ function installProviderNotices() {
   const text = document.createElement("p");
   const report = document.createElement("a");
   report.textContent = "Report a bug on GitHub";
-  report.href = "https://github.com/NameSRoby/RaveLink-Core/issues/new?template=bug_report.yml";
+  report.href = "https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml";
   report.target = "_blank";
   report.rel = "noopener noreferrer";
   const privacy = document.createElement("p");
   privacy.textContent =
-    "Include your RaveLink version and steps to reproduce. Remove tokens, credentials and private account details before sharing logs or screenshots.";
+    "Include your Groby’s Deck version and steps to reproduce. Remove tokens, credentials and private account details before sharing logs or screenshots.";
   details.append(summary, text, report, privacy);
   document.querySelector(".playerSide").prepend(details);
   const style = document.createElement("style");
@@ -2988,7 +3021,7 @@ function installProviderNotices() {
     spotify:
       "Spotify updates can require preparing and reopening the companion. Free-account ads and playback restrictions still apply. Unconfirmed queue or community-playlist writes need review before retrying. The official Premium API cannot remove individual queued songs; the companion can remove entries it delivered. Live Premium and community-playlist testing remains limited.",
     soundcloud:
-      "Public search can be affected by SoundCloud site changes or rate limits. Some tracks are private, unavailable, limited to previews or blocked from embedded playback. Keep the RaveLink player open for playback. Availability and ads are controlled by SoundCloud. Direct account-library writes are not supported.",
+      "Public search can be affected by SoundCloud site changes or rate limits. Some tracks are private, unavailable, limited to previews or blocked from embedded playback. Keep the Groby’s Deck player open for playback. Availability and ads are controlled by SoundCloud. Direct account-library writes are not supported.",
   };
   let provider = "";
   return {
@@ -3388,7 +3421,7 @@ function renderTidalRequests({ state, installation, requesters, refresh, refresh
       actions.append(
         actionButton(
           phase === "playing" ? "SKIP" : "REMOVE",
-          "Remove this request from RaveLink and TIDAL",
+          "Remove this request from Groby’s Deck and TIDAL",
           () => run("remove"),
         ),
       );
@@ -3961,7 +3994,7 @@ function installSoundCloudPlayer() {
         setRequestNotice("Searching SoundCloud for a matching track?");
         const result = await api("submit-query", {
           query,
-          requestId: globalThis.RaveLinkRandomId(),
+          requestId: globalThis.GrobyRandomId(),
         });
         $("videoInput").value = "";
         setRequestNotice(
@@ -3982,7 +4015,7 @@ function installSoundCloudPlayer() {
         throw new Error("Use a single public track link. Import playlists in Setup.");
       const result = await api("submit", {
         sound: sounds[0],
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       $("videoInput").value = "";
       setRequestNotice("Queued " + result.entry.candidate.title + ". Requests play in order.");
@@ -4210,7 +4243,7 @@ function installSoundCloudPlayer() {
     $("allowNonMusic").parentElement.hidden = true;
     $("titleInput").closest("label").hidden = true;
     $("videoInput").closest("label").firstChild.textContent = "ARTIST AND SONG OR SOUNDCLOUD LINK";
-    $("playerProviderHint").textContent = "Public SoundCloud links · playback in RaveLink";
+    $("playerProviderHint").textContent = "Public SoundCloud links · playback in Groby’s Deck";
     $("videoInput").placeholder = "Artist and song, YouTube, Spotify, TIDAL, or SoundCloud link";
     $("requestNotice").textContent =
       "Enter an artist and song, or a public track link. Requests play in order.";
@@ -4654,7 +4687,7 @@ function installSpotifyAccount({ setup, api, action, refresh, explain }) {
   const account = document.createElement("details");
   account.id = "spotifyOfficialSetup";
   account.innerHTML =
-    '<summary>Optional Spotify Premium connection</summary><p>Use the companion for native queue control and connect Premium for official search and playback controls. Both work together on the same device. RaveLink adds no developer-kit charge.</p><p id="spotifyAccountStatus" role="status"></p><div class="actions"><button id="spotifySignIn" class="primary">Sign in with Spotify</button><button id="spotifyAccountCheck">Check connection</button><button id="spotifyDisconnect">Disconnect account</button></div><a id="spotifySignInLink" target="_blank" rel="noopener noreferrer" hidden>Open Spotify sign-in</a><details id="spotifyAppSetup"><summary>Developer app setup</summary><p>Create a free app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer</a>. Its owner needs Premium. Development apps support five allowlisted users; add your account under Users and Access. Register this exact redirect URI:</p><code id="spotifyCallbackUri"></code><p><label>Client ID<input id="spotifyClientId" type="password" maxlength="32" autocomplete="off" spellcheck="false" placeholder="Write-only client ID"></label></p><button id="spotifySaveClient">Save app setup</button><p>Your client ID and account tokens are encrypted on this PC. No client secret is required.</p></details><section><h3>Playback device</h3><p>Open Spotify on the device you want to control. Refresh, choose it below, and start playback there if it is inactive.</p><button id="spotifyDevices">Refresh devices</button><div id="spotifyDeviceChoices" class="actions" role="group" aria-label="Spotify playback devices"></div><p id="spotifyDeviceStatus" role="status"></p></section>';
+    '<summary>Optional Spotify Premium connection</summary><p>Use the companion for native queue control and connect Premium for official search, playback controls and favorites. Sign in again if an older connection has no library access. Both work together on the same device. Groby’s Deck adds no developer-kit charge.</p><p id="spotifyAccountStatus" role="status"></p><div class="actions"><button id="spotifySignIn" class="primary">Sign in with Spotify</button><button id="spotifyAccountCheck">Check connection</button><button id="spotifyDisconnect">Disconnect account</button></div><a id="spotifySignInLink" target="_blank" rel="noopener noreferrer" hidden>Open Spotify sign-in</a><details id="spotifyAppSetup"><summary>Developer app setup</summary><p>Create a free app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer</a>. Its owner needs Premium. Development apps support five allowlisted users; add your account under Users and Access. Register this exact redirect URI:</p><code id="spotifyCallbackUri"></code><p><label>Client ID<input id="spotifyClientId" type="password" maxlength="32" autocomplete="off" spellcheck="false" placeholder="Write-only client ID"></label></p><button id="spotifySaveClient">Save app setup</button><p>Your client ID and account tokens are encrypted on this PC. No client secret is required.</p></details><section><h3>Playback device</h3><p>Open Spotify on the device you want to control. Refresh, choose it below, and start playback there if it is inactive.</p><button id="spotifyDevices">Refresh devices</button><div id="spotifyDeviceChoices" class="actions" role="group" aria-label="Spotify playback devices"></div><p id="spotifyDeviceStatus" role="status"></p></section>';
   setup.append(companion, account);
   const note = document.createElement("p");
   note.id = "spotifyOfficialLimit";
@@ -4825,10 +4858,10 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   const explain = (code) =>
     ({
       spotify_close_client_required:
-        "Fully quit Spotify, including its tray icon, then try Open Spotify with RaveLink again.",
+        "Fully quit Spotify, including its tray icon, then try Open Spotify with Groby’s Deck again.",
       spotify_local_device_unverified:
         "Start a song on this computer in Spotify. Remote Spotify Connect devices cannot receive requests here.",
-      spotify_companion_unavailable: "Open Setup and launch Spotify with RaveLink.",
+      spotify_companion_unavailable: "Open Setup and launch Spotify with Groby’s Deck.",
       spotify_not_installed: "Install Spotify Desktop, then choose Prepare companion.",
       spotify_setup_required: "Choose Prepare companion first.",
       spotify_desktop_search_rejected:
@@ -4868,7 +4901,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   setup.className = "tidalStep";
   setup.hidden = true;
   setup.innerHTML =
-    '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with RaveLink, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with RaveLink</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with RaveLink each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
+    '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with Groby’s Deck, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with Groby’s Deck</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with Groby’s Deck each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
   $("songSetupPage").append(setup);
   const playback = document.createElement("section");
   playback.id = "spotifyPlayback";
@@ -4878,7 +4911,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   const playbackLaunch = document.createElement("button");
   playbackLaunch.id = "spotifyPlaybackLaunch";
   playbackLaunch.className = "primary";
-  playbackLaunch.textContent = "Open Spotify with RaveLink";
+  playbackLaunch.textContent = "Open Spotify with Groby’s Deck";
   playbackLaunch.hidden = true;
   playback.querySelector(".actions").prepend(playbackLaunch);
   document.querySelector(".playerSide").prepend(playback);
@@ -4927,7 +4960,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       event.currentTarget,
       "setup",
       { action: "prepare", coreUrl: url.origin },
-      "Companion prepared. Fully quit Spotify, then choose Open Spotify with RaveLink.",
+      "Companion prepared. Fully quit Spotify, then choose Open Spotify with Groby’s Deck.",
     );
   };
   $("spotifyLaunch").onclick = playbackLaunch.onclick = (event) =>
@@ -4987,7 +5020,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
         playbackLaunch.disabled = Boolean(state.launching);
         playbackLaunch.textContent = state.launching
           ? "Opening Spotify..."
-          : "Open Spotify with RaveLink";
+          : "Open Spotify with Groby’s Deck";
         if (state.connected && launchError) {
           launchError = false;
           setNotice("Spotify connected. The previous launch warning is cleared.");
@@ -5152,7 +5185,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     try {
       const result = await api("submit", {
         query,
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       if (!result.ok) throw new Error(result.reason || result.error || "Song could not be added.");
       $("videoInput").value = "";
@@ -5174,6 +5207,93 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     clearInterval(timer);
   });
   return { select, refresh, renderQueue, submit };
+}
+
+/** Explicit library writes use the exact observed track, never a title search. */
+/* exported installPlayerFavorites */
+function installPlayerFavorites({ selected }) {
+  const host = document.createElement("div");
+  host.className = "playerFavorites";
+  const save = document.createElement("button"),
+    remove = document.createElement("button"),
+    notice = document.createElement("span");
+  for (const [button, label, icon] of [
+    [save, "Favorite current song", "\u2661+"],
+    [remove, "Remove favorite", "\u2661\u2212"],
+  ]) {
+    button.type = "button";
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.textContent = icon;
+  }
+  notice.className = "favoriteNotice";
+  notice.setAttribute("role", "status");
+  host.append(save, remove, notice);
+  document.querySelector(".nowFacts").append(host);
+  const report = (message, failed = false) => {
+    notice.textContent = message;
+    notice.classList.toggle("failed", failed);
+  };
+  async function write(value) {
+    if (save.disabled) return;
+    save.disabled = remove.disabled = true;
+    report("");
+    try {
+      const player = selected(),
+        capability = { tidal: "song.tidal.experimental.v1", spotify: "song.spotify.player.v1" }[
+          player
+        ];
+      if (!capability) throw Error("Choose TIDAL or Spotify first.");
+      const state = await call(capability, "status", null),
+        current = state.current;
+      const trackId = current?.trackId || current?.uri?.replace(/^spotify:track:/, "");
+      if (
+        !state.ok ||
+        !trackId ||
+        selected() !== player ||
+        (player === "tidal" && !state.connected)
+      )
+        throw Error("Start a song in this player first.");
+      const result = await call(capability, "favorite", { trackId, save: value });
+      if (!result.ok)
+        throw Error(
+          {
+            spotify_favorites_sign_in_required:
+              "Sign in again with Spotify in Setup to grant library access.",
+            tidal_favorites_sign_in_required:
+              "Sign in with TIDAL in Setup to grant collection access.",
+            tidal_catalog_access_denied:
+              "TIDAL denied My Tracks access. Check your connection in Setup.",
+            tidal_favorite_track_not_found: "TIDAL could not find this track in its catalog.",
+            tidal_favorite_unconfirmed: "TIDAL did not confirm that it added this track.",
+          }[result.error] ||
+            result.error ||
+            "Library change could not be confirmed.",
+        );
+      report(
+        player === "tidal"
+          ? value
+            ? "Added to TIDAL My Tracks."
+            : "Removed from TIDAL My Tracks."
+          : value
+            ? "Song added to favorites."
+            : "Song removed from favorites.",
+      );
+    } catch (error) {
+      report(error.message, true);
+    } finally {
+      save.disabled = remove.disabled = false;
+    }
+  }
+  save.onclick = () => write(true);
+  remove.onclick = () => write(false);
+  const sync = () => {
+    report("");
+    host.hidden = !["tidal", "spotify"].includes(selected());
+  };
+  $("songPlayerProvider").addEventListener("change", sync);
+  sync();
+  return { sync };
 }
 
 /**
@@ -5279,7 +5399,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     <section class="tidalStep"><div class="tidalStepHeading"><span class="tidalStepNumber" aria-hidden="true">2</span><h3>Connect the desktop player</h3><span id="tidalDesktopBadge" class="tidalBadge">Checking</span></div>
     <p id="tidalInstallStatus" role="status"></p>
     <section id="tidalSetup"><h4>Set up desktop connection</h4>
-    <ol class="tidalChecklist"><li>Quit TIDAL completely, including its tray icon.</li><li>Install or update the RaveLink companion below.</li><li>Open TIDAL and play a song, then choose Refresh.</li></ol>
+    <ol class="tidalChecklist"><li>Quit TIDAL completely, including its tray icon.</li><li>Install or update the Groby’s Deck companion below.</li><li>Open TIDAL and play a song, then choose Refresh.</li></ol>
     <div class="actions"><button id="installTidalCompanion" class="primary">Install companion</button><button id="updateTidalCompanion" class="primary" hidden>Update companion</button></div>
     <p class="tidalFinePrint">Requires the regular Windows desktop app. The Microsoft Store app is not supported.</p></section>
     <section id="tidalConnectionOptions"><h4>Connection options</h4><div class="actions"><button id="monitorTidal">Use TIDAL for now playing</button><button id="uninstallTidalCompanion">Remove companion</button></div><p class="tidalFinePrint">Close TIDAL before removal or updates. Removing the companion restores the original app files.</p></section></section>
@@ -5311,6 +5431,42 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   document.querySelector("main").append(workspace);
   workspace.append(setupPage, moderationPage);
   setupPage.append(panel, $("catalogSettings"));
+  const intakePanel = document.createElement("section");
+  intakePanel.className = "playerSetupCard";
+  intakePanel.innerHTML =
+    '<h3>Viewer song requests</h3><label>Request method<select id="songRequestIntakeChoice"><option value="false">Channel Points</option><option value="true">Chat commands: !sr / !songrequest</option></select></label><button type="button">Save request method</button><p role="status">Loading request settings...</p>';
+  setupPage.append(intakePanel);
+  const intakeChoice = intakePanel.querySelector("select"),
+    intakeSave = intakePanel.querySelector("button"),
+    intakeNotice = intakePanel.querySelector("[role=status]");
+  async function refreshIntake() {
+    try {
+      const state = await call("song.chat.commands.v1", "status", null);
+      intakeChoice.disabled = intakeSave.disabled = !state.twitchAvailable;
+      intakeChoice.value = String(state.songRequestChatEnabled === true);
+      intakeNotice.textContent =
+        state.twitchAvailable === undefined
+          ? "Restart Core to load request intake settings."
+          : state.twitchAvailable
+            ? "Rewards use the source selected in Widget."
+            : "Widget fallback is active. Enable Twitch Integration to use chat requests.";
+    } catch (error) {
+      intakeNotice.textContent = error.message;
+      intakeSave.disabled = true;
+    }
+  }
+  intakeSave.onclick = async () => {
+    try {
+      await call("song.chat.commands.v1", "configure", {
+        songRequestChatEnabled: intakeChoice.value === "true",
+      });
+      intakeNotice.textContent = "Request method saved.";
+    } catch (error) {
+      intakeNotice.textContent = error.message;
+    }
+  };
+  void refreshIntake();
+
   $("catalogSettings").open = true;
   const searchFilters = document.createElement("section");
   searchFilters.id = "songSearchFilters";
@@ -5718,7 +5874,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
           : companionInstall.foreignLoader
             ? "Another desktop integration is installed. Remove it before connecting RaveLink."
             : companionInstall.available
-              ? "One-time setup connects RaveLink to your desktop player."
+              ? "One-time setup connects Groby’s Deck to your desktop player."
               : "Install TIDAL Desktop first, then choose Refresh.";
     $("tidalDesktopBadge").textContent = needsUpdate
       ? "Update needed"
@@ -5775,7 +5931,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     try {
       const result = await call("song.tidal.experimental.v1", "submit", {
         query,
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       $("videoInput").value = "";
       setRequestNotice(
@@ -5963,6 +6119,8 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       $("songPlayerProvider").disabled = false;
     }
   })();
+  const favorites = installPlayerFavorites({ selected });
+  void playerRestored.then(() => favorites.sync());
   let libraryStarting = false;
   window.addEventListener("message", async (event) => {
     if (

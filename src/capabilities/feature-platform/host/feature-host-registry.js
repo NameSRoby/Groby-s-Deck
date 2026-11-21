@@ -436,6 +436,11 @@ module.exports = function createFeatureHostRegistry(options = {}) {
   }
 
   async function startInstalled() {
+    await require("../../../shared/fs/migrate-package-manifests")(
+      featuresRoot,
+      "feature",
+      verifyFeaturePackageDirectory,
+    );
     await discover();
     return Promise.all(
       [...catalog.keys()]

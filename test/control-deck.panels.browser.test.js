@@ -13,6 +13,7 @@ test("reward and light panels support individual, all and pinned controls withou
     ["/panels.js", "control-deck-panels.js", "js"],
     ["/control-deck-windows-panel.js", "control-deck-windows-panel.js", "js"],
     ["/control-deck-slider.js", "control-deck-slider.js", "js"],
+    ["/control-deck-slider-steps.js", "control-deck-slider-steps.js", "js"],
     ["/control-deck-id.js", "control-deck-id.js", "js"],
     ["/deck.css", "control-deck.css", "css"],
   ])

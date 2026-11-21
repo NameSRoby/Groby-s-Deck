@@ -230,6 +230,49 @@ exports.install = function install({
     throw error;
   }
 };
+// Only repair a missing pairing path after Core's folder moved. No player restart,
+// executable patch or token copy is performed here; TIDAL reloads it on next launch.
+exports.repairPairing = function repairPairing({ resources: input, pairingFile }) {
+  const resources = resourcesPath(input),
+    target = path.resolve(pairingFile),
+    journal = path.join(resources, journalName),
+    configFile = path.join(resources, "app", "config.json");
+  regular(journal);
+  regular(configFile);
+  regular(target);
+  if (
+    fs.statSync(target).size > 4096 ||
+    !/^[a-f0-9]{64}$/.test(JSON.parse(fs.readFileSync(target, "utf8")).token || "")
+  )
+    throw Error("tidal_pairing_invalid");
+  const originalConfig = fs.readFileSync(configFile),
+    originalJournal = fs.readFileSync(journal),
+    config = JSON.parse(originalConfig),
+    record = JSON.parse(originalJournal);
+  if (
+    record.owner !== "ravelink-tidal-companion" ||
+    record.files?.["config.json"] !== hash(configFile) ||
+    fs.lstatSync(path.join(resources, "app")).isSymbolicLink()
+  )
+    throw Error("tidal_install_modified");
+  if (
+    config.pairingFile === target ||
+    (typeof config.pairingFile === "string" && fs.existsSync(config.pairingFile))
+  )
+    return { changed: false };
+  const next = JSON.stringify({ ...config, pairingFile: target }) + "\n";
+  record.files["config.json"] = crypto.createHash("sha256").update(next).digest("hex");
+  try {
+    fs.writeFileSync(configFile, next);
+    fs.writeFileSync(journal, JSON.stringify(record, null, 2) + "\n");
+  } catch (error) {
+    fs.writeFileSync(configFile, originalConfig);
+    fs.writeFileSync(journal, originalJournal);
+    throw error;
+  }
+  return { changed: true, restartRequired: true };
+};
+
 exports.uninstall = function uninstall({ resources: input, probe }) {
   requireStopped(probe);
   const resources = resourcesPath(input),

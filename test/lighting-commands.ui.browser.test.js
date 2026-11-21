@@ -111,7 +111,7 @@ test("Light Commands builds and copies guides from active saved routes", async (
   );
   await page.locator('[data-guide-format="twitch"]').click();
   const twitch = await page.locator("#compactLightCommands").textContent();
-  assert.match(twitch, /\*\*RAVELINK LIGHT COMMANDS\*\*/);
+  assert.match(twitch, /\*\*GROBY’S DECK LIGHT COMMANDS\*\*/);
   assert.match(twitch, /&lt;color&gt;/);
   await page.locator('[data-guide-format="discord"]').click();
   const discord = await page.locator("#compactLightCommands").textContent();

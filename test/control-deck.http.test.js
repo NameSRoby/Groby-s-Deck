@@ -121,30 +121,7 @@ test("deck HTTP validates saved actions, origins and media without desktop side 
   assert.equal(invalid.status, 400);
 });
 
-test("bundled install grants only exact reviewed adapters and respects disabling them", async (t) => {
-  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-bundled-"));
-  t.after(() => fs.rmSync(runtimeRoot, { recursive: true, force: true }));
-  const approvalStore = require("../src/capabilities/mod-platform/packages/mod-approval-store")({
-    storePath: path.join(runtimeRoot, "approvals.json"),
-  });
-  const bundle = require("../src/capabilities/mod-platform/packages/bundled-mods")({
-    rootDir: path.resolve(__dirname, ".."),
-    runtimeRoot,
-    modsRoot: path.join(runtimeRoot, "installed"),
-    approvalStore,
-  });
-  const prepared = await bundle.prepare();
-  assert.deepEqual(prepared.enable, ["ravelink.twitch-clips"]);
-  assert.deepEqual((await bundle.prepare()).enable, ["ravelink.twitch-clips"]);
-  const target = path.join(runtimeRoot, "installed", "ravelink.twitch-clips", "ravelink.mod.json");
-  const changed = JSON.parse(fs.readFileSync(target, "utf8"));
-  changed.consumes.push("other.host.v1");
-  fs.writeFileSync(target, JSON.stringify(changed));
-  const again = await bundle.prepare();
-  assert.equal(again.enable.length, 0);
-  assert(again.results.some((row) => row.code === "bundled_mod_differs"));
-});
-test("default source profile starts clipping without loading retired Discord controls", async (t) => {
+test("default source profile discovers the example mod without granting or executing it", async (t) => {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-default-"));
   const featuresRoot = path.join(runtimeDir, "empty-features");
   fs.mkdirSync(featuresRoot);
@@ -174,47 +151,10 @@ test("default source profile starts clipping without loading retired Discord con
   const mods = core.extension.mods.registry.list().mods;
   assert.deepEqual(
     mods.filter((m) => m.lifecycle === "active").map((m) => m.id),
-    ["ravelink.twitch-clips"],
+    [],
+  );
+  assert.ok(
+    core.extension.mods.inbox.list().candidates.some((row) => row.id === "groby.twitch-clips"),
   );
   assert(!mods.some((m) => m.id === "ravelink.discord-controls" && m.enabled));
-});
-test("app-owned bundled upgrades replace only the recorded version and preserve disabled choices", async (t) => {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-upgrade-"));
-  t.after(() => fs.rmSync(rootDir, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(rootDir, "packages"));
-  fs.cpSync(
-    path.resolve(__dirname, "../packages/bundled-mods"),
-    path.join(rootDir, "packages/bundled-mods"),
-    { recursive: true },
-  );
-  const runtimeRoot = path.join(rootDir, "runtime"),
-    modsRoot = path.join(runtimeRoot, "installed");
-  const approvalStore = require("../src/capabilities/mod-platform/packages/mod-approval-store")({
-    storePath: path.join(runtimeRoot, "approvals.json"),
-  });
-  const createBundles = () =>
-    require("../src/capabilities/mod-platform/packages/bundled-mods")({
-      rootDir,
-      runtimeRoot,
-      modsRoot,
-      approvalStore,
-    });
-  const first = createBundles();
-  assert.equal((await first.prepare()).enable.length, 1);
-  first.preference("ravelink.twitch-clips", false);
-  const source = path.join(rootDir, "packages/bundled-mods/twitch-clips/ravelink.mod.json");
-  const manifest = JSON.parse(fs.readFileSync(source, "utf8"));
-  manifest.version = "1.0.2";
-  fs.writeFileSync(source, JSON.stringify(manifest));
-  const upgraded = await createBundles().prepare();
-  assert.deepEqual(upgraded.enable, []);
-  const installed = JSON.parse(
-    fs.readFileSync(path.join(modsRoot, "ravelink.twitch-clips/ravelink.mod.json"), "utf8"),
-  );
-  assert.equal(installed.version, "1.0.2");
-  assert(
-    fs
-      .readdirSync(modsRoot)
-      .some((name) => name.startsWith(".bundled-backup-ravelink.twitch-clips")),
-  );
 });

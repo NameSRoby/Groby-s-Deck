@@ -1,9 +1,12 @@
+import { connectButtonMotion, paintButtonCycle } from "./control-deck-motion.js";
 import { deckId as id } from "./control-deck-id.js";
 /** Local button drafts. Preview/edit operations never call the execution API. */
 import { buildActionSteps } from "./control-deck-steps.js";
 import { profileLightingFor, paintProfileLighting } from "./control-deck-profile-light.js";
-import { createToggleStates } from "./control-deck-toggle-editor.js";
+import { createToggleStates, createButtonEditorTabs } from "./control-deck-toggle-editor.js";
 import { keyControl } from "./control-deck-keys.js";
+import { createSequenceOptions } from "./control-deck-sequence-options.js";
+import { createBackgroundEditor, paintButtonBackground } from "./control-deck-backgrounds.js";
 const clone = (value) => structuredClone(value);
 const node = (tag, className, text) => {
   const el = document.createElement(tag);
@@ -46,6 +49,7 @@ export function createDeckEditor({
     if (!busy) dialog.close();
   }
   function base(title, help) {
+    dialog.classList.remove("deckButtonEditor");
     dialog.replaceChildren();
     const heading = node("div", "deckEditorHeading"),
       h = node("h2", "", title),
@@ -230,10 +234,11 @@ export function createDeckEditor({
     );
     targetPage.id = "deckFolderPage";
     const pageField = field("Page to open", targetPage);
-    form.append(field("Button name", title), field("Button behavior", behavior), pageField);
+    const nameField = field("Button name", title);
+    form.append(nameField, field("Button behavior", behavior), pageField);
     const trigger = keyControl({
       value: draft.activationKey || "",
-      label: "Keyboard trigger (RaveLink focused)",
+      label: "Keyboard trigger (Groby’s Deck focused)",
     });
     form.append(trigger.field);
     const sliderDirection = select(
@@ -267,13 +272,13 @@ export function createDeckEditor({
     const incrementField = field("Snap increment (%)", sliderIncrement);
     sliderSnap.onchange = () => (incrementField.hidden = sliderSnap.value !== "on");
     sliderSnap.onchange();
-    const sliderOptions = node("div", "deckAppearanceFields");
-    sliderOptions.append(
+    const sliderOptions = node("div", "deckAppearanceFields"),
+      sliderAppearance = node("div", "deckAppearanceFields deckSliderAppearance");
+    sliderAppearance.append(
       field("Slider orientation", sliderDirection),
       field("Slider appearance", sliderStyle),
-      field("Slider movement", sliderSnap),
-      incrementField,
     );
+    sliderOptions.append(field("Slider movement", sliderSnap), incrementField);
     form.append(sliderOptions);
     const press = node("section", "deckSequence"),
       alternate = node("section", "deckSequence"),
@@ -302,6 +307,8 @@ export function createDeckEditor({
     );
     hold.open = !!draft.holdSteps?.length;
     form.append(press, alternate, hold);
+    const sequenceOptions = createSequenceOptions(draft);
+    form.append(sequenceOptions.element);
     const toggleStates = createToggleStates({
       node,
       field,
@@ -314,6 +321,7 @@ export function createDeckEditor({
       [
         ["first", "First press"],
         ["second", "Second press"],
+        ["hold", "Hold action"],
       ],
       "first",
     );
@@ -454,6 +462,7 @@ export function createDeckEditor({
           remove.onclick = () => {
             colors.splice(i, 1);
             drawColors();
+            redrawPreview();
           };
           row.append(el, remove);
           return row;
@@ -465,6 +474,7 @@ export function createDeckEditor({
       add.onclick = () => {
         colors.push(input("color", color.value));
         drawColors();
+        redrawPreview();
       };
       cycle.append(add);
     }
@@ -482,13 +492,17 @@ export function createDeckEditor({
       backlightField,
       profileColorsField,
       field("Text color", textColor),
-      field("Color behavior", animation),
+      field("Button animation", animation),
       field("Cycle duration (seconds)", duration),
       cycle,
       field("PNG, JPEG or animated GIF · up to 2 MB", file),
       removeImage,
     );
     appearance.append(fields, preview);
+    const background = createBackgroundEditor(fields, draft.appearance);
+    const motion = connectButtonMotion(animation, background, draft.appearance);
+    cycle.addEventListener("input", redrawPreview);
+    background.element.addEventListener("input", redrawPreview);
     form.append(appearance);
     const order = select(
       parent.buttons
@@ -499,11 +513,23 @@ export function createDeckEditor({
       ),
     );
     order.id = "deckButtonOrder";
-    form.append(field("Position on this page", order));
+    const positionField = field("Position on this page", order);
     layout.append(library, form);
-    dialog.append(layout);
+    const actionsPanel = node("div"),
+      appearancePanel = node("div", "deckEditorAppearancePanel"),
+      meta = node("div", "deckEditorMeta");
+    actionsPanel.append(layout);
+    meta.append(nameField, positionField);
+    const previewDock = node("aside", "deckEditorPreviewDock");
+    previewDock.append(
+      node("h3", "", "Live preview"),
+      preview,
+      node("p", "deckEditorHint", "Your button’s look before saving."),
+    );
+    appearancePanel.append(previewDock, appearance, sliderAppearance, toggleStates.element);
+    const editorTabs = createButtonEditorTabs(dialog, actionsPanel, appearancePanel, meta);
     function redrawPreview() {
-      const lights = profileLightingFor(pressEditor.read(), catalog);
+      const lights = profileLightingFor(pressEditor.read(false), catalog);
       profileColorsField.hidden = !lights;
       paintProfileLighting(preview, lights, profileColors.checked);
       preview.style.setProperty("--deck-color", color.value);
@@ -515,8 +541,8 @@ export function createDeckEditor({
       backlightValue.textContent = backlight.value + "%";
       preview.style.color = textColor.value;
       preview.dataset.displayMode = display.value === "auto" ? "image-text" : display.value;
-      cycle.hidden = animation.value !== "cycle";
-      duration.disabled = animation.value !== "cycle";
+      cycle.hidden = !motion.cycling();
+      duration.disabled = !motion.cycling();
       previewImage.hidden = display.value === "text" || !imageId;
       if (imageId) {
         const imagePath = "/api/control-deck/media/" + encodeURIComponent(imageId);
@@ -526,31 +552,53 @@ export function createDeckEditor({
       previewSymbol.textContent = symbol.value;
       previewTitle.hidden = display.value === "image";
       previewTitle.textContent = title.value || "New button";
+      motion.sync();
+      paintButtonCycle(preview, motion.cycling() ? colors.map((c) => c.value) : [], duration.value);
+      paintButtonBackground(preview, background.read());
     }
     function visibility() {
       const folder = behavior.value === "folder";
       sliderOptions.hidden = behavior.value !== "slider";
+      sliderAppearance.hidden = behavior.value !== "slider";
+      sequenceOptions.element.hidden = folder || behavior.value === "slider";
       pageField.hidden = !folder;
       press.hidden = folder;
       alternate.hidden = behavior.value !== "toggle";
       press.querySelector("h3").textContent =
         behavior.value === "toggle" ? "First press actions" : "Press action";
-      toggleStates.element.hidden = actionTargetField.hidden = behavior.value !== "toggle";
+      toggleStates.element.hidden = behavior.value !== "toggle";
+      actionTargetField.hidden = folder || behavior.value === "slider";
+      actionTarget.querySelector('[value="second"]').disabled = behavior.value !== "toggle";
+      if (
+        folder ||
+        behavior.value === "slider" ||
+        (actionTarget.value === "second" && behavior.value !== "toggle")
+      )
+        actionTarget.value = "first";
       hold.hidden = folder || behavior.value === "slider";
     }
     function choose(action) {
       const targetEditor =
-        behavior.value === "toggle" && actionTarget.value === "second"
-          ? alternateEditor
-          : pressEditor;
-      targetEditor.replace([
-        { actionId: action.id, params: clone(action.defaults || {}), delayMs: 0 },
-      ]);
+        actionTarget.value === "hold"
+          ? holdEditor
+          : behavior.value === "toggle" && actionTarget.value === "second"
+            ? alternateEditor
+            : pressEditor;
+      const step = { actionId: action.id, params: clone(action.defaults || {}), delayMs: 0 };
+      try {
+        if (behavior.value === "slider" && action.control?.type === "slider")
+          targetEditor.replace([step]);
+        else targetEditor.append(step);
+      } catch (e) {
+        error(status, e.message);
+        return;
+      }
+      if (actionTarget.value === "hold") hold.open = true;
       if (!current && (title.value === "New button" || !title.value.trim()))
         title.value = action.defaultTitle || action.label;
       if (!current) symbol.value = action.defaultSymbol || action.symbol || "◆";
-      if (action.control?.type === "slider") behavior.value = "slider";
-      else if (["folder", "slider"].includes(behavior.value)) behavior.value = "action";
+      if (["folder", "slider"].includes(behavior.value) && action.control?.type !== "slider")
+        behavior.value = "action";
       visibility();
       redrawPreview();
     }
@@ -563,33 +611,34 @@ export function createDeckEditor({
       profileColors.checked = false;
       redrawPreview();
     });
+    const libraryEntries = catalog
+      .filter((action) => action.kind !== "condition")
+      .map((action) => {
+        const button = node("button", "deckActionChoice");
+        button.type = "button";
+        button.dataset.deckAction = action.id;
+        button.append(
+          node("span", "deckActionSymbol", action.symbol || "◆"),
+          node("strong", "", action.label),
+          node("small", "", `${action.group}${action.available === false ? " · Unavailable" : ""}`),
+        );
+        button.title = action.description || action.label;
+        button.onclick = () => choose(action);
+        return {
+          button,
+          terms: `${action.label} ${action.description || ""} ${action.group}`.toLowerCase(),
+        };
+      });
+    let libraryQuery;
     function drawLibrary() {
       const query = search.value.trim().toLowerCase();
-      list.replaceChildren(
-        ...catalog
-          .filter((a) => `${a.label} ${a.description} ${a.group}`.toLowerCase().includes(query))
-          .map((action) => {
-            const button = node("button", "deckActionChoice");
-            button.type = "button";
-            button.dataset.deckAction = action.id;
-            button.append(
-              node("span", "deckActionSymbol", action.symbol || "◆"),
-              node("strong", "", action.label),
-              node(
-                "small",
-                "",
-                `${action.group}${action.available === false ? " · Unavailable" : ""}`,
-              ),
-            );
-            button.title = action.description || action.label;
-            button.onclick = () => choose(action);
-            return button;
-          }),
-      );
-      if (!list.children.length)
-        list.append(
-          node("p", "", "No matching actions. Enabled mods can add functions to this library."),
-        );
+      if (query === libraryQuery) return;
+      libraryQuery = query;
+      const buttons = libraryEntries
+        .filter((entry) => entry.terms.includes(query))
+        .map((entry) => entry.button);
+      list.replaceChildren(...(buttons.length ? buttons : [node("p", "", "No matching actions.")]));
+      list.scrollTop = 0;
     }
     file.onchange = async () => {
       const image = file.files[0];
@@ -608,7 +657,17 @@ export function createDeckEditor({
         file.disabled = false;
       }
     };
-    for (const control of [title, symbol, display, color, textColor, animation, backlight])
+    for (const control of [
+      title,
+      symbol,
+      display,
+      color,
+      textColor,
+      animation,
+      backlight,
+      duration,
+      ...colors,
+    ])
       control.oninput = redrawPreview;
     search.oninput = drawLibrary;
     behavior.onchange = visibility;
@@ -618,16 +677,20 @@ export function createDeckEditor({
     submit.id = "deckSaveButton";
     submit.onclick = () => {
       if (!title.value.trim()) return error(status, "Enter a button name.");
-      let steps, alternateSteps, holdSteps;
+      let steps, alternateSteps, holdSteps, sequence;
       try {
         steps = behavior.value === "folder" ? [] : pressEditor.read();
         alternateSteps = behavior.value === "toggle" ? alternateEditor.read() : [];
         holdSteps = behavior.value === "folder" ? [] : holdEditor.read();
+        sequence = !["folder", "slider"].includes(behavior.value) ? sequenceOptions.read() : {};
       } catch (e) {
+        editorTabs.showActions();
         return error(status, e.message);
       }
-      if (behavior.value !== "folder" && !steps.length)
+      if (behavior.value !== "folder" && !steps.length) {
+        editorTabs.showActions();
         return error(status, "Choose an action from the library.");
+      }
       if (behavior.value === "toggle" && !alternateSteps.length)
         return error(status, "Add the second press action for this switch.");
       if (
@@ -637,6 +700,7 @@ export function createDeckEditor({
         return error(status, "Choose one volume or slider action from the library.");
       const value = {
         ...draft,
+        ...sequence,
         title: title.value.trim(),
         kind:
           behavior.value === "folder" ? "folder" : behavior.value === "slider" ? "slider" : "macro",
@@ -647,6 +711,7 @@ export function createDeckEditor({
         ...(behavior.value === "toggle" ? { toggleStates: toggleStates.read() } : {}),
         holdSteps: behavior.value === "slider" ? [] : holdSteps,
         appearance: {
+          ...background.read(),
           symbol: symbol.value,
           sliderOrientation: sliderDirection.value,
           sliderStyle: sliderStyle.value,
@@ -658,11 +723,15 @@ export function createDeckEditor({
           backlight: Number(backlight.value),
           profileBacklight: profileColors.checked ? "auto" : "custom",
           textColor: textColor.value,
-          cycleColors: animation.value === "cycle" ? colors.map((c) => c.value) : [],
+          cycleColors: motion.cycling() ? colors.map((c) => c.value) : [],
           cycleMs: Math.round(Number(duration.value) * 1000),
         },
       };
       if (behavior.value !== "toggle") delete value.toggleStates;
+      if (value.kind !== "macro") {
+        delete value.repeatCount;
+        delete value.cancelOnPress;
+      }
       if (value.kind !== "folder") delete value.pageId;
       void commit(async () => {
         parent.buttons = parent.buttons.filter((b) => b.id !== draft.id);

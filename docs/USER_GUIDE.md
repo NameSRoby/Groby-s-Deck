@@ -1,4 +1,4 @@
-# RaveLink Core user guide
+# Groby’s Deck user guide
 
 Start with the [installation and feature overview](../README.md). This guide covers
 detailed controls, provider limitations, upgrades and source setup.
@@ -17,10 +17,10 @@ detailed controls, provider limitations, upgrades and source setup.
 
 ## Desktop and local network access
 
-Launch RaveLink Core to open the desktop workspace. The same UI stays available
-at http://127.0.0.1:5050/ in your usual browser. Use **RaveLink > Open in browser**
+Launch Groby’s Deck to open the desktop workspace. The same UI stays available
+at http://127.0.0.1:5050/ in your usual browser. Use **Groby’s Deck > Open in browser**
 to open it there. The window supports Reload, Back/Forward and F11 full screen.
-Closing the window keeps Core in the tray; **RaveLink > Exit** stops it.
+Closing the window keeps Core in the tray; **Groby’s Deck > Exit** stops it.
 
 Select the **network icon** in the header to enable **Allow full controls on my private
 network**. Save, then open one of the listed addresses on another device on the
@@ -83,6 +83,12 @@ opens; changes are saved only with **Apply style**. Styles preserve actions,
 pictures, animated GIFs and labels. The **Individual buttons** tab opens each
 button's existing editor for its artwork, symbols, text and actions.
 
+Button backgrounds also offer **Smoke**, **Aurora** and **Embers**, with speed,
+strength and a **Pause effects** control. For timed buttons, chain actions and
+waits in the editor, or use **Action → wait → action** as a starter. Repeat a
+sequence, duplicate/reorder steps, and optionally press again to stop. Timers run
+on the Groby’s Deck PC while Core stays open. See the [sequence guide](CONTROL_DECK.md#timed-actions-and-sequences).
+
 For rewards, choose individual managed-reward toggles, one all-rewards toggle,
 or **Reward controls** to open a compact panel. Its **+** pins a reward to the
 deck. For lights, save a command for one fixture or all lights, or add **Quick
@@ -132,7 +138,7 @@ LAN status does not identify that scene. Govee music output is limited to eight
 updates per second, so very short accents may look softer than Hue Entertainment.
 
 Integration tests use synthetic fixtures over real loopback UDP. They verify
-RaveLink behavior, not every physical model or firmware. Network isolation,
+Groby’s Deck behavior, not every physical model or firmware. Network isolation,
 blocked UDP, or another controller using the fixed response port can prevent
 discovery and status checks; see the compatibility notice in fixture setup.
 
@@ -149,7 +155,7 @@ a new music lighting or Rave session. Finding and saving areas do not start stre
 Create areas in the Hue app first. If a streaming client key is missing, re-pair
 with the bridge link button or enter your existing 32-character key. Stored keys
 stay private and are never returned to the editor. An area in use by another app
-must be released there before RaveLink can start its stream. Older saved fixtures
+must be released there before Groby’s Deck can start its stream. Older saved fixtures
 without a bridge ID resolve the bridge identity before HTTPS requests; certificate
 chain and bridge-name verification stay enabled.
 
@@ -293,7 +299,7 @@ Lights workspaces support keyboard navigation with Left/Right, Home and End. Mus
 
 Music-to-Light process capture requires a supported Windows build (build 20348 or later; Windows 11 recommended). Protected content may be unavailable. Application capture includes its process tree; browser capture does not promise isolation of one tab. TIDAL capture and Hue/WiZ output have had limited hardware validation; automated coverage uses synthetic signals and fixtures. Compatible Govee LAN fixtures participate in Music-to-Light, Rave, chat effects and profiles using whole-light controls. Model and firmware determine white-temperature support and response speed. Stop restores reported power, brightness and RGB/white state; Govee app animations, DreamView and segments are not reported or recreated by the LAN API. Govee integration coverage uses simulated UDP fixtures; physical model compatibility is not certified by these tests.
 
-Earlier changes are recorded in the [release history](https://github.com/NameSRoby/RaveLink-Core/releases).
+Earlier changes are recorded in the [release history](https://github.com/NameSRoby/Groby-s-Deck/releases).
 
 ## Lighting
 
@@ -380,13 +386,13 @@ to OBS; the header shows whether you have unsaved edits.
 - **TIDAL:** sign in with your own account for catalog lookup and reviewed account-playlist transfers. The bundled desktop companion delivers requests in FIFO order, preserving your playlist. Ten upcoming requests enter native TIDAL at a time; additional requests wait locally. Close TIDAL before updating the companion. Account tokens remain encrypted locally; no developer client secret is bundled.
 - **SoundCloud:** public song-name search, links and playlist import require no developer credentials. Playback uses the visible official widget. Public search can break with site changes; availability, ads and preview limits remain controlled by SoundCloud. Direct SoundCloud account-library writes are unavailable.
 - **YouTube:** lookup and official embeds. Uploader, age, region, account and content restrictions can prevent playback. Repeated failures and rapid skips can overload playback and may stop or crash the server. A prominent warning appears on the YouTube Player page. Stop playback if songs keep skipping. Media is not downloaded or restreamed to bypass restrictions.
-- **Spotify:** Free accounts use the local desktop companion for requests and queue control. Optional Premium OAuth adds official search and playback controls; both connections cooperate on the same device. Prepare the companion, fully quit Spotify, then choose **Open Spotify with RaveLink**. Ten upcoming requests enter Spotify; extras wait in RaveLink. Unconfirmed deliveries are held for review. Spotify client updates may require preparing the companion again.
+- **Spotify:** Free accounts use the local desktop companion for requests and queue control. Optional Premium OAuth adds official search and playback controls; both connections cooperate on the same device. Prepare the companion, fully quit Spotify, then choose **Open Spotify with Groby’s Deck**. Ten upcoming requests enter Spotify; extras wait in RaveLink. Unconfirmed deliveries are held for review. Spotify client updates may require preparing the companion again.
 
 **Now Playing Sources** follows local YouTube/SoundCloud playback or Spotify, Apple Music and TIDAL Windows media sessions. Apple Music remains observation-only; Spotify also has a desktop companion for requests.
 
 **Overlay Designer → Behavior** offers optional pause hiding (five seconds by default), stopped/loading hiding, provider-colored accents and remaining-time display. Test pause/resume in the preview, then save to apply. Classic, Album Card and Minimal remain available alongside compact Split Panels and other small presets.
 
-**Mods:** drop a mod folder or ZIP directly into `mods`, then confirm **Activate** in the Mods page. Discovery is built into normal startup. Buttons appear in the deck action library, and HTML/CSS/JavaScript panels appear in Mods. Review the requested access before activating third-party code. The old `mod` folder remains recognized for existing installations.
+**Mods:** drop a mod folder or ZIP directly into `mods`, then confirm **Activate** in **Updates & packages > Mods**. Discovery is built into normal startup. Buttons appear in the deck action library, and HTML/CSS/JavaScript panels appear in that Mods subdivision. Review the requested access before activating third-party code. The old `mod` folder remains recognized for existing installations.
 
 **TTS, Alerts / TTS and Lighting Automation have been removed in 0.7.0.** No speech runtime or voice asset is shipped.
 
@@ -420,7 +426,7 @@ the player error. Native rewards complete only after confirmed playback.
 Published source includes runtime code, first-party feature sources, licenses and relevant regression tests. Private state, logs, experiments and working archives are excluded.
 
 **GitHub source ZIP or clone on Windows:** extract the entire folder into a
-writable location, then double-click **Start-RaveLink.cmd**. On first launch it
+writable location, then double-click **Start-Grobys-Deck.cmd**. On first launch it
 downloads the pinned official Windows runtime, verifies its SHA-256
 against the included manifest, checks production dependencies against the source
 lockfile, and builds the tray launcher using Windows' included .NET Framework
@@ -466,8 +472,38 @@ production dependencies only; `npm ci` supplies development and test tools.
 
 In **Twitch Integration**, choose the **Add to playlist** reward type and create the reward with song text input enabled. Each accepted redemption uses the selected player, enters its normal moderated request queue, and is saved once to a **Community - [provider]** playlist under **Playlists & Transfers > Library**. Repeat contributions do not duplicate the saved song.
 
-Spotify and TIDAL also sync the saved list to the connected music account. TIDAL needs playlist read/write access. For Spotify, prepare the updated companion, fully quit Spotify, and open it with RaveLink again; native playlist writes have automated coverage, with limited live validation. No Spotify Premium account or new OAuth app is required for the companion route. The Library shows pending, synced and uncertain-write states, with account links and explicit retry controls. Local copies remain available while the provider is offline.
+Spotify and TIDAL also sync the saved list to the connected music account. TIDAL needs playlist read/write access. For Spotify, prepare the updated companion, fully quit Spotify, and open it with Groby’s Deck again; native playlist writes have automated coverage, with limited live validation. No Spotify Premium account or new OAuth app is required for the companion route. The Library shows pending, synced and uncertain-write states, with account links and explicit retry controls. Local copies remain available while the provider is offline.
 
 For StreamElements widget mode, create the reward in Twitch and paste its ID into **Widget > Add to playlist reward ID**, then regenerate the widget. Widget mode forwards requests only; reward fulfillment/refunds remain manual. YouTube and SoundCloud keep their community playlists in RaveLink.
 
 Spotify Premium setup requires a developer app whose owner has Premium and whose development allowlist includes the user. It uses OAuth PKCE without a client secret. Official-only queue entries cannot be removed individually; the desktop companion supplies that control for its own entries. Live Premium and native community-playlist validation remains limited.
+
+## Watchtime and loyalty privacy
+
+Twitch Integration > Watchtime & points lets the streamer choose **Followers** or **Followers who have subscribed before**. Non-followers receive no saved watchtime or points. A confirmed unfollow deletes that person's record. Follower checks are cached for 30 minutes, with at most 200 new checks per five-minute presence sample. Very large audiences may take multiple samples to verify; unverified people receive no credit.
+
+The selected mode never changes automatically based on chat size or a raid. Subscriber history comes from verified follower chat badges and current Twitch subscriptions; Twitch does not supply a complete history of expired subscriptions before tracking began. Watchtime and points are stored on disk indefinitely, with an 8 GiB default runtime-history budget. Set the cap in Watchtime & points. At capacity, the least recently active users are removed first across accounts. Quotes and settings are protected; there is no fixed user-count cutoff. Indexed storage uses a bounded memory cache. Arena XP remains separate.
+
+The example clip mod is in `mods/twitch-clips`. It follows the same drag-and-drop, review, approval and enable steps as any community mod. No special bundled-mod approval or automatic startup is used.
+
+### Music favorites
+
+In Song Request > Player, choose TIDAL or Spotify and use **Favorite current song**
+or **Remove favorite**. The same actions are available in the deck and automation
+builder. They use the exact playing track ID, including songs playing natively.
+Sign in with TIDAL collection access or Spotify library access in Setup first.
+An older Spotify authorization may need reconnecting to grant the new access.
+The action never searches for a similarly named recording or retries an
+unconfirmed library write.
+
+## Soundboard
+
+In a button's **Actions** tab, choose **Play sound file**, browse for an MP3 or WAV file, and tick the **Outputs** you want. One button can play the same file through several outputs. Volume and repeat behavior are tucked under **Playback options**. Adding or saving a button never plays the file. The same native action works in shared automations, waits and conditions.
+
+Playback happens on the PC hosting Groby's Deck, including when pressed from a phone. Select a virtual audio cable output to feed OBS when one is installed. **Windows default output** follows the current default when playback starts. Default and a named output resolving to the same physical device play only once. Every selected output is prepared before playback starts: a disconnected output fails the action, with no fallback to another device.
+
+**Stop sounds** stops one file or all soundboard audio. Restart and Toggle apply to that file and output combination; Overlap permits another copy. At most eight output streams play together; a sound using two devices uses two streams. Optional library management is available under **More > Soundboard**, or **Soundboard** on the deck toolbar, for renaming/removing files and creating several buttons.
+
+The library supports rename and removal. Removing a file stops that sound and leaves its deck buttons available to edit. Audio files are private local data, streamed from disk rather than preloaded. Each file can be up to 32 MiB and 30 minutes; the library holds up to 512 sounds or 1 GiB. Sound files are user assets and are never included in a source or release publication.
+
+Counters, player statistics and saved season leaderboards also use indexed local storage. Commands read the fields they need; previews keep a small private draft and never alter saved records. Existing JSON statistics are imported once, with a private recovery copy retained. Small deck layouts, settings and the sound library index remain bounded JSON configuration. The watchtime history budget does not delete user-authored media, quotes or arena records.

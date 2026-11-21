@@ -22,6 +22,8 @@ function text(value, maximum = 2048) {
     .slice(0, maximum);
 }
 const REWARD_PURPOSES = new Set(["lights", "teach", "song_request", "add_to_playlist"]);
+const rewardPurpose = (value) =>
+  REWARD_PURPOSES.has(value) || /^automation:[a-f0-9]{24}$/.test(value);
 const DEFAULT_MONITOR_CONFIG = Object.freeze({
   intakeMode: "native",
   songRequestChatEnabled: false,
@@ -33,7 +35,7 @@ const REWARD_CATALOG_TTL_MS = 30 * 1000;
 function normalizeManagedRewards(input) {
   const source = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const result = {};
-  for (const purpose of REWARD_PURPOSES) {
+  for (const purpose of Object.keys(source).filter(rewardPurpose).slice(0, 128)) {
     const row = source[purpose];
     const rewardId = text(row?.rewardId, 160);
     if (!rewardId) continue;
@@ -125,7 +127,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
       "channel.channel_points_custom_reward_redemption.add": "channel:manage:redemptions",
     };
     const scope = fixed[type];
-    return scope ? [scope] : [];
+    return scope ? [scope] : require("./twitch-automation-events").scopes(type);
   }
 
   function runBackground(operation, fallback = "twitch_background_operation_failed") {
@@ -535,12 +537,15 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     const connected = status().connected;
     const anyAuthorized =
       canSubscribe("channel.channel_points_custom_reward_redemption.add", "1") ||
-      canSubscribe("channel.chat.message", "1");
+      canSubscribe("channel.chat.message", "1") ||
+      automationDefinitions().length > 0;
     if (
       connected &&
       anyAuthorized &&
       monitorAvailable &&
-      (profile.monitorConfig?.intakeMode === "native" || canSubscribe("channel.chat.message", "1"))
+      (profile.monitorConfig?.intakeMode === "native" ||
+        canSubscribe("channel.chat.message", "1") ||
+        automationDefinitions().length > 0)
     ) {
       if (restart) monitor?.restart?.();
       else monitor?.start?.();
@@ -658,6 +663,15 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
           reason: "authorization_revoked",
         }),
     });
+  const chat = require("./twitch-provider-chat")({
+    api,
+    now,
+    options,
+    vaultPath,
+    withAuthorization,
+    canReceive: () => canReceive("channel.chat.message", "1"),
+    monitorConfig: () => ({ ...profile.monitorConfig }),
+  });
   const { settle, reviewTransactions, reconcileTransaction, receiveRedemption, songOutcome } =
     require("./twitch-transactions")({
       journal,
@@ -720,7 +734,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
   }
   async function createReward(input = {}) {
     const purpose = text(input.purpose, 40).toLowerCase();
-    if (!REWARD_PURPOSES.has(purpose)) return { ok: false, error: "twitch_reward_purpose_invalid" };
+    if (!rewardPurpose(purpose)) return { ok: false, error: "twitch_reward_purpose_invalid" };
     if (rewardCreationInFlight.has(purpose))
       return {
         ok: false,
@@ -771,7 +785,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
   async function setManagedRewardPaused(input = {}) {
     const purpose = text(input.purpose, 40).toLowerCase();
     const managed = profile.managedRewards?.[purpose];
-    if (!REWARD_PURPOSES.has(purpose) || !managed?.rewardId)
+    if (!rewardPurpose(purpose) || !managed?.rewardId)
       return {
         ok: false,
         error: "twitch_reward_not_managed",
@@ -806,10 +820,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     });
   }
   async function sendChat(input) {
-    return withAuthorization(
-      (current) => api.sendChat({ ...input, credentials: current }),
-      ["user:write:chat"],
-    );
+    return chat.send(input);
   }
   async function refreshRoleDirectory(force = false) {
     if (!force && roleDirectoryAfter > now()) return { ok: true, skipped: true };
@@ -852,7 +863,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     if (!id || !["viewer", "vip", "moderator"].includes(role)) return false;
     if (role === "viewer") roleDirectory.delete(id);
     else roleDirectory.set(id, role);
-    roleDirectoryUpdatedAt = now();
+    // updatedAt describes a complete directory refresh, not one observed chatter.
     return true;
   }
   async function resolveRequesterRole(userId) {
@@ -882,15 +893,19 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     syncMonitor(true);
   }
   async function shutdown() {
+    chat.close();
     recovery.invalidate();
     monitor?.stop?.();
   }
 
   function canSubscribe(type, version) {
-    const known = [
-      "channel.chat.message",
-      "channel.channel_points_custom_reward_redemption.add",
-    ].includes(type);
+    const known =
+      ["channel.chat.message", "channel.channel_points_custom_reward_redemption.add"].includes(
+        type,
+      ) ||
+      require("./twitch-automation-events").EVENTS.some(
+        (row) => row[0] === type && row[3] === String(version),
+      );
     return (
       known &&
       subscriptionScopes(type).every((scope) => profile.scopes.includes(scope)) &&
@@ -901,10 +916,18 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     return (
       status().connected &&
       canSubscribe(type, version) &&
-      (type === "channel.chat.message" || profile.monitorConfig.intakeMode === "native")
+      (type !== "channel.channel_points_custom_reward_redemption.add" ||
+        profile.monitorConfig.intakeMode === "native")
     );
   }
 
+  function automationDefinitions() {
+    const wanted = options.getAutomationEvents?.(profile.userId) || [];
+    return require("./twitch-automation-events")
+      .definitions(profile.userId)
+      .filter((row) => wanted.includes(row.type) && canSubscribe(row.type, row.version))
+      .map(({ scope, ...row }) => row);
+  }
   load();
   monitor = (options.eventSubMonitorFactory || createTwitchEventSubMonitor)({
     WebSocket: options.WebSocket,
@@ -918,7 +941,7 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
         profile.monitorConfig.intakeMode === "native" &&
         canSubscribe("channel.channel_points_custom_reward_redemption.add", "1"),
       chat: canSubscribe("channel.chat.message", "1"),
-      events: [],
+      events: automationDefinitions(),
     }),
     createSubscription: (input) =>
       withAuthorization(
@@ -930,25 +953,46 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
       canReceive("channel.channel_points_custom_reward_redemption.add", "1")
         ? receiveRedemption(event)
         : undefined,
-    onChat: (event) =>
-      canReceive("channel.chat.message", "1")
-        ? options.onChat?.(event, { ...profile.monitorConfig })
-        : undefined,
+    onChat: chat.receive,
+    onEvent: (type, event, metadata) => {
+      const version = require("./twitch-automation-events").EVENTS.find(
+        (row) => row[0] === type,
+      )?.[3];
+      return canReceive(type, version) ? options.onEvent?.(type, event, metadata) : undefined;
+    },
   });
+  const readAuthorized =
+    (name, scopes = []) =>
+    (payload) =>
+      withAuthorization((current) => api[name]({ ...payload, credentials: current }), scopes);
   return Object.freeze({
-    dashboardStream: () =>
-      withAuthorization((current) => api.dashboardStream({ credentials: current })),
-    dashboardFollowers: () =>
-      withAuthorization((current) => api.dashboardFollowers({ credentials: current })),
+    searchCategories: readAuthorized("searchCategories"),
+    followAge: (input) =>
+      withAuthorization(
+        (current) => api.followAge({ ...input, credentials: current }),
+        ["moderator:read:followers"],
+      ),
+    subscriberStatus: (input) =>
+      withAuthorization(
+        (current) => api.subscriberStatus({ ...input, credentials: current }),
+        ["channel:read:subscriptions"],
+      ),
+    listChatters: () =>
+      withAuthorization(
+        (current) => api.listChatters({ credentials: current }),
+        ["moderator:read:chatters"],
+      ),
+    templateChannel: readAuthorized("templateChannel"),
+    ...require("./twitch-overlay-controls")({ api, withAuthorization }),
+    dashboardStream: readAuthorized("dashboardStream"),
+    dashboardFollowers: readAuthorized("dashboardFollowers"),
     dashboardSubscribers: () =>
       withAuthorization(
         (current) => api.dashboardSubscribers({ credentials: current }),
         ["channel:read:subscriptions"],
       ),
-    dashboardVod: (payload) =>
-      withAuthorization((current) => api.dashboardVod({ ...payload, credentials: current })),
-    dashboardClips: (payload) =>
-      withAuthorization((current) => api.dashboardClips({ ...payload, credentials: current })),
+    dashboardVod: readAuthorized("dashboardVod"),
+    dashboardClips: readAuthorized("dashboardClips"),
     createStreamMarker: (payload) =>
       withAuthorization(
         (current) => api.createStreamMarker({ ...payload, credentials: current }),
@@ -974,6 +1018,17 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
     inspectReward,
     listRewards,
     createReward,
+    ...require("./twitch-extended-controls")({
+      api,
+      sendChat,
+      trackMessage: chat.track,
+      withAuthorization,
+      getProfile: () => profile,
+      persist,
+      clearCatalog: () => {
+        rewardCatalogAfter = 0;
+      },
+    }),
     setManagedRewardPaused,
     observeRequesterRole,
     refreshRoleDirectory,

@@ -5,7 +5,8 @@
   const localPc = ["127.0.0.1", "localhost"].includes(location.hostname);
   $("lanFirewall").hidden = !localPc;
   if (!localPc)
-    $("lanFirewallStatus").textContent = "Windows network access is set up from the RaveLink PC.";
+    $("lanFirewallStatus").textContent =
+      "Windows network access is set up from the Groby’s Deck PC.";
   $("lanFirewall").onclick = async () => {
     $("lanFirewall").disabled = true;
     $("lanFirewallStatus").textContent =

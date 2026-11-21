@@ -307,7 +307,7 @@ test("legacy clip preferences migrate to default masking; policy changes persist
   assert.throws(() => service.configure({ titleModeration: null }), /moderation_invalid/);
 });
 test("bundled clip action delegates to the approved host and exposes authoritative feedback", async () => {
-  const entry = require("../packages/bundled-mods/twitch-clips/main");
+  const entry = require("../mods/twitch-clips/main");
   const calls = [];
   await entry.activate({
     callCapability: async (capability, method, payload) => {

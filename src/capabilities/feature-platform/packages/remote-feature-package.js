@@ -13,9 +13,9 @@ const {
 const { validateFeatureManifestV1 } = require("../contracts/feature-manifest-v1");
 const { OFFICIAL_FEATURE_REVISION } = require("./official-feature-sources");
 
-const MANIFEST_NAME = "ravelink.feature.json";
+const MANIFEST_NAME = "groby.feature.json";
 const OFFICIAL_HOST = "raw.githubusercontent.com";
-const OFFICIAL_PREFIX = `/NameSRoby/RaveLink-Core/${OFFICIAL_FEATURE_REVISION}/features/`;
+const OFFICIAL_PREFIX = `/NameSRoby/Groby-s-Deck/${OFFICIAL_FEATURE_REVISION}/features/`;
 
 function validateOfficialSource(source) {
   if (

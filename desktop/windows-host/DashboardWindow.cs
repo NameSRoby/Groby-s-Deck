@@ -9,7 +9,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-namespace RaveLink.Core.WindowsHost
+namespace Groby.Deck.WindowsHost
 {
     internal sealed partial class DashboardWindow : Form
     {
@@ -48,13 +48,13 @@ namespace RaveLink.Core.WindowsHost
         internal DashboardWindow(string directory, int serverPort, Icon icon, Func<Task> restartCore, Action log, Func<Task> exitCore)
         {
             root = directory; port = serverPort; restart = restartCore; openLog = log; exit = exitCore;
-            Text = "RaveLink Core"; Icon = icon; ClientSize = new Size(1360, 900);
+            Text = "Groby’s Deck"; Icon = icon; ClientSize = new Size(1360, 900);
             Rectangle workArea = Screen.PrimaryScreen.WorkingArea;
             Size = new Size(Math.Min(Width, workArea.Width), Math.Min(Height, workArea.Height));
             MinimumSize = new Size(Math.Min(800, workArea.Width), Math.Min(560, workArea.Height)); StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 9.5f); KeyPreview = true;
             DoubleBuffered = true; ResizeRedraw = true;
-            var menu = new ToolStripDropDownButton("RAVELINK") { Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 0, 14, 0), Padding = new Padding(10, 2, 8, 2), AccessibleName = "RaveLink app menu" };
+            var menu = new ToolStripDropDownButton("GROBY’S DECK") { Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 0, 14, 0), Padding = new Padding(10, 2, 8, 2), AccessibleName = "Groby’s Deck app menu" };
             ((ToolStripDropDownMenu)menu.DropDown).ShowImageMargin = false;
             menu.DropDownItems.Add("Open in browser", null, delegate { ServerControl.OpenDashboard(port); });
             menu.DropDownItems.Add("Copy workspace address", null, delegate { Clipboard.SetText(ServerControl.DashboardUrl(port)); });
@@ -63,12 +63,12 @@ namespace RaveLink.Core.WindowsHost
             menu.DropDownItems.Add("Restart Core", null, async delegate { await restart(); });
             menu.DropDownItems.Add(new ToolStripSeparator());
             menu.DropDownItems.Add("Hide to tray", null, delegate { Hide(); });
-            menu.DropDownItems.Add("Exit RaveLink", null, async delegate { await exit(); });
+            menu.DropDownItems.Add("Exit Groby’s Deck", null, async delegate { await exit(); });
             PrepareNavigation(back, "back", "Go back (Alt+Left)");
             PrepareNavigation(forward, "forward", "Go forward (Alt+Right)");
             PrepareNavigation(reload, "reload", "Reload workspace (Ctrl+R)");
             toolbar.Items.AddRange(new ToolStripItem[] { menu, back, forward, reload, connection });
-            connection.ToolTipText = "Closing this window keeps Core running in the tray. Use RaveLink > Exit to stop it.";
+            connection.ToolTipText = "Closing this window keeps Core running in the tray. Use Groby’s Deck > Exit to stop it.";
             back.Click += delegate { if (browser != null && browser.CanGoBack) browser.GoBack(); };
             forward.Click += delegate { if (browser != null && browser.CanGoForward) browser.GoForward(); };
             reload.Click += async delegate { await OpenDashboardAsync(true); };
@@ -82,7 +82,7 @@ namespace RaveLink.Core.WindowsHost
             Controls.Add(surface); Controls.Add(toolbar);
             overlay.SizeChanged += delegate { card.Location = new Point(Math.Max(12, (overlay.Width - card.Width) / 2), Math.Max(12, (overlay.Height - card.Height) / 2)); };
             SetColors(Color.FromArgb(5, 5, 7), Color.FromArgb(139, 0, 31), Color.FromArgb(234, 234, 234));
-            message.Text = "Connecting to your local RaveLink workspace. Your lights and music remain managed by Core.";
+            message.Text = "Connecting to your local Groby’s Deck workspace. Your lights and music remain managed by Core.";
             RestoreWindow();
         }
 
@@ -120,7 +120,7 @@ namespace RaveLink.Core.WindowsHost
                 heading.Text = "Your workspace is still available";
                 message.Text = "The desktop viewer could not open. Retry, or open your workspace in a browser. Core continues running.";
                 runtimeLink.Visible = error is WebView2RuntimeNotFoundException;
-                if (runtimeLink.Visible) message.Text = "Install Microsoft Edge WebView2 to display RaveLink in this window. You can use Open in browser while it is unavailable.";
+                if (runtimeLink.Visible) message.Text = "Install Microsoft Edge WebView2 to display Groby’s Deck in this window. You can use Open in browser while it is unavailable.";
                 overlay.Show(); overlay.BringToFront();
             }
         }

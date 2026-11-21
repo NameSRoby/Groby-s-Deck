@@ -12,6 +12,165 @@ async function listen(app) {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
 }
+test("Bingo deck mirrors a saved rectangular board and updates the OBS source", async (t) => {
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-bingo-deck-"));
+  const core = createCore({ runtimeDir, dryRun: true });
+  const server = await listen(core.app),
+    browser = await chromium.launch();
+  t.after(async () => {
+    await browser.close();
+    await core.services.lifecycle.stopAll();
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(runtimeDir, { recursive: true, force: true });
+  });
+  const base = "http://127.0.0.1:" + server.address().port;
+  const layout = await fetch(base + "/api/stream-overlays", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      expectedRevision: 0,
+      document: {
+        name: "Stream games",
+        widgets: [{ type: "bingo", id: "board", gridSize: 10, gridRows: 3, items: ["First task"] }],
+      },
+    }),
+  }).then((response) => response.json());
+  assert.equal(layout.ok, true);
+  const page = await browser.newPage({ viewport: { width: 1200, height: 850 } });
+  const output = await browser.newPage();
+  await page.goto(base);
+  await page.locator("#deckButtonMode").click();
+  await page.locator("#deckPages").getByRole("button", { name: "Bingo", exact: true }).click();
+  await output.goto(base + "/stream-overlay.html?id=" + layout.selectedId);
+  const first = page.getByRole("button", { name: "Square 1: First task" }),
+    last = page.getByRole("button", { name: "Square 30: Square 30" });
+  await first.waitFor();
+  assert.equal(await page.locator(".deckBingoGrid button").count(), 30);
+  await last.click();
+  await page.getByRole("button", { name: "Square 30: Square 30", pressed: true }).waitFor();
+  await output.locator(".bingoCell.marked").filter({ hasText: "Square 30" }).waitFor();
+  await page.getByRole("button", { name: "Reset board" }).click();
+  await page.getByRole("button", { name: "Clear marks" }).click();
+  await page.getByRole("button", { name: "Square 30: Square 30", pressed: false }).waitFor();
+  await output.locator(".bingoCell.marked").waitFor({ state: "detached" });
+  await page.locator("#deckPages").getByRole("button", { name: "Quick Access" }).click();
+  assert.equal(await page.locator("#deckBingo").isHidden(), true);
+});
+test("moved clipping mod opens its normal parameter editor even beside hundreds of built-in actions", async (t) => {
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-clip-editor-"));
+  const config = require("../src/domains/control-deck/control-deck-config").defaults();
+  const clip = config.pages.flatMap((p) => p.buttons).find((b) => b.id === "twitch-clip");
+  clip.steps[0].actionId = "mod:ravelink.twitch-clips:create";
+  fs.mkdirSync(path.join(runtimeDir, "system"), { recursive: true });
+  fs.writeFileSync(
+    path.join(runtimeDir, "system", "control-deck.json"),
+    JSON.stringify({ version: 1, revision: 4, audioPageAdded: true, config }),
+  );
+  const manifest = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "../mods/twitch-clips/groby.mod.json"), "utf8"),
+  );
+  let executions = 0,
+    enabled = false;
+  const registry = {
+    list: () => ({
+      mods: [
+        {
+          id: manifest.id,
+          name: manifest.name,
+          lifecycle: enabled ? "active" : "installed-disabled",
+          actions: manifest.contributes.actions,
+        },
+        {
+          id: "ravelink.twitch-clips",
+          name: manifest.name,
+          lifecycle: "installed-disabled",
+          actions: manifest.contributes.actions,
+        },
+      ],
+    }),
+    readActionState: async () => ({
+      ok: true,
+      value: { feedback: { available: true, active: false, label: "Ready", state: "ready" } },
+    }),
+    invokeAction: async () => {
+      executions++;
+      return { ok: true };
+    },
+  };
+  const e = createCore({
+    runtimeDir,
+    dryRun: true,
+    fixtureSecretVaultOptions: require("./support/fixture-vault-codec.cjs"),
+    desktopActions: {
+      catalog: () =>
+        Array.from({ length: 453 }, (_, i) => ({
+          id: "native.example." + i,
+          label: "Control " + i,
+          group: "Example",
+          parameters: object,
+          defaults: {},
+          available: true,
+        })),
+      shutdown() {},
+    },
+    extend: () => ({ owner: "fixture", mods: { registry }, shutdown: async () => {} }),
+  });
+  const server = await listen(e.app),
+    browser = await chromium.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    await e.services.lifecycle.stopAll();
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(runtimeDir, { recursive: true, force: true });
+  });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }),
+    errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("http://127.0.0.1:" + server.address().port);
+  await page.locator("#deckButtonMode").click();
+  await page.locator("#deckEdit").click();
+  await page.locator('[data-deck-button="twitch-clip"]').click();
+  await page.locator("#deckEditor").waitFor();
+  const duration = page.locator('#deckEditor [data-deck-parameter="duration"]');
+  assert.equal(await duration.inputValue(), "30");
+  assert.equal(
+    await page.locator('#deckEditor option[value="mod:ravelink.twitch-clips:create"]').count(),
+    0,
+  );
+  assert.equal(
+    await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').count(),
+    1,
+  );
+  assert.match(
+    await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').textContent(),
+    /enable in Mods/,
+  );
+  assert.doesNotMatch(
+    await page.locator("#deckEditor").textContent(),
+    /Unavailable: mod:|Action data \(JSON\)/,
+  );
+  await duration.fill("45");
+  await page.getByRole("button", { name: "Save button", exact: true }).click();
+  await page.locator("#deckEditor").waitFor({ state: "hidden" });
+  const saved = e.services.controlDeck
+    .snapshot()
+    .config.pages.flatMap((p) => p.buttons)
+    .find((b) => b.id === "twitch-clip");
+  assert.equal(saved.steps[0].actionId, "mod:groby.twitch-clips:create");
+  assert.equal(saved.steps[0].params.duration, 45);
+  enabled = true;
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator("#deckEdit").click();
+  await page.locator('[data-deck-button="twitch-clip"]').click();
+  await page.locator("#deckEditor").waitFor();
+  assert.equal(
+    await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').textContent(),
+    "Clip stream",
+  );
+  assert.equal(executions, 0);
+  assert.deepEqual(errors, []);
+});
+
 test("LAN deck edits safely, runs confirmed Discord actions, and preserves responsive layouts", async (t) => {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "rvl-deck-ui-"));
   let muted = false,
@@ -188,6 +347,7 @@ test("LAN deck edits safely, runs confirmed Discord actions, and preserves respo
   await page.locator("#deckEditor").waitFor();
   assert.equal(presses, 1, "edit mode never executes a live action");
   await page.locator("#deckButtonName").fill("My microphone");
+  await page.getByRole("tab", { name: "Appearance", exact: true }).click();
   await page.locator("#deckButtonColor").fill("#164959");
   await page.locator("#deckButtonBacklight").fill("80");
   await page.locator("#deckButtonImage").setInputFiles({

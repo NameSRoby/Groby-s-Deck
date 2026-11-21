@@ -3,6 +3,39 @@ const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
 const { createSongQueue } = require("../features/song-request/dist/domain");
 const presets = require("../features/song-request/dist/overlay-presets");
+
+test("all canvas shapes and bounded non-destructive crop are ordinary saved configuration", () => {
+  const { overlayFrom } = require("../features/song-request/dist/overlay-config");
+  for (const shape of [
+    "rectangle",
+    "rounded",
+    "ellipse",
+    "triangle",
+    "diamond",
+    "hexagon",
+    "chevron",
+    "parallelogram",
+    "star",
+  ]) {
+    const config = overlayFrom({
+      ...presets.get("classic"),
+      layoutMode: "canvas",
+      segments: [
+        {
+          id: "my-layer",
+          name: "Made from scratch",
+          shape,
+          frame: { x: 0, y: 0, width: 200, height: 80 },
+          crop: { left: 5, right: 9, top: 3, bottom: 4 },
+          blocks: [],
+        },
+      ],
+    });
+    assert.equal(config.segments[0].shape, shape);
+    assert.deepEqual(config.segments[0].crop, { left: 5, right: 9, top: 3, bottom: 4 });
+    assert.deepEqual(overlayFrom(JSON.parse(JSON.stringify(config))), config);
+  }
+});
 test("overlay profiles support save, rename, conflict checks, restart and deletion without clearing the design", () => {
   const q = createSongQueue({ now: () => 123456 });
   assert.equal(q.overlayStatus().config.followAppColors, true);

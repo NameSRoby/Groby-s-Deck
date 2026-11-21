@@ -66,7 +66,7 @@ calls from a panel that is still open.
 
 ## SDK exports and types
 
-Import CommonJS helpers from `@ravelink/mod-sdk` after installing a locally packed
+Import CommonJS helpers from `@grobys-deck/mod-sdk` after installing a locally packed
 SDK, or from `packages/mod-sdk` in a source checkout. Declarations are included.
 
 | Export                                                          | Contract                                                                                                                                    |
@@ -185,7 +185,7 @@ promised. Mods cannot register a secret handle or read/export/reveal its token.
 Unknown, unconfigured or undeclared handles and unsupported operations are denied.
 Host validators check returned results; audit entries omit secret values/payloads.
 
-### `twitch.clips.host.v1` — provider `ravelink.twitch-clips`
+### `twitch.clips.host.v1` — provider `groby.twitch-clips`
 
 Consumed by the reviewed clip adapter; other approved consumers still require a
 mod-enabled host and explicit declaration. Optional Twitch Integration must be
@@ -211,7 +211,7 @@ contract; use its declared contributed action for dashboard operation.
 The old accessibility adapter and `discord.desktop.host.v1` provider have been
 removed. Existing mute/deafen deck buttons migrate to keyboard macros. Use
 F13–F24 or another key with Discord’s own bindings. Keyboard input delivery does
-not claim to confirm Discord’s mute state, and RaveLink does not own its process.
+not claim to confirm Discord’s mute state, and Groby’s Deck does not own its process.
 
 ## Manifest field reference
 
@@ -275,7 +275,7 @@ or embed credentials.
 
 ## Test harness API
 
-Import `createModTestHarness` from `@ravelink/mod-sdk/testing`.
+Import `createModTestHarness` from `@grobys-deck/mod-sdk/testing`.
 
 | Member                                       | Contract                                                                                                                         |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |

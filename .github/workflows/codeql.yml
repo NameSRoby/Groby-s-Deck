@@ -58,9 +58,9 @@ jobs:
         if: matrix.language == 'csharp'
         shell: pwsh
         run: |
-          dotnet build desktop/windows-host/RaveLinkCoreHost.csproj --configuration Release --no-incremental
+          dotnet build desktop/windows-host/GrobyDeckHost.csproj --configuration Release --no-incremental
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build desktop/windows-audio/RaveLinkAudioAnalysis.csproj --configuration Release --no-incremental
+          dotnet build desktop/windows-audio/GrobyDeckAudioAnalysis.csproj --configuration Release --no-incremental
 
       - name: Analyze source
         uses: github/codeql-action/analyze@f051dc808ef3645eb0d08647ec751634ec2304ac # v4

@@ -43,82 +43,21 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
     const apiRequests = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("request", (request) => {
-      const pathname = new URL(request.url()).pathname;
-      if (
-        ![
-          "/",
-          "/core.css",
-          "/dashboard.css",
-          "/dashboard.js",
-          "/control-deck.js",
-          "/control-deck-reorder.js",
-          "/control-deck-feedback.js",
-          "/control-deck-display.js",
-          "/control-deck-editor.js",
-          "/control-deck-steps.js",
-          "/control-deck-integrations.js",
-          "/control-deck-layout.js",
-          "/control-deck-screen.js",
-          "/control-deck-screen-editor.js",
-          "/control-deck-fullscreen.js",
-          "/control-deck-awake.js",
-          "/control-deck-toggle-editor.js",
-          "/control-deck-keys.js",
-          "/control-deck-pager.js",
-          "/control-deck-screen-layout.js",
-          "/control-deck-slider.js",
-          "/control-deck-slider-layout.js",
-          "/control-deck-audio-ui.js",
-          "/control-deck-settings.js",
-          "/control-deck-id.js",
-          "/browser-random-id.js",
-          "/control-deck-panels.js",
-          "/control-deck-windows-panel.js",
-          "/control-deck-feed.js",
-          "/control-deck-widgets.js",
-          "/deck-widget-card.js",
-          "/deck-widget-editor.js",
-          "/control-deck.css",
-          "/dashboard-layout.js",
-          "/feature-navigation.js",
-          "/usability.css",
-          "/app-polish.css",
-          "/music-choices.js",
-          "/lighting.css",
-          "/music-to-light.css",
-          "/music-to-light.js",
-          "/music-pipeline.js",
-          "/music-workspace.js",
-          "/music-recipe-controls.js",
-          "/music-saved-effects.js",
-          "/music-library.js",
-          "/music-fixture-controls.js",
-          "/mods.css",
-          "/core.js",
-          "/hue-entertainment-setup.js",
-          "/action-feedback.js",
-          "/browser-clipboard.js",
-          "/network-sharing.js",
-          "/visible-choices.js",
-          "/theme-state.js",
-          "/usability-tooltips.js",
-          "/lighting-profiles.js",
-          "/lighting-commands.js",
-          "/workspace-navigation.js",
-          "/navigation-settings.js",
-          "/navigation-settings.css",
-          "/twitch-light-program.js",
-          "/viewer-rave.js",
-        ].includes(pathname)
-      )
-        apiRequests.push(pathname);
+      if (["fetch", "xhr"].includes(request.resourceType()))
+        apiRequests.push(new URL(request.url()).pathname);
     });
     await page.goto(url, { waitUntil: "networkidle" });
     await page.locator('[data-tab="lights"]').click();
     await page.locator("#health").waitFor({ state: "visible" });
-    assert.equal(await page.locator('[data-tab="updates"]').isVisible(), false);
+    assert.equal(await page.locator('[data-tab="features"]').isVisible(), false);
     await page.locator("#moreNav > summary").click();
-    assert.equal(await page.locator('[data-tab="updates"]').isVisible(), true);
+    assert.equal(await page.locator('[data-tab="features"]').isVisible(), true);
+    assert.equal(await page.locator('[data-tab="updates"]').count(), 0);
+    await page.locator('[data-tab="features"]').click();
+    assert.equal(await page.locator('[data-panel="features"] #coreUpdates').isVisible(), true);
+    assert.equal(await page.locator('[data-panel="features"] #featureRows').count(), 1);
+    await page.locator("#moreNav > summary").click();
+
     await page.keyboard.press("Escape");
     assert.equal(await page.locator("#modsTab").isVisible(), false);
     assert.equal(await page.locator('[data-tab="system"]').count(), 0);
@@ -195,15 +134,15 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
       apiRequests.filter(
         (url) =>
           ![
+            "/api/request-intake",
             "/api/presentation/theme",
             "/api/presentation/navigation",
             "/api/presentation/dashboard",
             "/api/dashboard",
             "/api/control-deck/state",
+            "/api/control-deck/style-profiles",
             "/api/control-deck",
             "/api/control-deck/catalog",
-            "/control-deck-profile-light.js",
-            "/viewer-fixture-groups.js",
           ].includes(url),
       ),
       ["/system/status", "/lighting-profiles", "/system/update/status"],
@@ -228,6 +167,42 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
     assert.deepEqual(errors, []);
     await page.close();
   }
+
+  const page = await browser.newPage();
+  const update = {
+    ok: true,
+    currentVersion: "0.8",
+    latest: { version: "99.0", available: true },
+    checkOnLaunch: false,
+    hosted: true,
+  };
+  await page.route("**/system/update/status", (route) =>
+    route.fulfill({ status: 503, json: { ok: false, error: "updates_unavailable" } }),
+  );
+  await page.route("**/system/update/check", (route) => route.fulfill({ json: update }));
+  let downloads = 0;
+  await page.route("**/system/update/download", (route) => {
+    downloads++;
+    if (downloads === 1)
+      return route.fulfill({ status: 503, json: { ok: false, error: "network_unavailable" } });
+    return route.fulfill({ json: { ...update, staged: { version: "99.0", verified: true } } });
+  });
+  await page.goto(url);
+  await page.locator("#health").filter({ hasText: "Online" }).waitFor();
+  await page.locator('[data-tab="fixtures"]').click();
+  await page.locator("#fixtureRows").filter({ hasText: "NOT CONFIGURED" }).waitFor();
+  await page.locator("#moreNav > summary").click();
+  await page.locator('[data-tab="features"]').click();
+  await page.locator("#updateStatus").filter({ hasText: "Unavailable" }).waitFor();
+  await page.locator("#checkForUpdate").click();
+  await page.locator("#updateStatus").filter({ hasText: "Update available" }).waitFor();
+  await page.locator("#downloadUpdate").click();
+  await page.locator("#updateNotice").filter({ hasText: "Download failed." }).waitFor();
+  await page.locator("#downloadUpdate").click();
+  await page.locator("#updateStatus").filter({ hasText: "Ready to install" }).waitFor();
+  assert.equal(await page.locator("#applyUpdate").isEnabled(), true);
+  assert.equal(downloads, 2);
+  await page.close();
 });
 
 test("Viewer controls exposes and saves Rave permission without granting audio or starting lights", async (t) => {

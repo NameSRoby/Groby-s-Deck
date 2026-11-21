@@ -197,7 +197,7 @@ test("managed reward creation keeps redemptions queued for server settlement", a
         data: [
           {
             id: "managed-reward",
-            title: "RaveLink: Change Lights",
+            title: "Groby’s Deck: Change Lights",
             cost: 1200,
           },
         ],
@@ -210,14 +210,14 @@ test("managed reward creation keeps redemptions queued for server settlement", a
       accessToken: "access-secret",
       userId: "broadcaster-1",
     },
-    title: "RaveLink: Change Lights",
+    title: "Groby’s Deck: Change Lights",
     cost: 1200,
     prompt: "Enter a color",
   });
   assert.deepEqual(created, {
     ok: true,
     rewardId: "managed-reward",
-    title: "RaveLink: Change Lights",
+    title: "Groby’s Deck: Change Lights",
     cost: 1200,
     manageable: true,
   });

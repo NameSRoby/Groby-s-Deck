@@ -12,6 +12,7 @@ module.exports = function createTidalDelivery({
   send,
   updated,
   isSelected = async () => true,
+  isPaused = () => false,
 }) {
   const held = new Map();
   let work = null,
@@ -36,6 +37,7 @@ module.exports = function createTidalDelivery({
       }
       lastError = "";
       for (let count = 0; count < 200 && !stopped; count++) {
+        if (isPaused()) return;
         if (!(await isSelected())) return;
         const status = await provider("status", null);
         if (!status.enabled || !status.connected || !status.ready) return;
@@ -66,7 +68,7 @@ module.exports = function createTidalDelivery({
           result = { ok: false, error: errorCode(error.code || error.message) };
         }
         if (stopped) return;
-        if (result.error === "player_inactive") {
+        if (["player_inactive", "tidal_intake_in_progress"].includes(result.error)) {
           held.delete(entry.id);
           return;
         }
@@ -87,6 +89,7 @@ module.exports = function createTidalDelivery({
     release: (id) => held.delete(id),
     hold: (id, error) => held.set(id, errorCode(error)),
     trigger() {
+      if (isPaused()) return { ok: true, ...this.status() };
       if (!stopped && !work) {
         const active = new Set(entries().map((row) => row.id));
         for (const id of held.keys()) if (!active.has(id)) held.delete(id);

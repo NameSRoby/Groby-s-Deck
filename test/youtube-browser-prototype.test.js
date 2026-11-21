@@ -167,7 +167,7 @@ test("console asset reads are bounded without consuming authenticated bridge cap
   assert.equal(helper.status, 200);
   assert.equal(helper.headers.get("cache-control"), "public, max-age=300");
   assert.equal(helper.headers.get("x-content-type-options"), "nosniff");
-  assert.match(await helper.text(), /RaveLinkRandomId/);
+  assert.match(await helper.text(), /GrobyRandomId/);
   assert.equal(
     (await resource("/browser-random-id.js", { Origin: "https://evil.example" })).status,
     403,

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Overlay designer - Groby’s Deck</title>
+    <link rel="stylesheet" href="/overlay-renderer.css" />
+    <link rel="stylesheet" href="/overlay-motion.css" />
+    <link rel="stylesheet" href="/overlay-designer.css" />
+    <link rel="stylesheet" href="/pill-input.css" />
+  </head>
+  <body>
+    <header class="studioHeader">
+      <details id="overlayLibrary" class="overlayLibrary">
+        <summary>Overlays</summary>
+        <div class="libraryMenu">
+          <div class="libraryBar">
+            <label
+              >Overlay<select id="library">
+                <option value="">New overlay</option>
+              </select></label
+            >
+            <button id="new">New overlay</button
+            ><button id="copyDocument">Duplicate overlay</button>
+            <button id="deleteDocument">Delete overlay</button>
+          </div>
+          <details class="savedLibrary" open>
+            <summary>Saved overlays</summary>
+            <div id="savedOverlays"></div>
+            <p id="savedEmpty">Save your first overlay to add it here.</p>
+          </details>
+        </div>
+      </details>
+      <div>
+        <h1>Overlay designer</h1>
+        <span id="saveState">New overlay</span>
+      </div>
+      <div class="headerActions">
+        <button id="exitStudio">Back to app</button
+        ><button id="toggleLayers" aria-pressed="true">Layers</button
+        ><button id="toggleInspector" aria-pressed="true" title="Show or hide widget settings">
+          Widget settings
+        </button>
+        <button id="canvasOptions">Canvas settings</button><button id="openOutput">OBS setup</button
+        ><button id="preview">Preview</button
+        ><button id="save" class="primary">Save overlay</button>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside class="layersPanel">
+        <div class="panelHeading">
+          <h2>Layers</h2>
+          <button id="add" class="primary">+ Add widget</button>
+        </div>
+        <label class="layerSearch"
+          ><span class="visuallyHidden">Find layers</span
+          ><input id="layerSearch" type="search" placeholder="Find layers..."
+        /></label>
+        <div id="layers"></div>
+        <p id="emptyLayers">Add a widget to begin.</p>
+        <details id="widgetInspector" class="inspectorPanel">
+          <summary>Selected widget settings</summary>
+          <div id="widgetSettings" hidden>
+            <h2 id="selectedName">Widget settings</h2>
+            <p id="selectionHelp"></p>
+            <div class="selectionHeader">
+              <span id="selectionSummary"></span><button id="deleteSelection">Delete widget</button>
+            </div>
+            <div id="widgetFields"></div>
+          </div>
+        </details>
+        <div class="layerActions">
+          <button id="duplicate">Duplicate</button><button id="remove">Remove</button
+          ><button id="group">Group</button><button id="ungroup">Ungroup</button
+          ><button id="front">Bring forward</button><button id="back">Send backward</button>
+        </div>
+      </aside>
+      <main class="canvasPanel">
+        <div class="canvasToolbar">
+          <button id="undo" aria-label="Undo">Undo</button
+          ><button id="redo" aria-label="Redo">Redo</button
+          ><label
+            >Zoom<select id="zoom">
+              <option value="fit">Fit</option>
+              <option value="0.25">25%</option>
+              <option value="0.5">50%</option>
+              <option value="0.75">75%</option>
+              <option value="1">100%</option>
+              <option value="1.5">150%</option>
+            </select></label
+          ><button
+            id="panCanvas"
+            aria-pressed="false"
+            title="Pan the zoomed canvas. Hold Space or drag with the middle mouse button."
+          >
+            Pan</button
+          ><label class="check"><input id="grid" type="checkbox" checked />Grid</label
+          ><label class="check"><input id="snap" type="checkbox" checked />Snap</label
+          ><label
+            class="check"
+            title="Snap to layer and canvas edges and centers. Hold Alt to bypass."
+            ><input id="alignmentGuides" type="checkbox" checked />Guides</label
+          ><span id="canvasSize">1920 × 1080</span>
+          <label
+            >Data<select id="previewSource">
+              <option value="live">Live</option>
+              <option value="sample">Sample</option>
+            </select></label
+          >
+          <button id="testWidgets">Test widgets</button>
+        </div>
+        <div id="stageWrap">
+          <div id="stageFrame">
+            <div id="canvas" class="overlayCanvas" tabindex="0" aria-label="Overlay canvas"></div>
+          </div>
+        </div>
+        <div class="canvasStatus">
+          <details class="editTools">
+            <summary>Selection tools & shortcuts</summary>
+            <div class="editToolMenu">
+              <div class="editToolButtons">
+                <button id="copySelection">Copy</button><button id="cutSelection">Cut</button
+                ><button id="pasteSelection">Paste</button><button id="selectAll">Select all</button
+                ><button id="bringToFront">Bring to front</button
+                ><button id="sendToBack">Send to back</button
+                ><button id="lockSelection">Lock selected</button
+                ><button id="showSelection">Hide selected</button>
+              </div>
+              <div class="editToolButtons" aria-label="Align selection">
+                <button data-align-selection="left">Left</button
+                ><button data-align-selection="center">Center</button
+                ><button data-align-selection="right">Right</button
+                ><button data-align-selection="top">Top</button
+                ><button data-align-selection="middle">Middle</button
+                ><button data-align-selection="bottom">Bottom</button
+                ><button data-align-selection="horizontal">Distribute horizontally</button
+                ><button data-align-selection="vertical">Distribute vertically</button>
+              </div>
+              <p>
+                Ctrl/Cmd+A select all; C/X/V copy/cut/paste; D duplicate; Z undo; Shift+Z redo; S
+                save. Delete removes unlocked widgets. Shift-click selects several. Arrow keys
+                nudge; Shift moves 10px. Escape cancels a drag. F2 renames a widget; Ctrl/Cmd+G
+                groups; Ctrl/Cmd+Shift+G ungroups.
+              </p>
+              <div class="editToolButtons">
+                <button id="exportLayout">Export layout</button
+                ><label class="fileButton"
+                  >Import layout<input
+                    id="importLayout"
+                    type="file"
+                    accept="application/json,.json"
+                /></label>
+              </div>
+              <small
+                >Layout files include configuration and media URLs. Uploaded media stays on this
+                Core server.</small
+              >
+            </div>
+          </details>
+          <span id="feedStatus" role="status">Connecting live feed...</span>
+          <span id="notice" role="status"></span>
+        </div>
+      </main>
+    </div>
+    <dialog id="canvasDialog">
+      <header>
+        <h2>Canvas settings</h2>
+        <button data-close="canvasDialog">Close</button>
+      </header>
+      <div id="canvasSettings">
+        <h2>Canvas settings</h2>
+        <label
+          >Overlay name<input id="documentName" value="Untitled overlay" maxlength="80" /></label
+        ><label>Size preset<select id="sizePreset"></select></label>
+        <div class="fieldPair">
+          <label
+            >Width<input
+              id="canvasWidth"
+              type="number"
+              min="64"
+              max="8192"
+              value="1920"
+              required /></label
+          ><label
+            >Height<input id="canvasHeight" type="number" min="64" max="8192" value="1080" required
+          /></label>
+        </div>
+        <button id="applySize">Apply size</button
+        ><label class="check"
+          ><input id="scaleContents" type="checkbox" />Scale layers with canvas</label
+        >
+        <p>
+          Canvas dimensions are the OBS browser-source dimensions. Zoom only changes this preview.
+        </p>
+        <label class="check"
+          ><input id="safeMargins" type="checkbox" />Show safe margins (editor only)</label
+        >
+      </div>
+    </dialog>
+    <dialog id="catalogDialog" aria-labelledby="catalogTitle">
+      <header>
+        <h2 id="catalogTitle">Add widget</h2>
+        <button data-close="catalogDialog" aria-label="Close widget catalog">×</button>
+      </header>
+      <div class="catalogFilters">
+        <label
+          >Search widgets<input
+            id="widgetSearch"
+            type="search"
+            placeholder="Text, alerts, music..." /></label
+        ><label
+          >Category<select id="widgetGroup">
+            <option value="">All categories</option>
+          </select></label
+        >
+      </div>
+      <div id="widgetCatalog"></div>
+      <p id="catalogHelp"></p>
+    </dialog>
+    <dialog id="outputDialog">
+      <header>
+        <h2>Add to OBS</h2>
+        <button data-close="outputDialog" aria-label="Close OBS setup">×</button>
+      </header>
+      <p>In OBS, add a Browser source and use these settings.</p>
+      <label>URL<input id="outputUrl" readonly /></label><button id="copyUrl">Copy URL</button>
+      <p id="outputSize"></p>
+      <p>
+        Background is transparent. Groby’s Deck must be running on the OBS computer. Only saved
+        changes appear in OBS.
+      </p>
+    </dialog>
+    <dialog id="confirmDialog">
+      <h2 id="confirmTitle">Discard unsaved changes?</h2>
+      <p id="confirmText"></p>
+      <button id="confirmYes" class="primary">Continue</button
+      ><button id="confirmNo">Cancel</button>
+    </dialog>
+    <div id="previewBanner" hidden>
+      <button id="endPreview">Back to editing</button
+      ><button id="clearSamples">Clear sample events</button>
+    </div>
+    <dialog id="testDialog">
+      <header>
+        <h2>Test widgets</h2>
+        <button data-close="testDialog">Close</button>
+      </header>
+      <label
+        >Sample event<select id="sampleEvent">
+          <option value="channel.follow">Follow</option>
+          <option value="channel.subscribe">Subscription</option>
+          <option value="channel.raid">Raid</option>
+          <option value="channel.cheer">Bits</option>
+          <option value="channel.chat.message">Chat message</option>
+        </select></label
+      >
+      <label>Chatter name<input id="sampleName" value="DemoViewer" maxlength="25" /></label>
+      <label
+        >Chat message<textarea id="sampleMessage" maxlength="500">
+Hello from the sample chat!</textarea>
+      </label>
+      <label class="check"><input type="checkbox" id="sampleBot" />App-sent bot message</label>
+      <button id="emulate">Show sample</button
+      ><button id="sampleAll">Use sample data for all widgets</button
+      ><small>Stays in this editor. Nothing is sent to Twitch or OBS.</small>
+    </dialog>
+    <script src="/browser-random-id.js"></script>
+    <script src="/overlay-game-rules.js"></script>
+    <script src="/overlay-extra-controls.js"></script>
+    <script src="/overlay-model.js"></script>
+    <script src="/overlay-motion.js"></script>
+    <script src="/overlay-credits-renderer.js"></script>
+    <script src="/overlay-extra-renderer.js"></script>
+    <script src="/overlay-fonts.js"></script>
+    <script src="/overlay-renderer.js"></script>
+    <script src="/overlay-widget-controls.js"></script>
+    <script src="/overlay-inspector.js"></script>
+    <script src="/overlay-edit-commands.js"></script>
+    <script src="/overlay-viewport.js"></script>
+    <script src="/overlay-guides.js"></script>
+    <script src="/overlay-interactions.js"></script>
+    <script src="/overlay-live-preview.js"></script>
+    <script src="/overlay-designer.js"></script>
+  </body>
+</html>

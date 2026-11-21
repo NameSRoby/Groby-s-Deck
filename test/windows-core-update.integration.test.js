@@ -27,15 +27,15 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
       const archive = path.join(
         updateRoot,
         "downloads",
-        `RaveLink-Core-Windows-v${targetVersion}-self-contained.zip`,
+        `Grobys-Deck-Windows-v${targetVersion}-self-contained.zip`,
       );
 
       write(root, "RELEASE_BUILD.json", JSON.stringify({ version: "0.6.1", channel: "release" }));
       write(root, "src/old.js", "old program");
-      write(root, "RaveLink-Core.exe", "old host");
-      write(root, "runtime/RaveLink-Core-Node.exe", "old node");
+      write(root, "Groby's Deck.exe", "old host");
+      write(root, "runtime/Grobys-Deck-Node.exe", "old node");
       write(root, "integrations/music-to-light/controller.cjs", "old controller");
-      write(root, "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe", "old probe");
+      write(root, "runtime/music-to-light/cargo/release/groby-audio-probe.exe", "old probe");
       write(root, "runtime/music-to-light/operator.json", "private source selection");
       write(root, "runtime/user-state.json", "preserve runtime");
       write(root, "runtime/desktop/WebView2Loader.dll", "old desktop loader");
@@ -49,12 +49,12 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
         JSON.stringify({ version: targetVersion, channel: "release" }),
       );
       write(release, "src/app/core/create-core-server.js", "new program");
-      write(release, "RaveLink-Core.exe", "new host");
+      write(release, "Groby's Deck.exe", "new host");
       write(release, "packages/tidal-desktop/installer.cjs", "new companion");
-      write(release, "runtime/RaveLink-Core-Node.exe", "new node");
+      write(release, "runtime/Grobys-Deck-Node.exe", "new node");
       write(release, "runtime/desktop/WebView2Loader.dll", "new desktop loader");
       write(release, "integrations/music-to-light/controller.cjs", "new controller");
-      write(release, "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe", "new probe");
+      write(release, "runtime/music-to-light/cargo/release/groby-audio-probe.exe", "new probe");
       fs.mkdirSync(path.dirname(archive), { recursive: true });
       const zipped = spawnSync(
         "powershell.exe",
@@ -86,7 +86,7 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
         }),
       );
 
-      const helper = path.resolve(__dirname, "../scripts/ravelink-update.ps1");
+      const helper = path.resolve(__dirname, "../scripts/groby-update.ps1");
       const apply = spawnSync(
         "powershell.exe",
         [
@@ -114,7 +114,7 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
       );
       assert.equal(
         fs.readFileSync(
-          path.join(root, "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe"),
+          path.join(root, "runtime/music-to-light/cargo/release/groby-audio-probe.exe"),
           "utf8",
         ),
         "new probe",
@@ -173,7 +173,7 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
       );
       assert.equal(
         fs.readFileSync(
-          path.join(root, "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe"),
+          path.join(root, "runtime/music-to-light/cargo/release/groby-audio-probe.exe"),
           "utf8",
         ),
         "old probe",

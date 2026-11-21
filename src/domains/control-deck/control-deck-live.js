@@ -51,8 +51,9 @@ module.exports = function createDeckLive({ read, refresh, subscribe, intervalMs 
     if (listeners.size >= 16)
       throw Object.assign(Error("control_deck_stream_busy"), { code: "control_deck_stream_busy" });
     listeners.add(listener);
-    if (listeners.size === 1) published = current();
-    listener(current());
+    const initial = current();
+    if (listeners.size === 1) published = initial;
+    listener(initial);
     if (!timer) {
       timer = setInterval(tick, intervalMs);
       timer.unref?.();

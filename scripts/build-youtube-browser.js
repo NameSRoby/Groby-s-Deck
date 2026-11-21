@@ -15,10 +15,10 @@ function build(destination = path.join(root, "dist/youtube-browser")) {
       fs.copyFileSync(path.join(source, file), path.join(target, file));
     const manifest = {
       manifest_version: 3,
-      name: "RaveLink YouTube Music companion",
+      name: "Groby’s Deck YouTube Music companion",
       version: "0.3.0",
       description:
-        "Pairs one YouTube Music tab with your local RaveLink song requests or test console.",
+        "Pairs one YouTube Music tab with your local Groby’s Deck song requests or test console.",
       permissions: ["storage", "activeTab", "scripting"],
       host_permissions: ["https://music.youtube.com/*", "http://127.0.0.1/*"],
       action: { default_popup: "popup.html" },

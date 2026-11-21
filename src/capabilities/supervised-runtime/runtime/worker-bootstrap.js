@@ -43,6 +43,7 @@ const consumedCapabilities = new Set(
   ),
 );
 const maxFrameBytes = Number(config.maxFrameBytes || 65536);
+const payloadLimits = require("../contracts/payload-limits")(maxFrameBytes);
 let workload = null;
 let active = false;
 let shuttingDown = false;
@@ -61,6 +62,7 @@ const featureCalls = require("./capability-call-queue")({
 function send(envelope) {
   const validation = parseBrokerFrameV1(JSON.stringify(envelope), {
     maxFrameBytes,
+    ...payloadLimits,
   });
   if (!validation.ok)
     throw new Error(`worker_invalid_outbound_envelope:${validation.errors[0]?.code || "unknown"}`);
@@ -377,7 +379,7 @@ process.on("message", (message) => {
     process.disconnect?.();
     return;
   }
-  const validation = parseBrokerFrameV1(serialized, { maxFrameBytes });
+  const validation = parseBrokerFrameV1(serialized, { maxFrameBytes, ...payloadLimits });
   if (!validation.ok) {
     // Scheduler delays can expire a valid request in transit. Match the host's
     // timeout disposition instead of disconnecting and stopping the workload.

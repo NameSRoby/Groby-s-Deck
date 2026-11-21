@@ -60,13 +60,15 @@ test("tab placement saves locally, survives reload and supports moving tabs back
   await page
     .locator('label:has(select[data-tab-id="fixtures"]) [data-choice-value="more"]')
     .click();
-  await page.locator('label:has(select[data-tab-id="updates"]) [data-choice-value="main"]').click();
+  await page
+    .locator('label:has(select[data-tab-id="features"]) [data-choice-value="main"]')
+    .click();
   await page.locator("#saveNavigation").click();
   await page.locator("#navigationNotice").filter({ hasText: "Tab layout saved." }).waitFor();
   await page.locator("#closeNavigation").click();
   await page.locator("#closeTheme").click();
   assert.equal(await page.locator('[data-tab="widget"]').isVisible(), false);
-  assert.equal(await page.locator('#tabs > [data-tab="updates"]').isVisible(), true);
+  assert.equal(await page.locator('#tabs > [data-tab="features"]').isVisible(), true);
   await page.locator("#moreNav > summary").click();
   await page.locator('#moreNav [data-tab="fixtures"]').click();
   assert.equal(await page.locator('[data-panel="fixtures"]').isVisible(), true);

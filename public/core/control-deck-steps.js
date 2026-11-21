@@ -1,156 +1,104 @@
-/** Build ordinary form controls from the host's declared action parameters.
- * Complex data stays explicit JSON; none of these fields is executable code.
- */
+import { parameterForm } from "./control-deck-parameters.js";
+import { presentAction } from "./control-deck-action-presentation.js";
+import { buildFlowGroup } from "./control-deck-flow-groups.js";
 const clone = (value) => structuredClone(value);
-const node = (tag, className, text) => {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
+const WAIT = "deck.wait";
+const el = (tag, css, text) => {
+  const node = document.createElement(tag);
+  if (css) node.className = css;
+  if (text !== undefined) node.textContent = text;
+  return node;
 };
-function parameterForm(host, schema = {}, initial = {}, sendKey) {
-  const fields = [],
-    value = clone(initial || {}),
-    properties = schema.properties || {};
-  const simple = Object.entries(properties).filter(
-    ([, f]) => ["string", "number", "integer", "boolean"].includes(f.type) && !f.oneOf && !f.anyOf,
-  );
-  const complex =
-    Object.keys(value).some((key) => !properties[key]) ||
-    Object.keys(properties).length !== simple.length;
-  if (complex || (!Object.keys(properties).length && Object.keys(value).length)) {
-    const label = node("label", "deckField"),
-      input = node("textarea");
-    input.rows = 4;
-    input.value = JSON.stringify(value, null, 2);
-    label.append(node("span", "", "Action data (JSON)"), input);
-    host.append(label);
-    return () => {
-      let parsed;
-      try {
-        parsed = JSON.parse(input.value);
-      } catch {
-        throw Error("Check the action data JSON.");
-      }
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-        throw Error("Action data must be a JSON object.");
-      return parsed;
-    };
-  }
-  for (const [key, property] of simple) {
-    const label = node("label", "deckField"),
-      control = node(property.enum ? "select" : "input");
-    const required = schema.required?.includes(key);
-    if (property.enum) {
-      if (!required) control.add(new Option("Default", ""));
-      for (const option of property.enum) control.add(new Option(String(option), String(option)));
-    } else
-      control.type =
-        property.type === "boolean"
-          ? "checkbox"
-          : ["number", "integer"].includes(property.type)
-            ? "number"
-            : "text";
-    const current = value[key] ?? property.default;
-    if (property.type === "boolean") control.checked = current === true;
-    else control.value = current === undefined ? "" : current;
-    if (property.minimum !== undefined) control.min = property.minimum;
-    if (property.maximum !== undefined) control.max = property.maximum;
-    if (property.maxLength) control.maxLength = property.maxLength;
-    if (property.type === "integer") control.step = 1;
-    control.required = required && property.type !== "boolean";
-    control.dataset.deckParameter = key;
-    label.append(
-      node("span", "", (property.title || key.replace(/([A-Z])/g, " $1")) + (required ? " *" : "")),
-      control,
-    );
-    if (property.description) {
-      const help = node("small", "", property.description);
-      label.append(help);
-    }
-    host.append(label);
-    if (key === "shortcut" && sendKey) {
-      host.classList.add("deckHotkeyParameters");
-      const picker = node("select"),
-        tools = node("div", "deckHotkeyTools"),
-        send = node("button", "", "Send key in 5 seconds"),
-        status = node("small", "deckEditorHint");
-      picker.setAttribute("aria-label", "Rare keyboard key");
-      picker.add(new Option("Choose a rarely used key…", ""));
-      for (let n = 13; n <= 24; n++) {
-        for (const prefix of ["", "Ctrl+Shift+"])
-          picker.add(new Option(prefix + "F" + n, prefix + "F" + n));
-      }
-      picker.onchange = () => {
-        if (picker.value) control.value = picker.value;
-      };
-      send.type = "button";
-      send.onclick = async () => {
-        if (!control.value.trim() || !control.reportValidity()) return;
-        const shortcut = control.value.trim();
-        send.disabled = true;
-        try {
-          for (let remaining = 5; remaining > 0; remaining--) {
-            status.textContent = `Sending ${shortcut} in ${remaining}s. Focus the app that should receive it.`;
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            if (!send.isConnected || !send.closest("dialog")?.open) return;
-          }
-          await sendKey(shortcut);
-          status.textContent = "Key sent on the RaveLink PC.";
-        } catch (error) {
-          status.textContent =
-            {
-              desktop_input_blocked:
-                "Windows blocked the key input. Run RaveLink and the receiving app at the same permission level, then retry.",
-              desktop_keys_busy: "Release Ctrl, Shift, Alt and Windows keys, then retry.",
-              desktop_action_timeout: "Windows did not respond in time. Retry the key send.",
-            }[error.message] || "The key could not be sent. Check the receiving app and retry.";
-        } finally {
-          send.disabled = false;
-        }
-      };
-      tools.append(picker, send, status);
-      host.append(
-        tools,
-        node(
-          "p",
-          "deckEditorHint",
-          "F13–F24 are valid Windows keys absent from most keyboards. Buttons send input on the RaveLink PC, including from your phone or tablet.",
-        ),
-      );
-    }
-    fields.push({ key, property, control, required });
-  }
-  return () => {
-    const result = {};
-    for (const { key, property, control, required } of fields) {
-      if (!control.reportValidity()) throw Error("Complete the required action fields.");
-      if (property.type === "boolean") result[key] = control.checked;
-      else if (control.value !== "")
-        result[key] = ["number", "integer"].includes(property.type)
-          ? Number(control.value)
-          : control.value;
-      else if (required) throw Error("Complete " + key + ".");
-    }
-    return result;
+const button = (label, fn) => {
+  const node = el("button", "", label);
+  node.type = "button";
+  node.onclick = fn;
+  return node;
+};
+function durationField(value, label) {
+  const field = el("label", "deckField deckDurationField"),
+    input = el("input"),
+    unit = el("select");
+  for (const [ms, text] of [
+    [1000, "seconds"],
+    [60000, "minutes"],
+    [3600000, "hours"],
+  ])
+    unit.add(new Option(text, ms));
+  unit.value =
+    value >= 3600000 && value % 3600000 === 0
+      ? "3600000"
+      : value >= 60000 && value % 60000 === 0
+        ? "60000"
+        : "1000";
+  let factor = Number(unit.value);
+  input.type = "number";
+  input.min = 0.001;
+  input.max = 86400000 / factor;
+  input.step = "any";
+  input.required = true;
+  input.value = value / factor;
+  input.setAttribute("aria-label", label);
+  unit.setAttribute("aria-label", label + " unit");
+  unit.onchange = () => {
+    const ms = Number(input.value) * factor;
+    factor = Number(unit.value);
+    input.value = ms / factor;
+    input.max = 86400000 / factor;
+  };
+  field.append(el("span", "", label), input, unit);
+  return {
+    field,
+    read(validate = true) {
+      const ms = Math.round(Number(input.value) * factor);
+      if (validate && (!input.reportValidity() || ms < 1 || ms > 86400000))
+        throw Error("Choose a wait between 0.001 seconds and 24 hours.");
+      return ms;
+    },
   };
 }
-export function buildActionSteps(host, title, initial, catalog, sendKey) {
+/** A plain, ordered sequence. Storage is bounded by config size, not a tiny row limit. */
+export function buildActionSteps(host, title, initial, catalog, sendKey, options = {}) {
+  const depth = options.depth || 0,
+    shared = options.shared || { active: null };
+  host.dataset.flowEditor = "true";
   let steps = clone(initial),
     readers = [];
-  const heading = node("h3", "", title),
-    list = node("div", "deckStepList"),
-    notice = node("p", "deckStepNotice"),
-    add = node("button", "", "+ Add action");
-  add.type = "button";
+  const heading = el("h3", "", title),
+    list = el("div", "deckStepList"),
+    notice = el("p", "deckStepNotice"),
+    tools = el("div", "deckSequenceTools");
   notice.setAttribute("role", "status");
-  host.append(heading, list, add, notice);
-  function read() {
-    return readers.map((get) => get());
-  }
+  host.append(
+    heading,
+    el(
+      "p",
+      "deckEditorHint",
+      depth
+        ? "Choose Add actions here to send library selections to this branch."
+        : "The trigger runs this whole flow. Connect actions, waits and If / Then / Otherwise blocks from top to bottom.",
+    ),
+    list,
+    tools,
+    notice,
+  );
+  if (!depth)
+    heading.after(
+      el(
+        "div",
+        "deckFlowTrigger",
+        options.triggerLabel ||
+          (title === "Press action"
+            ? "WHEN · Button pressed"
+            : title.includes("hold") || title.includes("Hold")
+              ? "WHEN · Button held"
+              : "WHEN · Second press"),
+      ),
+    );
+  const read = (validate = true) => readers.map((get) => get(validate));
   function capture() {
     try {
-      steps = read();
+      steps = read(false);
       notice.textContent = "";
       return true;
     } catch (error) {
@@ -158,18 +106,146 @@ export function buildActionSteps(host, title, initial, catalog, sendKey) {
       return false;
     }
   }
+  function change(fn) {
+    if (capture()) {
+      fn();
+      draw();
+      return true;
+    }
+  }
+  function defaultStep() {
+    const action =
+      catalog.find((a) => a.available && a.id !== WAIT && a.kind !== "condition") || catalog[0];
+    return action
+      ? { actionId: action.id, params: clone(action.defaults || {}), delayMs: 0 }
+      : null;
+  }
+  const waitStep = () => ({ actionId: WAIT, params: { durationMs: 5000 }, delayMs: 0 });
+  function controlsFor(index) {
+    const controls = el("div", "deckStepControls");
+    for (const [label, text, fn, disabled] of [
+      [
+        "Move action up",
+        "↑",
+        () => ([steps[index - 1], steps[index]] = [steps[index], steps[index - 1]]),
+        index === 0,
+      ],
+      [
+        "Move action down",
+        "↓",
+        () => ([steps[index + 1], steps[index]] = [steps[index], steps[index + 1]]),
+        index === steps.length - 1,
+      ],
+      [
+        "Duplicate step",
+        "Duplicate",
+        () => steps.splice(index + 1, 0, clone(steps[index])),
+        options.parallel && steps.length >= 8,
+      ],
+      ["Remove action", "Remove", () => steps.splice(index, 1), false],
+    ]) {
+      const control = button(text, () => change(fn));
+      control.setAttribute("aria-label", label);
+      control.disabled = disabled;
+      controls.append(control);
+    }
+    return controls;
+  }
+  const api = {
+    host,
+    read,
+    add(step) {
+      if (options.parallel && steps.length >= 8)
+        throw Error("A Together block can start up to eight steps.");
+      if (!change(() => steps.push(clone(step)))) throw Error(notice.textContent);
+    },
+    append(step) {
+      const target = shared.active && host.contains(shared.active.host) ? shared.active : api;
+      target.add(step);
+    },
+    replace(value) {
+      steps = clone(value);
+      draw();
+    },
+  };
+  const selectTarget = button("Add actions here", () => {
+    shared.active = api;
+    const root = host.closest("dialog") || host;
+    root
+      .querySelectorAll("[data-flow-selected]")
+      .forEach((node) => delete node.dataset.flowSelected);
+    host.dataset.flowSelected = "true";
+  });
+  selectTarget.className = "deckFlowSelectTarget";
+  selectTarget.setAttribute("aria-label", "Add library actions to " + title);
+  heading.after(selectTarget);
   function draw() {
     readers = [];
     list.replaceChildren();
     steps.forEach((step, index) => {
-      const card = node("div", "deckStep"),
-        row = node("div", "deckStepHeading"),
-        choice = node("select");
+      if (["remember", "restore"].includes(step.type)) {
+        const card = el("div", "deckStep deckFlowGroup");
+        card.dataset.stepKind = step.type;
+        card.append(
+          el(
+            "h4",
+            "deckFlowKind",
+            step.type === "remember" ? "REMEMBER · Current values" : "RESTORE · Previous values",
+          ),
+          el(
+            "p",
+            "deckEditorHint",
+            step.type === "remember"
+              ? "Save OBS visibility, scenes, filters and audio values before changing them. A matching Restore returns them exactly; Stop or a failed flow also restores them. Other actions cannot be undone."
+              : "Return the values saved by the most recent Remember step.",
+          ),
+          controlsFor(index),
+        );
+        readers.push(() => ({ type: step.type }));
+        list.append(card);
+        return;
+      }
+      if (step.type) {
+        const card = el("div", "deckStep deckFlowGroup");
+        card.dataset.stepKind = step.type;
+        card.append(
+          el(
+            "h4",
+            "deckFlowKind",
+            step.type === "if"
+              ? "IF · Then / Otherwise"
+              : step.type === "parallel"
+                ? "DO TOGETHER"
+                : step.type === "sequence"
+                  ? "DO IN ORDER"
+                  : "REPEAT",
+          ),
+        );
+        readers.push(
+          buildFlowGroup(card, step, {
+            catalog,
+            sendKey,
+            build: buildActionSteps,
+            depth,
+            shared,
+            parallel: options.parallel || options.inParallel,
+            trigger: options.trigger,
+          }),
+        );
+        card.append(controlsFor(index));
+        list.append(card);
+        return;
+      }
+      const waiting = step.actionId === WAIT,
+        card = el("div", "deckStep"),
+        row = el("div", "deckStepHeading"),
+        choice = el("select");
+      card.dataset.stepKind = waiting ? "wait" : "action";
       choice.setAttribute("aria-label", `${title}, action ${index + 1}`);
       const groups = new Map();
       for (const action of catalog) {
         if (!groups.has(action.group)) {
-          const group = node("optgroup");
+          const group = el("optgroup");
           group.label = action.group;
           groups.set(action.group, group);
           choice.append(group);
@@ -178,95 +254,146 @@ export function buildActionSteps(host, title, initial, catalog, sendKey) {
           .get(action.group)
           .append(
             new Option(
-              action.label + (action.available === false ? " · unavailable" : ""),
+              action.label +
+                (action.available === false
+                  ? " · " + (action.unavailableReason || "unavailable")
+                  : ""),
               action.id,
             ),
           );
       }
       if (!catalog.some((action) => action.id === step.actionId))
         choice.add(
-          new Option("Unavailable action: " + (step.actionId || "choose one"), step.actionId || ""),
+          new Option("Unavailable: " + (step.actionId || "choose an action"), step.actionId || ""),
         );
       choice.value = step.actionId;
-      const action = catalog.find((a) => a.id === step.actionId),
-        params = node("div", "deckStepParameters");
-      const parameters = parameterForm(
-        params,
-        action?.parameters || {},
-        step.params,
-        action?.id === "native.hotkey" ? sendKey : undefined,
-      );
-      const delay = node("input");
-      delay.type = "number";
-      delay.min = 0;
-      delay.max = 10000;
-      delay.step = 50;
-      delay.value = step.delayMs || 0;
-      delay.setAttribute("aria-label", "Wait before this action, milliseconds");
-      const delayLabel = node("label", "deckField");
-      delayLabel.append(node("span", "", "Wait before action (ms)"), delay);
-      row.append(node("span", "deckStepNumber", String(index + 1)), choice);
-      for (const [label, symbol, delta] of [
-        ["Move action up", "↑", -1],
-        ["Move action down", "↓", 1],
-        ["Remove action", "×", 0],
-      ]) {
-        const control = node("button", "deckSmallButton", symbol);
-        control.type = "button";
-        control.setAttribute("aria-label", label);
-        control.title = label;
-        control.disabled = (delta < 0 && index === 0) || (delta > 0 && index === steps.length - 1);
-        control.onclick = () => {
-          if (!capture()) return;
-          if (delta) [steps[index], steps[index + delta]] = [steps[index + delta], steps[index]];
-          else steps.splice(index, 1);
-          draw();
-        };
-        row.append(control);
-      }
+      card.append(el("div", "deckFlowKind", waiting ? "WAIT" : "THEN · Do action"));
+      row.append(el("span", "deckStepNumber", String(index + 1)), choice);
+      const params = el("div", "deckStepParameters"),
+        action = presentAction(catalog.find((a) => a.id === step.actionId));
+      const wait = waiting && durationField(step.params.durationMs, "Wait for");
+      const parameters = waiting
+        ? null
+        : parameterForm(
+            params,
+            action?.parameters || {},
+            step.params,
+            action?.id === "native.hotkey" ? sendKey : undefined,
+          );
+      // Earlier before-action delays remain editable; new sequences use visible wait blocks.
+      const delay = step.delayMs ? durationField(step.delayMs, "Wait before action") : null;
+      const controls = controlsFor(index);
       card.append(row);
-      if (action?.description) card.append(node("p", "deckEditorHint", action.description));
-      card.append(params, delayLabel);
+      if (waiting) card.append(wait.field);
+      else {
+        if (action?.description) card.append(el("p", "deckEditorHint", action.description));
+        if (action?.available === false && action.unavailableReason)
+          card.append(
+            el("p", "deckEditorHint", "Action unavailable: " + action.unavailableReason + "."),
+          );
+        card.append(params);
+      }
+      if (delay) card.append(delay.field);
+      card.append(controls);
       list.append(card);
-      readers.push(() => {
+      readers.push((validate = true) => {
         if (!choice.value) throw Error("Choose an action.");
-        if (!delay.reportValidity()) throw Error("Delay must be between 0 and 10,000 ms.");
-        return { actionId: choice.value, params: parameters(), delayMs: Number(delay.value || 0) };
+        const values = waiting ? { durationMs: wait.read(validate) } : parameters(validate);
+        const trigger = options.trigger?.();
+        if (
+          validate &&
+          trigger &&
+          ["twitch.action.shoutout", "twitch.action.bot-shoutout"].includes(choice.value) &&
+          values.target === "raider" &&
+          (trigger.type !== "event" || trigger.event !== "channel.raid")
+        )
+          throw Error(
+            "Incoming raider is supplied by an Incoming raid trigger. Choose that trigger, or select a fixed recipient for this action.",
+          );
+        return {
+          actionId: choice.value,
+          params: values,
+          delayMs: delay?.read(validate) || 0,
+        };
       });
       choice.onchange = () => {
         try {
-          steps = readers.map((get, i) => (i === index ? steps[i] : get()));
+          steps = readers.map((get, at) => (at === index ? steps[at] : get(false)));
         } catch (error) {
           notice.textContent = error.message;
           return;
         }
-        const selected = catalog.find((a) => a.id === choice.value);
+        const action = catalog.find((a) => a.id === choice.value);
         steps[index] = {
           actionId: choice.value,
-          params: clone(selected?.defaults || {}),
-          delayMs: Number(delay.value || 0),
+          params: clone(action?.defaults || {}),
+          delayMs: delay?.read(false) || 0,
         };
         draw();
       };
     });
-    add.disabled = steps.length >= 16;
+    for (const control of tools.querySelectorAll("button"))
+      control.disabled =
+        (options.parallel && steps.length >= 8) ||
+        (control.dataset.flowGroup === "true" && depth >= 6) ||
+        (control.dataset.flowParallel === "true" && (options.parallel || options.inParallel)) ||
+        (control.dataset.flowRestore === "true" && (options.parallel || options.inParallel)) ||
+        (control.textContent === "Wait first" && options.parallel);
+    host.dispatchEvent(new Event("ravelink-sequence-change", { bubbles: true }));
   }
-  add.onclick = () => {
-    if (!capture()) return;
-    const action = catalog.find((a) => a.available) || catalog[0];
-    if (!action) {
-      notice.textContent = "No actions are available. Enable a package or mod first.";
-      return;
-    }
-    steps.push({ actionId: action.id, params: clone(action.defaults || {}), delayMs: 0 });
-    draw();
-  };
+  tools.append(
+    button("+ Add action", () =>
+      change(() => {
+        const step = defaultStep();
+        if (step) steps.push(step);
+      }),
+    ),
+    button("+ Add wait", () => change(() => steps.push(waitStep()))),
+    button("Wait first", () => change(() => steps.unshift(waitStep()))),
+    button("Action → wait → action", () =>
+      change(() => {
+        const step = defaultStep();
+        if (step) {
+          const timed = [step, waitStep(), clone(step)];
+          if (options.parallel) steps.push({ type: "sequence", steps: timed });
+          else steps.push(...timed);
+        }
+      }),
+    ),
+  );
+  for (const [label, kind, create] of [
+    [
+      "+ Add condition",
+      "if",
+      () => ({
+        type: "if",
+        condition: {
+          actionId: (catalog.find((a) => a.id !== WAIT) || {}).id || "missing",
+          field: "available",
+          operator: "equals",
+          value: true,
+        },
+        then: [],
+        else: [],
+      }),
+    ],
+    ["+ Do together", "parallel", () => ({ type: "parallel", steps: [] })],
+    ["+ Do in order", "sequence", () => ({ type: "sequence", steps: [] })],
+    ["+ Repeat block", "repeat", () => ({ type: "repeat", count: 2, steps: [] })],
+  ]) {
+    const control = button(label, () => change(() => steps.push(create())));
+    control.dataset.flowGroup = "true";
+    if (kind === "parallel") control.dataset.flowParallel = "true";
+    tools.append(control);
+  }
+  for (const type of ["remember", "restore"]) {
+    const control = button(
+      type === "remember" ? "+ Remember current values" : "+ Restore previous values",
+      () => change(() => steps.push({ type })),
+    );
+    control.dataset.flowRestore = "true";
+    tools.append(control);
+  }
   draw();
-  return {
-    read,
-    replace(value) {
-      steps = clone(value);
-      draw();
-    },
-  };
+  return api;
 }

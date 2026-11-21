@@ -401,6 +401,7 @@ module.exports = function createObs({ runtimeDir, codec, WebSocketImpl } = {}) {
       if (!closed) void client.connect(initial).catch(() => {});
     });
   return {
+    restorationTarget: actions.restorationTarget,
     snapshot,
     catalog: actions.catalog,
     execute: actions.execute,

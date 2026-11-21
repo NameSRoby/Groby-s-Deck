@@ -268,6 +268,16 @@ module.exports = function playbackProvider(options) {
   timer.unref?.();
   async function handle(method, payload = {}) {
     try {
+      if (method === "favorite") {
+        if (!auth.status().favoritesEnabled)
+          return { ok: false, error: "spotify_favorites_sign_in_required" };
+        const revision = auth.status().revision;
+        return await ordered(() =>
+          auth.status().revision === revision
+            ? api.favorite(payload.trackId, payload.save)
+            : { ok: false, error: "spotify_account_changed" },
+        );
+      }
       if (method === "status") return await status();
       if (method === "setup") return await setup(payload || {});
       if (method === "enqueue") return await ordered(() => enqueue(payload));

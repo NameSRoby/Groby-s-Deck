@@ -242,7 +242,7 @@
         <select id="source" class="srOnly" aria-label="Now playing source">
           <option value="auto">AUTOMATIC // FOLLOW PLAYING AUDIO</option>
           <option value="youtube">YOUTUBE // LOCAL PLAYER</option>
-          <option value="soundcloud">SOUNDCLOUD // RAVELINK PLAYER</option>
+          <option value="soundcloud">SOUNDCLOUD // GROBY’S DECK</option>
           <option value="tidal">TIDAL // WINDOWS APP</option>
           <option value="spotify">SPOTIFY // WINDOWS APP</option>
           <option value="apple-music">APPLE MUSIC // WINDOWS APP</option>
@@ -251,13 +251,14 @@
           <button class="sourceCard" type="button" data-source="auto">
             <strong>Automatic</strong>
             <span
-              >Follows the active RaveLink player or supported Windows music app. Recommended.</span
+              >Follows the active Groby’s Deck player or supported Windows music app.
+              Recommended.</span
             >
           </button>
           <button class="sourceCard" type="button" data-source="soundcloud">
             <strong>SoundCloud</strong
             ><span
-              >Follows the SoundCloud player in RaveLink, including artwork and timing.</span
+              >Follows the SoundCloud player in Groby’s Deck, including artwork and timing.</span
             ></button
           ><button class="sourceCard" type="button" data-source="youtube">
             <strong>YouTube</strong><span>Built-in Song Request player and queue.</span></button
@@ -359,7 +360,7 @@
         $("youtubeSourceNote").hidden = !local;
         $("youtubeSourceNote").textContent =
           source === "soundcloud"
-            ? "SoundCloud follows RaveLink's SoundCloud player automatically. Keep the Player tab open for playback; title, artwork and timing update after playback is confirmed."
+            ? "SoundCloud follows Groby’s Deck's SoundCloud player automatically. Keep the Player tab open for playback; title, artwork and timing update after playback is confirmed."
             : "YouTube playback is controlled from the Player tab, so no Windows observer controls are needed.";
       }
       for (const card of document.querySelectorAll("[data-source]"))

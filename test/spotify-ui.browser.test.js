@@ -25,7 +25,11 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
     localDevice: connected,
     capacity: { limit: 10, queued: 10, available: 0, reported: true },
     handoffs: [],
-    current: null,
+    current: {
+      uri: "spotify:track:" + "A".repeat(22),
+      trackId: "A".repeat(22),
+      uid: "current-track",
+    },
     installation: { prepared: true },
   });
   const created = createCoreServer({
@@ -55,6 +59,10 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
           },
         }),
         "spotify.desktop.host.v1/remove": () => ({ ok: true, removed: 0 }),
+        "spotify.desktop.host.v1/favorite": (payload) => {
+          actions.push({ favorite: payload });
+          return { ok: true, saved: payload.save };
+        },
         "spotify.desktop.host.v1/control": (payload) => {
           actions.push(payload.action);
           return { ok: true, accepted: true };
@@ -158,5 +166,18 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
   await page.reload();
   await surface.locator("#spotifyConnection").filter({ hasText: "Connected" }).waitFor();
   assert.equal(await picker.inputValue(), "spotify");
+  await surface.getByRole("button", { name: "Favorite current song" }).click();
+  await surface.getByText("Song added to favorites.", { exact: true }).waitFor();
+  assert.deepEqual(actions.find((row) => row.favorite)?.favorite, {
+    trackId: "A".repeat(22),
+    save: true,
+  });
+  await surface.getByRole("button", { name: "Remove favorite", exact: true }).click();
+  await surface.getByText("Song removed from favorites.", { exact: true }).waitFor();
+  assert.deepEqual(actions.filter((row) => row.favorite).at(-1).favorite, {
+    trackId: "A".repeat(22),
+    save: false,
+  });
+
   assert.deepEqual(errors, []);
 });

@@ -1,0 +1,51 @@
+.controlDeck[data-bingo-page="true"] .deckWorkspace,
+.controlDeck[data-bingo-page="true"] .deckWidgetRegion,
+.controlDeck[data-bingo-page="true"] .deckFooter,
+.controlDeck[data-bingo-page="true"] .deckInlineMixer,
+.controlDeck[data-bingo-page="true"] #deckEdit,
+.controlDeck[data-bingo-page="true"] #deckUndo {
+  display: none;
+}
+.deckBingoBar,
+.deckBingoConfirm form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.deckBingoBar label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.deckBingoBar select {
+  max-width: min(100%, 440px);
+}
+.deckBingoStage {
+  overflow: auto;
+  padding: 10px 4px;
+}
+.deckBingoGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--bingo-columns, 1), minmax(56px, 1fr));
+  min-width: calc(var(--bingo-columns, 1) * 64px - 8px);
+  gap: 8px;
+}
+.deckBingoGrid button {
+  min-height: 58px;
+  padding: 6px 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.deckBingoGrid button[aria-pressed="true"] {
+  background: #1c564d;
+  color: #edfffb;
+  border-color: #4bb9a5;
+  box-shadow: inset 0 -3px #4bb9a5;
+}
+.deckBingoGrid button[aria-pressed="true"]:disabled {
+  opacity: 0.8;
+}
+.deckBingoStatus {
+  margin: 0;
+}

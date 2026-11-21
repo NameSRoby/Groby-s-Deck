@@ -20,7 +20,9 @@ module.exports = function startCoreServer(options, dependencies = {}) {
     requestShutdown: (signal) => stop(signal),
   });
   const server = core.app.listen(port, host, () => {
-    log.log(`[${label}] RaveLink ${options.description || ""}listening on http://${host}:${port}`);
+    log.log(
+      `[${label}] Groby’s Deck ${options.description || ""}listening on http://${host}:${port}`,
+    );
     void core.services.networkSharing?.activate(port);
   });
   let shutdown = null;

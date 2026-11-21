@@ -38,6 +38,7 @@ test("community redemptions use each selected provider and expose saved lists an
       enabled: true,
       connected: false,
       ready: false,
+      handoffs: [],
     }),
     "tidal.playlists.host.v1/action": () => ({
       ok: false,
@@ -133,11 +134,12 @@ test("community redemptions use each selected provider and expose saved lists an
     4,
   );
   assert.match(await frame.locator("#communityPlaylists").innerText(), /Saved locally/);
-  await page.goto(base + "/features-ui/twitch-integration/connection");
+  await page.goto(base + "/features-ui/twitch-integration/automations");
   const twitch = page.locator("#surface").contentFrame();
-  await twitch.getByRole("button", { name: "Rewards", exact: true }).click();
-  await twitch.locator('[data-value="add_to_playlist"]').click();
-  assert.equal(await twitch.locator("#rewardPurpose").inputValue(), "add_to_playlist");
-  assert.equal(await twitch.locator("#rewardTitle").inputValue(), "Add to playlist");
+  await twitch.locator("#newAutomation").click();
+  await twitch.locator("#triggerType").selectOption("reward");
+  await twitch.locator("#handler").selectOption("add_to_playlist");
+  assert.equal(await twitch.locator("#handler").inputValue(), "add_to_playlist");
+  assert.equal(await twitch.locator("#rewardTitle").isVisible(), true);
   assert.deepEqual(errors, []);
 });

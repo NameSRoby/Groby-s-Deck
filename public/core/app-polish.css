@@ -265,3 +265,49 @@ input[type="checkbox"]:disabled {
     transition: none !important;
   }
 }
+
+/* Core maintenance comes first; package controls form one quieter section below. */
+.maintenancePage > .maintenanceUpdates {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  scroll-margin-top: 24px;
+}
+.maintenancePackages {
+  border-top: 1px solid var(--edge);
+  margin-top: 24px;
+  padding-top: 24px;
+}
+.maintenancePackages > .cluster:last-child {
+  margin-bottom: 0;
+}
+#installedPackages {
+  scroll-margin-top: 24px;
+}
+
+.panel,
+.cluster,
+.tableWrap {
+  min-width: 0;
+}
+.panelTitle {
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+.tableWrap {
+  border-radius: 10px;
+}
+.tableWrap :is(th, td) {
+  padding: 10px 12px;
+  border-bottom-color: var(--edge);
+}
+.tableWrap th {
+  background: var(--surface);
+}
+.resourceCell {
+  font-variant-numeric: tabular-nums;
+}
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--muted);
+  outline-offset: 2px;
+}

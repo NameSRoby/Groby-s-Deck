@@ -119,7 +119,11 @@ module.exports = function deckWidgets({
       config.pages?.flatMap((p) =>
         p.buttons.flatMap((b) => [...b.steps, ...b.alternateSteps, ...b.holdSteps]),
       ) || [];
-    if (steps.some((s) => ["stream.timestamp", "stream.marker"].includes(s.actionId)))
+    if (
+      require("./deck-flow-config")
+        .leaves(steps)
+        .some((s) => ["stream.timestamp", "stream.marker"].includes(s.actionId))
+    )
       types.add("markers");
     if ([...types].some((type) => !requested.has(type))) after = 0;
     requested = types;

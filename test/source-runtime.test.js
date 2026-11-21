@@ -27,8 +27,8 @@ test("source setup rejects a different runtime graph and missing production depe
   write(source, "package-lock.json", lock);
   write(runtime, "package-lock.json", lock);
   for (const name of [
-    "runtime/RaveLink-Core-Node.exe",
-    "runtime/music-to-light/cargo/release/ravelink-audio-probe.exe",
+    "runtime/Grobys-Deck-Node.exe",
+    "runtime/music-to-light/cargo/release/groby-audio-probe.exe",
     "runtime/NODE-LICENSE.txt",
   ])
     write(runtime, name, "fixture");
@@ -80,7 +80,7 @@ test(
     );
     assert.equal(result.status, 1);
     assert.match(result.stdout, /checksum mismatch/);
-    assert.equal(fs.existsSync(path.join(root, "runtime/RaveLink-Core-Node.exe")), false);
-    assert.equal(fs.existsSync(path.join(root, "RaveLink-Core.exe")), false);
+    assert.equal(fs.existsSync(path.join(root, "runtime/Grobys-Deck-Node.exe")), false);
+    assert.equal(fs.existsSync(path.join(root, "Groby's Deck.exe")), false);
   },
 );

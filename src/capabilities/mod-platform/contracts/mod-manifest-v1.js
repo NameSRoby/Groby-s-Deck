@@ -1,5 +1,5 @@
 // [TITLE] Module: capabilities/mod-platform/contracts/mod-manifest-v1.js
-// [TITLE] Purpose: validate and normalize untrusted RaveLink mod manifests
+// [TITLE] Purpose: validate and normalize untrusted Groby’s Deck mod manifests
 // [TITLE] Functionality Index:
 // [TITLE] - enforce the closed manifest v1 shape and compatibility range
 // [TITLE] - reject unsafe package paths and broad network permissions

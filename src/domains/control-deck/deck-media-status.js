@@ -24,7 +24,7 @@ function track(row) {
     observedAt: Number(row.observedAt) || 0,
   };
 }
-module.exports = function mediaStatus(state) {
+module.exports = function mediaStatus(state, { limit = 5 } = {}) {
   if (!state) return { available: false, current: null, next: [], queued: null };
   const playback = state.playback || {},
     primary = playback.primary;
@@ -58,7 +58,10 @@ module.exports = function mediaStatus(state) {
   return {
     available: true,
     current,
-    next: [...nativeNext, ...queue].slice(0, 5).map(track).filter(Boolean),
+    next: [...nativeNext, ...queue]
+      .slice(0, Math.max(1, Math.min(20, limit)))
+      .map(track)
+      .filter(Boolean),
     nativeQueueIncomplete: incomplete,
     queued:
       Math.max(0, (state.queue?.counts?.queued ?? queue.length) - (managedIncluded ? 1 : 0)) +

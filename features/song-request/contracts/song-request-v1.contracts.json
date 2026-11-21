@@ -1704,6 +1704,32 @@
             },
             "additionalProperties": true
           }
+        },
+        "favorite": {
+          "request": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["trackId", "save"],
+            "properties": {
+              "trackId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "save": {
+                "type": "boolean"
+              }
+            }
+          },
+          "response": {
+            "type": "object",
+            "required": ["ok"],
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     },
@@ -2534,6 +2560,32 @@
               }
             }
           }
+        },
+        "favorite": {
+          "request": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["trackId", "save"],
+            "properties": {
+              "trackId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "save": {
+                "type": "boolean"
+              }
+            }
+          },
+          "response": {
+            "type": "object",
+            "required": ["ok"],
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     },
@@ -2558,10 +2610,12 @@
           "request": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["commandPermissions"],
             "properties": {
               "commandPermissions": {
                 "type": "object"
+              },
+              "songRequestChatEnabled": {
+                "type": "boolean"
               }
             }
           },

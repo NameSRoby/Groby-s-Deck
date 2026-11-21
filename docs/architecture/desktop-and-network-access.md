@@ -1,6 +1,6 @@
 # Windows desktop and local network access
 
-RaveLink-Core.exe now hosts the existing website in a WebView2 WinForms window.
+Groby's Deck.exe now hosts the existing website in a WebView2 WinForms window.
 There is one frontend and one Core instance. The ordinary loopback URL remains
 available; a separate, explicitly enabled LAN gateway serves the same UI and APIs.
 

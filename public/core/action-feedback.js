@@ -4,7 +4,7 @@
  * docs/DEVELOPMENT.md#request-security-and-the-feature-ui-relay
  */
 function installActionFeedback() {
-  if (window.RaveLinkFeedback) return window.RaveLinkFeedback;
+  if (window.GrobyFeedback) return window.GrobyFeedback;
   let gesture = null,
     serial = 0,
     hideTimer,
@@ -218,7 +218,7 @@ function installActionFeedback() {
     )
       show(data.message, data.state);
   });
-  return (window.RaveLinkFeedback = { show, track });
+  return (window.GrobyFeedback = { show, track });
 }
 if (typeof module !== "undefined" && module.exports) module.exports = installActionFeedback;
 else installActionFeedback();

@@ -34,6 +34,13 @@ module.exports = function registerControlDeck(
         .json({ ok: false, error: code });
     }
   };
+  require("./register-soundboard.routes")(app, {
+    soundboard: desktop?.soundboard,
+    route,
+    edit,
+    execute,
+    upload,
+  });
   if (widgets) {
     app.get(
       "/api/control-deck/timestamps",
@@ -111,6 +118,25 @@ module.exports = function registerControlDeck(
       }),
     );
   }
+  app.get(
+    "/api/control-deck/style-profiles",
+    route(() => service.styleProfiles()),
+  );
+  app.post(
+    "/api/control-deck/style-profiles",
+    edit,
+    route((req) => service.saveStyleProfile(req.body)),
+  );
+  app.post(
+    "/api/control-deck/style-profiles/restore",
+    edit,
+    route((req) => service.restoreStyleProfile(req.body)),
+  );
+  app.delete(
+    "/api/control-deck/style-profiles/:id",
+    edit,
+    route((req) => service.deleteStyleProfile({ ...req.body, id: req.params.id })),
+  );
   app.get(
     "/api/control-deck/state",
     route(() => {

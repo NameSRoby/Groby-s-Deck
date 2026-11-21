@@ -22,6 +22,7 @@ const scripts = [
   "player-volume.js",
   "player-spotify-account.js",
   "player-spotify.js",
+  "player-favorites.js",
   "player-providers.js",
 ];
 const styles = ["player-branding.css", "player-providers.css", "player-now-playing.css"];

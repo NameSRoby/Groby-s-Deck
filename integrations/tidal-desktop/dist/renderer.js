@@ -5,7 +5,7 @@
  * client shapes can change; unsupported shapes must stop the operation explicitly
  * rather than fabricate success or retry a possibly completed native write.
  */
-// RaveLink's narrow main-world Redux facade. No plugin loader or cloud API.
+// Groby’s Deck's narrow main-world Redux facade. No plugin loader or cloud API.
 (function installHooks() {
   if (globalThis.__ravelinkTidal) return;
   const creators = new Map(),

@@ -13,6 +13,102 @@ const {
   hashFileSha256,
 } = require("../src/capabilities/mod-platform/packages/mod-package-integrity");
 
+test("runtime approval retries the real blocked worker and an old success envelope cannot produce Enable complete", async (t) => {
+  if (
+    require("../src/capabilities/mod-platform/host/mod-process-permissions").detectPermissionSupport()
+      .network
+  ) {
+    t.skip("This runtime enforces network isolation");
+    return;
+  }
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-enable-")),
+    rootDir = path.resolve(__dirname, ".."),
+    runtimeDir = path.join(temp, "runtime");
+  const source = path.join(temp, "source");
+  const manifest = await createPackage(source, {
+    source: "module.exports={activate(){},deactivate(){}};\n",
+  });
+  const created = createCoreServer({
+    rootDir,
+    runtimeDir,
+    dryRun: true,
+    capabilities: { mods: true },
+    extend: createModPlatformExtension({ inboxRoot: path.join(temp, "mods") }),
+  });
+  let server, browser;
+  t.after(async () => {
+    await browser?.close();
+    await created.services.lifecycle.stopAll();
+    if (server) await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(temp, { recursive: true, force: true });
+  });
+  await created.extension.startup;
+  const installed = await created.extension.packageManager.install(source);
+  await created.extension.packageManager.approve(installed.modId, installed.approval.fingerprint);
+  created.extension.registry.discover();
+  server = await new Promise((resolve) => {
+    const s = created.app.listen(0, "127.0.0.1", () => resolve(s));
+  });
+  const base = `http://127.0.0.1:${server.address().port}`,
+    enableUrl = base + `/api/mod-platform/${manifest.id}/enable`;
+  const blocked = await fetch(enableUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  assert.equal(blocked.status, 409);
+  assert.equal((await blocked.json()).error, "runtime_isolation_unavailable");
+  browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(7000);
+  let confirmations = 0;
+  page.on("dialog", async (dialog) => {
+    confirmations++;
+    await dialog.accept();
+  });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await page.locator("#moreNav > summary").click();
+  await page.locator("#featuresTab").click();
+  await page.locator("#modsSectionTab").click();
+  await page.getByRole("button", { name: "REVIEW & ENABLE", exact: true }).click();
+  await page.locator("#modNotice").filter({ hasText: "Package Mod: ACTIVE" }).waitFor();
+  assert.equal(confirmations, 1);
+  assert.equal(
+    created.extension.registry.list().mods.find((m) => m.id === manifest.id).lifecycle,
+    "active",
+  );
+  await created.extension.registry.disable(manifest.id);
+  assert.equal((await created.extension.registry.enable(manifest.id)).lifecycle, "active");
+  assert.equal(
+    created.extension.registry.list().mods.find((m) => m.id === manifest.id).runtimeApproved,
+    true,
+  );
+  await created.extension.registry.disable(manifest.id);
+  await page.locator("#refreshMods").click();
+  await page.route(enableUrl, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        lifecycle: "permission-required",
+        lastError: "runtime_isolation_unavailable",
+      }),
+    }),
+  );
+  await page.getByRole("button", { name: "ENABLE", exact: true }).click();
+  await page
+    .locator("#modNotice.bad")
+    .filter({ hasText: "Runtime approval is required" })
+    .waitFor();
+  assert.doesNotMatch(await page.locator("#modNotice").innerText(), /ENABLE COMPLETE|: ACTIVE/);
+  assert.doesNotMatch(await page.locator("#modRows").innerText(), /runtime_isolation_unavailable/);
+  await page.unroute(enableUrl);
+  await page.getByRole("button", { name: "ENABLE", exact: true }).click();
+  await page.locator("#modNotice").filter({ hasText: "Package Mod: ACTIVE" }).waitFor();
+  assert.equal(confirmations, 1, "reviewed content does not ask for consent again");
+});
+
 test("normal app detects a dropped mod and one confirmation docks its button", async (t) => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-dock-"));
   const appRoot = path.resolve(__dirname, "..");
@@ -51,7 +147,8 @@ test("normal app detects a dropped mod and one confirmation docks its button", a
   });
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.locator("#moreNav > summary").click();
-  await page.locator("#modsTab").click();
+  await page.locator("#featuresTab").click();
+  await page.locator("#modsSectionTab").click();
   fs.cpSync(
     path.join(appRoot, "packages/mod-sdk/starter"),
     path.join(temporary, "mods", "my-button"),
@@ -95,7 +192,7 @@ test("management UI loads an approved contribution only when opened", async (t) 
     path.join(source, "ui/status.js"),
     'const literal="$&";echo.onclick=async()=>{try{const result=await ravelink.call("example.service.v1","echo",{text:literal === "$&" ? "UI API works" : "bad replacement"});document.querySelector("output").textContent=result.text;}catch(error){document.querySelector("output").textContent=error.message;}};denied.onclick=async()=>{try{await ravelink.call("ravelink.controls.v1","catalog",{});}catch(error){document.querySelector("output").textContent=error.message;}}',
   );
-  const manifestPath = path.join(source, "ravelink.mod.json");
+  const manifestPath = path.join(source, "groby.mod.json");
   const manifest = JSON.parse(await fs.promises.readFile(manifestPath, "utf8"));
   manifest.contributes = {
     panels: [{ id: "status", title: "Status", entry: "ui/status.html" }],
@@ -160,10 +257,11 @@ test("management UI loads an approved contribution only when opened", async (t) 
   await page.goto(`http://127.0.0.1:${server.address().port}`, {
     waitUntil: "domcontentloaded",
   });
-  await page.locator("#modsTab").waitFor({ state: "attached" });
-  await page.waitForFunction(() => document.getElementById("modsTab")?.hidden === false);
+  await page.locator("#modsSectionTab").waitFor({ state: "attached" });
+  await page.waitForFunction(() => document.getElementById("modsSectionTab")?.hidden === false);
   await page.locator("#moreNav > summary").click();
-  await page.locator("#modsTab").click();
+  await page.locator("#featuresTab").click();
+  await page.locator("#modsSectionTab").click();
   await page.locator("#refreshMods").click();
   await page
     .getByRole("button", { name: "Status" })

@@ -3,10 +3,10 @@ const createFeatures = require("./create-feature-platform-extension");
 const createMods = require("./create-mod-platform-extension");
 module.exports = function createDefaultPlatformExtension(options = {}) {
   const attachFeatures = createFeatures(options);
-  const attachBundled = createMods(options);
+  const attachMods = createMods(options);
   return function attach(context) {
     const features = attachFeatures(context),
-      mods = attachBundled(context);
+      mods = attachMods(context);
     return Object.freeze({
       owner: "optional-platforms",
       features,

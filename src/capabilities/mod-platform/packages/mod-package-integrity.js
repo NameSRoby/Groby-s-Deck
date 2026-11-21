@@ -14,7 +14,7 @@ const {
   verifyIntegrityInventory,
 } = require("../../../shared/packages/package-directory-integrity");
 
-const MANIFEST_NAME = "ravelink.mod.json";
+const MANIFEST_NAME = "groby.mod.json";
 async function verifyPackageDirectory(rootPath, options = {}) {
   const scanned = await scanPackageDirectory(rootPath, options.limits);
   if (!scanned.ok) return scanned;

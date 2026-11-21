@@ -12,20 +12,14 @@ module.exports = function createModPlatformExtension(options = {}) {
   return function attachModPlatform(context) {
     const rootDir = path.resolve(options.rootDir || context.rootDir);
     const runtimeRoot = path.resolve(options.runtimeRoot || path.join(context.runtimeDir, "mods"));
-    const modsRoot = path.resolve(
-      options.modsRoot ||
-        path.join(runtimeRoot, options.bundledOnly ? "bundled-installed" : "installed"),
-    );
+    const modsRoot = path.resolve(options.modsRoot || path.join(runtimeRoot, "installed"));
     const inboxRoot = path.resolve(options.inboxRoot || path.join(rootDir, "mods"));
     const approvalStore = createModApprovalStore({
       storePath: path.join(runtimeRoot, "approvals.json"),
     });
-    const bundled = require("../../capabilities/mod-platform/packages/bundled-mods")({
-      rootDir,
-      modsRoot,
-      runtimeRoot,
-      approvalStore,
-    });
+    const preferences = require("../../capabilities/mod-platform/packages/mod-startup-preferences")(
+      path.join(runtimeRoot, "startup.json"),
+    );
     const registry = createModHostRegistry({
       modsRoot,
       runtimeRoot,
@@ -33,8 +27,9 @@ module.exports = function createModPlatformExtension(options = {}) {
       maxActiveMods: options.maxActiveMods,
       egressGovernor: context.egressGovernor,
       resourceMonitorOptions: options.resourceMonitorOptions,
-      onEnabledPreference: bundled.preference,
-      allowedModIds: options.bundledOnly ? ["ravelink.twitch-clips"] : undefined,
+      onEnabledPreference: preferences.set,
+      getEnabledPreference: preferences.get,
+      hasRuntimeConsent: preferences.hasConsent,
     });
     require("../../capabilities/mod-platform/host/mod-twitch-clips-provider")(registry, {
       getTwitchClips: context.getTwitchClips,
@@ -57,36 +52,36 @@ module.exports = function createModPlatformExtension(options = {}) {
     });
     registry.discover();
     let closing = false;
-    const startup = bundled
-      .prepare()
+    const startup = Promise.all(
+      [modsRoot, inboxRoot].map((root) =>
+        require("../../shared/fs/migrate-package-manifests")(
+          root,
+          "mod",
+          require("../../capabilities/mod-platform/packages/mod-package-integrity")
+            .verifyPackageDirectory,
+        ),
+      ),
+    )
+      .then(() => inbox.start())
       .then(async (result) => {
-        if (closing) return result;
-        registry.discover();
-        result.activations = [];
-        for (const id of result.enable) {
-          if (closing) break;
-          // These exact, inventory-verified adapters are application-owned code.
-          // Community mods never inherit this first-party runtime exception.
-          result.activations.push(await registry.enable(id, { allowUnsafeRuntime: true }));
+        if (!closing) {
+          registry.discover();
+          await registry.startInstalled();
         }
         return result;
       })
-      .catch(() => ({ enable: [], results: [{ ok: false, code: "bundled_mod_setup_failed" }] }));
-    if (!options.bundledOnly)
-      inbox
-        .start()
-        .catch((error) =>
-          (options.log || console).warn?.(
-            `[MOD INBOX] startup unavailable: ${error?.message || error}`,
-          ),
+      .catch((error) => {
+        (options.log || console).warn?.(
+          `[MOD INBOX] startup unavailable: ${error?.message || error}`,
         );
+        return { ok: false, error: "mod_inbox_unavailable" };
+      });
     const routes = registerModPlatformRoutes(context.app, {
       express: context.express,
       registry,
       packageManager,
       inbox,
       uploadRoot: path.join(runtimeRoot, "uploads"),
-      bundledOnly: options.bundledOnly === true,
     });
     return Object.freeze({
       owner: "mod-platform",

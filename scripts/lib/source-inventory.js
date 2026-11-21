@@ -10,14 +10,25 @@ const SOURCE_ROOTS = [
   "integrations",
   "desktop",
   "packages",
+  "mods/twitch-clips",
   "scripts",
   "test",
 ];
 const GENERATED_PAGES = new Set([
+  "public/core/command-variable-catalog.js",
+  "public/core/command-syntax-tokens.js",
+  "features/twitch-integration/dist/variable-recipe.js",
+  "features/twitch-integration/dist/variable-recipe-storage.js",
+  "features/twitch-integration/dist/variable-arguments.js",
+  "features/twitch-integration/dist/syntax-migration.js",
   "features/song-request/ui/player.html",
   "features/song-request/ui/server-playlist.html",
   "features/song-request/ui/overlay-editor.html",
   "features/song-request/ui/obs-overlay.html",
+  "features/twitch-integration/ui/automations.html",
+  "features/twitch-integration/ui/command-list.html",
+  "features/twitch-integration/ui/syntax.html",
+  "features/twitch-integration/ui/quotes.html",
 ]);
 
 function sourceFiles(roots = SOURCE_ROOTS, root = ROOT) {

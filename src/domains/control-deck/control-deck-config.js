@@ -7,7 +7,7 @@ function json(value, depth = 0) {
   if (depth > 8) return false;
   if (value === null || typeof value === "boolean") return true;
   if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value === "string") return value.length <= 4096;
+  if (typeof value === "string") return value.length <= 16384;
   if (Array.isArray(value)) return value.length <= 64 && value.every((v) => json(v, depth + 1));
   return (
     record(value) &&
@@ -31,24 +31,7 @@ const keyBinding = (value) =>
     value,
   );
 function steps(value = []) {
-  if (!Array.isArray(value) || value.length > 16) throw fault("control_deck_steps_invalid");
-  let duration = 0;
-  return value.map((step) => {
-    const delayMs = step.delayMs ?? 0,
-      params = step.params ?? {};
-    if (
-      !closed(step, ["actionId", "params", "delayMs"]) ||
-      !id(step.actionId) ||
-      !json(params) ||
-      JSON.stringify(params).length > 16384 ||
-      !Number.isInteger(delayMs) ||
-      delayMs < 0 ||
-      delayMs > 10000 ||
-      (duration += delayMs) > 30000
-    )
-      throw fault("control_deck_steps_invalid");
-    return { actionId: step.actionId, params: structuredClone(params), delayMs };
-  });
+  return require("./deck-flow-config").normalize(value, { fault, closed, json, id });
 }
 function appearance(value = {}) {
   if (
@@ -66,7 +49,22 @@ function appearance(value = {}) {
       "sliderStyle",
       "sliderSnap",
       "sliderIncrement",
+      "backgroundProfile",
+      "backgroundSpeed",
+      "backgroundStrength",
     ])
+  )
+    throw fault("control_deck_appearance_invalid");
+  if (
+    (value.backgroundProfile !== undefined &&
+      !["none", "smoke", "aurora", "embers", "orbit", "scan", "ripple", "sparkle"].includes(
+        value.backgroundProfile,
+      )) ||
+    ["backgroundSpeed", "backgroundStrength"].some(
+      (key) =>
+        value[key] !== undefined &&
+        (!Number.isInteger(value[key]) || value[key] < 1 || value[key] > 100),
+    )
   )
     throw fault("control_deck_appearance_invalid");
   const result = {
@@ -152,6 +150,9 @@ function layout(value = {}) {
       "sliderOrientation",
       "sliderStyle",
       "sliderPlacement",
+      "sliderFill",
+      "hapticsEnabled",
+      "hapticsSensitivity",
       "sliderSnap",
       "sliderIncrement",
       "sliderDock",
@@ -178,6 +179,9 @@ function layout(value = {}) {
     sliderOrientation: "vertical",
     sliderStyle: "mixer",
     sliderPlacement: "dock",
+    sliderFill: false,
+    hapticsEnabled: false,
+    hapticsSensitivity: 50,
     sliderDock: "end",
     sliderSnap: false,
     sliderIncrement: 5,
@@ -191,6 +195,7 @@ function layout(value = {}) {
     labelScale: [70, 150],
     backlight: [0, 100],
     sliderIncrement: [1, 100],
+    hapticsSensitivity: [1, 100],
   };
   if (result.screen !== undefined) {
     const screen = result.screen;
@@ -212,6 +217,8 @@ function layout(value = {}) {
     ) ||
     typeof result.showStatus !== "boolean" ||
     typeof result.sliderSnap !== "boolean" ||
+    typeof result.sliderFill !== "boolean" ||
+    typeof result.hapticsEnabled !== "boolean" ||
     !["vertical", "horizontal"].includes(result.sliderOrientation) ||
     !["button", "mixer"].includes(result.sliderStyle) ||
     !["inside", "dock", "page"].includes(result.sliderPlacement) ||
@@ -292,6 +299,8 @@ function validate(value) {
             "activationKey",
             "placement",
             "appearance",
+            "repeatCount",
+            "cancelOnPress",
           ]) ||
           !id(button.id) ||
           buttons.has(button.id) ||
@@ -312,6 +321,21 @@ function validate(value) {
           holdSteps: steps(button.holdSteps),
           appearance: appearance(button.appearance),
         };
+        if (button.repeatCount !== undefined) {
+          if (
+            button.kind !== "macro" ||
+            !Number.isInteger(button.repeatCount) ||
+            button.repeatCount < 1 ||
+            button.repeatCount > 1000
+          )
+            throw fault("control_deck_sequence_invalid");
+          result.repeatCount = button.repeatCount;
+        }
+        if (button.cancelOnPress !== undefined) {
+          if (button.kind !== "macro" || typeof button.cancelOnPress !== "boolean")
+            throw fault("control_deck_sequence_invalid");
+          result.cancelOnPress = button.cancelOnPress;
+        }
         if (button.toggleStates !== undefined) {
           if (result.kind !== "macro" || !result.alternateSteps.length)
             throw fault("control_deck_toggle_invalid");
@@ -335,7 +359,10 @@ function validate(value) {
               result.holdSteps.length)) ||
           (result.kind !== "folder" && (!result.steps.length || result.pageId)) ||
           (result.kind === "slider" &&
-            (result.steps.length !== 1 || result.alternateSteps.length || result.holdSteps.length))
+            (result.steps.length !== 1 ||
+              result.steps[0]?.type ||
+              result.alternateSteps.length ||
+              result.holdSteps.length))
         )
           throw fault("control_deck_button_invalid");
         return result;
@@ -391,7 +418,7 @@ function defaults() {
           button("ban-requester", "Ban requester", "song.ban-requester", "⊗"),
           button("discord-mic", "Discord microphone", "native.hotkey", "🎙", { shortcut: "F13" }),
           button("discord-deafen", "Discord deafen", "native.hotkey", "🎧", { shortcut: "F14" }),
-          button("twitch-clip", "Clip broadcast", "mod:ravelink.twitch-clips:create", "✂", {
+          button("twitch-clip", "Clip broadcast", "mod:groby.twitch-clips:create", "✂", {
             duration: 30,
           }),
           button("music-toggle", "Music lights", "music.toggle", "\u23ef"),
@@ -405,4 +432,4 @@ function defaults() {
     ],
   });
 }
-module.exports = { validate, defaults, json, closed, fault };
+module.exports = { validate, defaults, json, closed, fault, steps };

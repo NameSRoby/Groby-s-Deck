@@ -62,7 +62,8 @@ const object = (properties, required) => ({
   required,
 });
 module.exports = function createDesktopActions({
-  rootDir,
+  rootDir = path.resolve(__dirname, "../../.."),
+  runtimeDir,
   platform = process.platform,
   request: injected,
   nativeVolume,
@@ -79,6 +80,12 @@ module.exports = function createDesktopActions({
         maxLineBytes: 65536,
         ...bridgeOptions,
       });
+  const soundboard = require("./soundboard.service")({
+    rootDir,
+    runtimeDir,
+    platform,
+    request: injected,
+  });
   const audio = require("./windows-audio.service")({
     available,
     nativeVolume,
@@ -94,13 +101,14 @@ module.exports = function createDesktopActions({
       symbol,
       group: "This Windows PC",
       description:
-        "Runs on the computer hosting RaveLink, including when pressed from your LAN browser.",
+        "Runs on the computer hosting Groby’s Deck, including when pressed from your LAN browser.",
       available,
       parameters: object(properties, required),
       defaults,
     });
     return [
       ...audio.catalog(),
+      ...soundboard.catalog(),
       row(
         "native.hotkey",
         "Keyboard shortcut",
@@ -138,6 +146,7 @@ module.exports = function createDesktopActions({
   async function execute(id, params = {}, signal) {
     windows();
     if (signal?.aborted) throw fault("control_deck_cancelled");
+    if (id.startsWith("native.soundboard.")) return soundboard.execute(id, params, signal);
     if (id.startsWith("native.audio.")) return audio.execute(id, params, signal);
     if (id === "native.hotkey") return request("keys", { keys: hotkey(params.shortcut) }, signal);
     if (id === "native.text") {
@@ -174,12 +183,20 @@ module.exports = function createDesktopActions({
   return {
     catalog,
     execute,
+    soundboard,
     audioStatus: audio.read,
     audioSnapshot: audio.snapshot,
     audioApply: audio.apply,
-    refresh: audio.read,
+    restorationTarget: audio.restorationTarget,
+    refresh: async () => {
+      await Promise.all([
+        audio.read(),
+        soundboard.library.list().length ? soundboard.refresh() : null,
+      ]);
+    },
     shutdown: () => {
       audio.shutdown();
+      soundboard.shutdown();
       audioBridge?.shutdown();
       bridge?.shutdown();
     },

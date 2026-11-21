@@ -1,52 +1,32 @@
-# Windows setup and offline dependencies
+# Windows setup
 
-The 0.7.6a installer carries its prerequisites. Version 0.7.6 included only
-the WebView2 bindings/loader; the browser runtime itself is now bundled too.
+Groby’s Deck 0.8 includes the application, Node runtime, production dependencies, audio helper and optional first-party packages. Users do not need developer tools.
 
-| Component                                              | How it is supplied                                                                                                                                                                                            |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node and production JavaScript dependencies            | Bundled; no npm installation on the user's PC.                                                                                                                                                                |
-| WebView2 SDK bindings and native loader                | Bundled under `runtime/desktop`.                                                                                                                                                                              |
-| WebView2 browser runtime                               | Microsoft's full x64 Evergreen Standalone Installer is embedded in Setup. Setup checks both machine and user installations, installs offline when missing, verifies the result, and blocks launch on failure. |
-| Music-to-Light capture helper                          | Bundled when selected, with the C runtime statically linked. No Rust or Visual C++ redistributable installation.                                                                                              |
-| Windows desktop host and Windows audio/media controls  | Use the .NET Framework and Windows APIs already supplied by supported Windows versions.                                                                                                                       |
-| Twitch and Song Request                                | Verified, inactive package inventories are bundled. Setup installs selected packages without network requests; the remaining packages stay available in Packages.                                             |
-| Spotify/TIDAL companions and YouTube browser extension | Their first-party integration files are bundled. Preparing a companion still requires the user's separately installed player, or a supported browser for the extension.                                       |
+| Component | Installation |
+| --- | --- |
+| WebView2 browser runtime | Reuse the installed Evergreen runtime. If absent, Setup verifies and runs the bundled Microsoft Evergreen Standalone Installer. No network download is needed. |
+| WebView2 SDK bindings and loader | Included under `runtime/desktop`; these small files are required to host the shared browser runtime. |
+| Music-to-Light | Optional statically linked capture helper. App capture requires Windows build 20348 or later. |
+| Twitch and Song Request | Optional verified packages included with Setup; account connections are completed afterwards. |
+| Spotify/TIDAL companions | Included first-party integrations; require the separately installed player. |
+| .NET Framework | 4.8 or newer, included on supported Windows; repair through Windows Update if missing. |
 
-The minimum Windows version remains Windows 10 x64 build 19041. Application
-audio capture requires build 20348 or later; Windows 11 is recommended.
-[.NET Framework 4.8 is included in supported Windows builds](https://learn.microsoft.com/en-us/dotnet/framework/install/on-windows-10).
-A damaged or stripped Windows installation may require Windows component repair;
-installing another framework package cannot repair an operating-system component.
+Windows 10 x64 build 19041 or later is required. Windows 11 is recommended for app audio capture.
 
-Microsoft recommends the
-[Evergreen Standalone Installer for offline deployment](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#offline-deployment).
-The prerequisite manifest pins its Microsoft download URL, size, and SHA-256.
-The build additionally verifies its Microsoft Authenticode signature. No runtime
-installer is executed on the build machine; only its bytes are
-staged. Setup installs it only if absent, per-user by default, and never removes
-the shared runtime when RaveLink is uninstalled.
+## Install or upgrade
 
-Portable ZIPs include the same full installer under
-`optional-components/prerequisites/MicrosoftEdgeWebView2RuntimeInstallerX64.exe`.
-Run that file once if WebView2 is missing. Existing browser and LAN access remain
-available independently of the desktop viewer.
+Run **Grobys-Deck-Windows-v0.8-setup-installer.exe**. When upgrading Core, use the existing application folder to retain your settings. Setup stops the old host before replacing application files and preserves `runtime`, accounts, mods and installed feature settings. Start-menu and desktop shortcuts use the new name.
 
-Account sign-in, streaming services, online song searches, updates, and downloads
-of third-party mods need their respective services. OBS, Discord, Spotify and
-TIDAL are external applications, not silently installed by RaveLink. No accounts,
-credentials, device configuration, installed features, or machine-specific data
-are copied into a release.
+For portable use, extract **Grobys-Deck-Windows-v0.8-self-contained.zip** completely and run **Groby's Deck.exe**. If WebView2 is absent, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-webview2.ps1`. The helper detects existing installations and does nothing when one is present.
 
-## Build and verification
+Setup and portable archives include Microsoft’s full Evergreen Standalone Installer. No internet is needed to install WebView2. The portable helper verifies its checksum and Microsoft signature; Setup verifies its pinned checksum. A failed install blocks an incomplete first launch.
 
-`scripts/restore-windows-prerequisites.ps1` obtains the pinned offline installer
-into the ignored build cache and verifies it without running it. A normal
-`scripts/package-release.ps1` build stages that installer and verified first-party
-feature inventories. `scripts/build-windows-setup.js` embeds the offline runtime
-in Inno Setup and installs optional features with `--offline`.
+## Source ZIP
 
-Use `-OutputDirectory dist/offline-setup-validation` for an isolated package build
-and `RAVELINK_SETUP_DIST` pointing to that same directory for its installer.
-This leaves previously published artifacts untouched. Build tools, source-test
-fixtures, and the prerequisite download cache are not consumer application data.
+Run **Start-Grobys-Deck.cmd**. Source setup verifies and downloads the matching release runtime, builds the desktop host, checks WebView2, and launches the app. Tests are optional and use synthetic fixtures. No private development runtime or sign-in data is part of the source ZIP.
+
+## Runtime updates
+
+Evergreen updates through Microsoft. Forward compatibility is a testing goal rather than a guarantee for every future browser change. Test supported web-platform features with current Stable and preview runtimes when changing the desktop UI.
+
+[Microsoft WebView2 distribution guidance](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution)

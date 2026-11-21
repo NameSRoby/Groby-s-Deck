@@ -125,7 +125,7 @@ permissions. Chat access and a managed reward are checked before their respectiv
 mode is selected. It pauses paid song intake before enabling chat; unrelated rewards
 are unchanged. Availability and current mode are exposed in the action catalog.
 Keys target the host desktop, including from a phone; they do not confirm an
-external application's state. RaveLink does not manage Discord's lifecycle.
+external application's state. Groby’s Deck does not manage Discord's lifecycle.
 
 Deck layout supports `sliderOrientation` (`vertical` or `horizontal`),
 `sliderDock` (`start`: left/top; `end`: right/bottom), and `sliderPlacement`

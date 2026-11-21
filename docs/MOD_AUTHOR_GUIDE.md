@@ -1,12 +1,18 @@
-# Creating RaveLink mods
+# Creating Groby’s Deck mods
 
-This guide covers the mod API shipped with RaveLink Core 0.7.6. Start with the
+This guide covers the mod API shipped with Groby’s Deck 0.7.6. Start with the
 [runnable starter](../packages/mod-sdk/starter), then use the
 [complete mod API reference](MOD_API_REFERENCE.md) and
 [application API map](API_REFERENCE.md). The mod protocol is version 1; it is
 versioned separately from the application and optional features.
 
 ## Choose the right extension
+
+Keep a mod's manifest `id` and contributed action IDs stable when moving its
+folder, renaming its display label or updating its version. Saved deck buttons
+and automations refer to these IDs, not the package's folder path. The 0.8
+upgrade repairs the clipping example's old rebrand reference once; permission
+approval and activation still follow the normal Mods workflow.
 
 | What you want                                                                                  | Where to start                                                                       |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -22,12 +28,16 @@ adapters. The SDK wraps the host context; it does not install privileges.
 
 ## Current availability and trust
 
-Core 0.7.6a includes mod discovery in its normal startup. Drop an extracted
+Groby's Deck includes mod discovery in its normal startup. Drop an extracted
 mod folder or a ZIP directly into **`mods/`**, open **Mods**, and confirm **Activate**.
 No installer switch, special launch command, npm install or Core source edit is
 needed. Declared buttons appear in the Dashboard action library and declared UI
 panels appear in Mods. The former `mod/` folder is still watched for compatibility;
 new installations create only `mods/`. Version 0.7.6 predates this change.
+Explicit Enable and Disable choices are remembered locally. On startup, only
+previously enabled mods are retried through the normal integrity, permission
+and runtime checks; discovering or approving a new mod does not enable it.
+The action picker explains when a disabled mod must be enabled in Mods.
 A source checkout can also use `npm.cmd run start:mods`; strict Core
 uses `npm.cmd run start:core`. Do not run two servers on the same port.
 
@@ -60,7 +70,7 @@ state. It has no network, storage, credential or desktop permission. `status`
 reads state without changing it; `toggle` changes it only when requested. Opening
 the action library, editing a button or reading feedback never runs the toggle.
 
-1. Rename `id` and `publisher` in `ravelink.mod.json`. The ID is
+1. Rename `id` and `publisher` in `groby.mod.json`. The ID is
    `<publisher>.<name>`, such as `yourname.streamtools`.
 2. Rename `example.button.v1` consistently in `provides`, the action contribution
    and the handler. Capability names are lowercase, dotted and versioned.
@@ -147,7 +157,7 @@ Keep the panel inside your package, for example:
 
 ```text
 my-mod/
-  ravelink.mod.json
+  groby.mod.json
   main.js
   ui/
     settings.html
@@ -225,7 +235,7 @@ budgets or broker admission. Use production validators as a separate check.
 
 ## Package inventory and updates
 
-Every shipped file except `ravelink.mod.json` must appear in `integrity.files`
+Every shipped file except `groby.mod.json` must appear in `integrity.files`
 with its exact SHA-256. Include your license/readme and bundled runtime modules;
 exclude credentials, personal data, dependency caches and development output.
 Keep portable forward-slash paths. Links, traversal, duplicate/colliding names,
@@ -235,7 +245,7 @@ For the unchanged two-file starter layout, update hashes explicitly:
 
 ```powershell
 $modFolder = (Resolve-Path runtime/my-first-mod).Path
-$manifestPath = Join-Path $modFolder 'ravelink.mod.json'
+$manifestPath = Join-Path $modFolder 'groby.mod.json'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $manifest.integrity.files = [ordered]@{}
 foreach ($file in @('main.js', 'README.md')) {

@@ -11,6 +11,7 @@ const { validateFeatureManifestV1 } = require("../contracts/feature-manifest-v1"
 module.exports = function createFeatureProcessSupervisor(options = {}) {
   return createProcessSupervisor({
     ...options,
+    startupTimeoutMs: options.startupTimeoutMs ?? 6000,
     workloadKind: "feature",
     displayName: "Feature",
     identityField: "featureId",

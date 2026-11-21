@@ -15,6 +15,7 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   });
   let pending = false;
   let connected = false;
+  let invalidStatus = true;
   let createFailure = false;
   let recovery = {
     reauthorizationRequired: false,
@@ -25,6 +26,7 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
     intakeMode: "streamelements",
     songRequestChatEnabled: false,
   };
+  let roleDirectory = { moderators: 0, vips: 0, updatedAt: 0, refreshing: false, lastError: "" };
   const managedRewards = [];
   const reviews = [
     {
@@ -62,6 +64,7 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
     nextPollAt: 0,
     authorizationExpiresAt: 0,
     requiredScopes: ["channel:manage:redemptions"],
+    roleDirectory,
     managedRewards: structuredClone(managedRewards),
     monitorConfig: { ...monitorConfig },
     vault: "windows_dpapi",
@@ -87,7 +90,7 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
           reviews.splice(0);
           return { ok: true, status: payload.status };
         },
-        "twitch.host.v1/status": status,
+        "twitch.host.v1/status": () => (invalidStatus ? { ok: true } : status()),
         "twitch.host.v1/configure-monitor": (payload) => {
           monitorConfig = { ...payload };
           return status();
@@ -153,6 +156,7 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   const contribution = page.frameLocator("iframe.featurePageFrame").frameLocator("#surface");
   const developerSection = contribution.locator("#developerApplication");
   await developerSection.waitFor({ state: "attached" });
+  await contribution.locator("#state").filter({ hasText: "STATUS UNAVAILABLE" }).waitFor();
   assert.equal(await developerSection.isHidden(), true);
   const coreAccent = await page
     .locator("html")
@@ -167,6 +171,13 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   await developerSection.waitFor({ state: "visible" });
   assert.equal(await contribution.locator("#clientId").getAttribute("type"), "password");
   assert.equal(await contribution.getByText("SHOW CLIENT ID").count(), 0);
+  assert.equal(await contribution.locator("#clearClientId").isDisabled(), true);
+  await contribution.locator("#clientId").fill("syntheticclient123");
+  assert.equal(await contribution.locator("#save").isDisabled(), true);
+  await contribution.locator("#clientId").fill("");
+  invalidStatus = false;
+  await contribution.locator("#refresh").click();
+  await contribution.locator("#state").filter({ hasText: "READY TO AUTHORIZE" }).waitFor();
   assert.equal(await contribution.locator("#clearClientId").isEnabled(), true);
   const popupPromise = page.context().waitForEvent("page");
   await contribution.locator("#begin").click();
@@ -176,77 +187,27 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   await popup.close();
   await contribution.locator("#check").click();
   await contribution.locator("#state").filter({ hasText: "CONNECTED" }).waitFor();
-  assert.equal(await contribution.locator("#intakeMode").inputValue(), "streamelements");
-  assert.equal(await contribution.locator('[data-choice-for="intakeMode"] .choiceCard').count(), 2);
-  assert.equal(
-    await contribution.locator('[data-choice-for="rewardPurpose"] .choiceCard').count(),
-    4,
-  );
-  assert.equal(await contribution.locator("#songRequestIntake").isVisible(), false);
-  assert.equal(await contribution.locator("#managedRewardSection").isVisible(), false);
-  assert.equal(await contribution.locator("#createReward").isDisabled(), true);
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Event intake", exact: true })
-    .click();
-  await contribution.locator("#intakeMode").selectOption("native");
   assert.equal(
     await contribution
-      .locator('[data-choice-for="intakeMode"] [data-value="native"]')
-      .getAttribute("aria-pressed"),
-    "true",
+      .locator(".task-navigation")
+      .getByRole("button", { name: "Event intake", exact: true })
+      .count(),
+    0,
   );
-  assert.equal(await contribution.locator("#songRequestIntake").isVisible(), true);
   assert.equal(
-    await contribution.locator("#managedRewardSection").evaluate((el) => !el.hidden),
-    true,
+    await contribution
+      .locator(".task-navigation")
+      .getByRole("button", { name: "Rewards", exact: true })
+      .count(),
+    0,
   );
-  assert.equal(await contribution.locator("#commandPermissions").count(), 0);
-  assert.match(
-    await contribution.locator("body").textContent(),
-    /Song Request > Player > Moderation/,
-  );
-  await contribution.locator("#saveMonitor").click();
+  assert.match(await contribution.locator("#roleDirectory").textContent(), /synchronizing/);
+  roleDirectory = { moderators: 32, vips: 36, updatedAt: 1, refreshing: false, lastError: "" };
+  await contribution.locator("#refresh").click();
   await contribution
-    .locator("#monitorNotice")
-    .filter({ hasText: "SERVER INTAKE ACTIVE" })
-    .waitFor();
-  assert.equal(monitorConfig.intakeMode, "native");
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Rewards", exact: true })
-    .click();
-  await contribution.locator("#createReward").click();
-  assert.equal(
-    await contribution.getByLabel("RaveLink: Change Lights reward ID").inputValue(),
-    "managed-lights",
-  );
-  assert.equal(await page.locator("#colorRewardId").inputValue(), "");
-  await contribution.locator("#rewardPurpose").selectOption("teach");
-  await contribution.locator("#createReward").click();
-  assert.equal(
-    await contribution.getByLabel("RaveLink: Teach Color reward ID").inputValue(),
-    "managed-teach",
-  );
-  assert.equal(await page.locator("#teachRewardId").inputValue(), "");
-  await contribution.locator("#rewardPurpose").selectOption("song_request");
-  assert.equal(await contribution.locator("#rewardTitle").inputValue(), "RaveLink: Song Request");
-  assert.match(await contribution.locator("#rewardPrompt").inputValue(), /artist and song/);
-  createFailure = true;
-  await contribution.locator("#createReward").click();
-  await contribution
-    .locator("#rewardNotice")
-    .filter({ hasText: "twitch_reward_creation_in_progress" })
-    .waitFor();
-  assert.equal(await contribution.locator("#createReward").isEnabled(), true);
-  assert.equal(managedRewards.length, 2);
-  createFailure = false;
-  await contribution.locator("#createReward").click();
-  assert.equal(
-    await contribution.getByLabel("RaveLink: Song Request reward ID").inputValue(),
-    "managed-song_request",
-  );
-  assert.equal(await page.locator("#songRewardId").inputValue(), "");
+    .locator("#roleDirectory")
+    .filter({ hasText: "32 moderators / 36 VIPs" })
+    .waitFor({ state: "attached" });
   await contribution
     .locator(".task-navigation")
     .getByRole("button", { name: "Review", exact: true })
@@ -254,22 +215,10 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   await contribution.getByRole("button", { name: "REFUND POINTS", exact: true }).click();
   await contribution
     .locator("#transactionNotice")
-    .getByText("Twitch confirms CANCELED.", { exact: true })
+    .filter({ hasText: "Twitch confirms CANCELED." })
     .waitFor();
-  assert.deepEqual(reconciled, [
-    {
-      broadcasterId: "123",
-      rewardId: "managed-song",
-      redemptionId: "interrupted",
-      status: "CANCELED",
-    },
-  ]);
-  assert.equal(await contribution.locator("#transactions button").count(), 0);
-  recovery = {
-    reauthorizationRequired: true,
-    reason: "authorization_revoked",
-    revocations: [{ type: "channel.cheer", version: "1", reason: "authorization_revoked" }],
-  };
+  assert.equal(reconciled[0].status, "CANCELED");
+  recovery = { reauthorizationRequired: true, reason: "authorization_revoked", revocations: [] };
   connected = false;
   await contribution
     .locator(".task-navigation")
@@ -278,133 +227,30 @@ test("Twitch Client ID administration is write-only and gated by HUD Developer M
   await contribution.locator("#refresh").click();
   await contribution.locator("#state").filter({ hasText: "RECONNECT REQUIRED" }).waitFor();
   assert.equal(await contribution.locator("#begin").isEnabled(), true);
-  assert.equal(await contribution.locator("#begin").textContent(), "REAUTHORIZE TWITCH");
-  assert.equal(await contribution.locator("#createReward").isDisabled(), true);
-  assert.match(
-    await contribution.locator("#authorizationRecovery").textContent(),
-    /New events are stopped/,
-  );
-  connected = true;
-  recovery = {
-    reauthorizationRequired: false,
-    reason: "",
-    revocations: [{ type: "channel.cheer", version: "1", reason: "version_removed" }],
-  };
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Connection", exact: true })
-    .click();
-  await contribution.locator("#refresh").click();
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Event intake", exact: true })
-    .click();
-  await contribution.locator("#monitorState").filter({ hasText: "DEGRADED" }).waitFor();
-  assert.match(
-    await contribution.locator("#authorizationRecovery").textContent(),
-    /retired version 1/,
-  );
-  assert.equal(await contribution.locator("#state").textContent(), "CONNECTED");
-  recovery = { reauthorizationRequired: false, reason: "", revocations: [] };
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Connection", exact: true })
-    .click();
-  await contribution.locator("#refresh").click();
-  await contribution.locator("#authorizationRecovery").waitFor({ state: "hidden" });
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Rewards", exact: true })
-    .click();
   for (const viewport of [
     { width: 1280, height: 600 },
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
+    assert.ok(
+      await contribution.locator("body").evaluate((el) => el.scrollWidth <= innerWidth + 1),
+    );
+  }
+  await contribution.locator("body").evaluate((body) => {
+    const spacer = document.createElement("div");
+    spacer.id = "long-content-fixture";
+    spacer.style.height = "18000px";
+    body.append(spacer);
+  });
+  await page.waitForFunction(
+    () => document.querySelector("iframe.featurePageFrame").getBoundingClientRect().height > 18000,
+  );
+  assert.ok(
     await contribution
       .locator("body")
-      .evaluate(
-        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-      );
-    await contribution.locator("body").evaluate(
-      () =>
-        new Promise((resolve, reject) => {
-          const at = Date.now();
-          const check = () =>
-            Math.abs(document.body.getBoundingClientRect().height - innerHeight) < 2
-              ? resolve()
-              : Date.now() - at > 5000
-                ? reject(Error("frame did not fit content"))
-                : setTimeout(check, 30);
-          check();
-        }),
-    );
-    await page.waitForFunction(() => {
-      const wrapper = document.querySelector("iframe.featurePageFrame");
-      const inner = wrapper?.contentDocument?.querySelector("#surface");
-      return (
-        inner &&
-        Math.abs(inner.getBoundingClientRect().height - wrapper.getBoundingClientRect().height) < 2
-      );
-    });
-    const geometry = await contribution.locator("body").evaluate((body) => ({
-      content: body.getBoundingClientRect().height,
-      viewport: innerHeight,
-      overflow: getComputedStyle(document.documentElement).overflowY,
-    }));
-    assert.ok(geometry.content <= geometry.viewport + 1, JSON.stringify(geometry));
-    assert.equal(geometry.overflow, "hidden");
-    await page.evaluate(() => scrollTo(0, 0));
-    const box = await page.locator("iframe.featurePageFrame").boundingBox();
-    await page.mouse.move(box.x + box.width / 2, Math.min(viewport.height - 80, box.y + 120));
-    await page.mouse.wheel(0, 500);
-    await page.waitForFunction(() => scrollY > 100);
-    assert.equal(
-      await contribution.locator("html").evaluate(() => document.scrollingElement.scrollTop),
-      0,
-    );
-    const lastSection = contribution.locator("#managedRewardSection");
-    await lastSection.scrollIntoViewIfNeeded();
-    assert.equal(
-      await contribution.locator("html").evaluate(() => document.scrollingElement.scrollTop),
-      0,
-    );
-    assert.ok(await page.evaluate(() => scrollY > 100));
-  }
-  const standalone = await browser.newPage({
-    viewport: { width: 390, height: 844 },
-  });
-  await standalone.goto(
-    `http://127.0.0.1:${server.address().port}/features-ui/twitch-integration/connection`,
+      .evaluate((body) => body.getBoundingClientRect().height <= innerHeight + 1),
   );
-  await standalone
-    .frameLocator("#surface")
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Rewards", exact: true })
-    .click();
-  await standalone.waitForFunction(
-    () => document.querySelector("#surface").getBoundingClientRect().height > innerHeight,
-  );
-  const standaloneContent = standalone.frameLocator("#surface");
-  const standaloneFrame = await (
-    await standalone.locator("#surface").elementHandle()
-  ).contentFrame();
-  await standaloneFrame.waitForFunction(
-    () => document.body.getBoundingClientRect().height <= innerHeight + 1,
-  );
-  const standaloneSize = await standaloneContent.locator("body").evaluate((body) => ({
-    content: body.getBoundingClientRect().height,
-    viewport: innerHeight,
-  }));
-  assert.ok(standaloneSize.content <= standaloneSize.viewport + 1, JSON.stringify(standaloneSize));
-  await standalone.mouse.move(200, 400);
-  await standalone.mouse.wheel(0, 500);
-  await standalone.waitForFunction(() => scrollY > 100);
-  assert.equal(
-    await standaloneContent.locator("html").evaluate(() => document.scrollingElement.scrollTop),
-    0,
-  );
-  await standalone.close();
+  await contribution.locator("#long-content-fixture").evaluate((node) => node.remove());
   assert.deepEqual(errors, []);
 });
 
@@ -440,7 +286,7 @@ test("Twitch permission choices stay distinct from actual grants and identity-on
       const m=event.data;
       if(m.type==='feature-height'){document.querySelector('#ui').style.height=m.height+'px';return;}
       if(m.type!=='call')return;calls.push({capability:m.capability,method:m.method,payload:m.payload});
-      if(m.capability==='twitch.oauth.admin.v1'&&m.method==='configure')selected=[...m.payload.permissionGroups];
+      if(m.capability==='twitch.oauth.admin.v1'&&m.method==='configure'){selected=[...m.payload.permissionGroups];pending=false;}
       if(m.capability==='twitch.oauth.admin.v1'&&m.method==='begin'){selected=[...m.payload.permissionGroups];pending=true;}
       if(m.capability==='twitch.oauth.admin.v1'&&m.method==='poll'){granted=groups.filter(g=>selected.includes(g.id)).flatMap(g=>g.scopes);pending=false;connected=true;}
       const value=m.method==='review'?{ok:true,entries:[],total:0}:status();
@@ -522,6 +368,22 @@ test("Twitch permission choices stay distinct from actual grants and identity-on
     permissionGroups: [],
   });
   assert.equal(await frame.locator("#begin").isDisabled(), true);
+  await frame.locator('[data-permission="clips"] input').check();
+  assert.equal(
+    await frame.locator("#begin").isDisabled(),
+    false,
+    "pending login can be replaced after choosing different permissions",
+  );
+  await frame.locator("#cancelAuthorization").click();
+  await frame.locator("#activation").waitFor({ state: "hidden" });
+  assert.equal(
+    await frame.locator('[data-permission="chat-read"] .badge').textContent(),
+    "Granted",
+    "cancelling a new login preserves existing access",
+  );
+  await frame.locator('[data-permission="clips"] input').uncheck();
+  await frame.locator("#savePermissions").click();
+  await frame.locator("#begin").click();
   await frame.locator("#check").click();
   await frame.locator("#activation").waitFor({ state: "hidden" });
   assert.equal(

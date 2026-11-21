@@ -12,7 +12,7 @@ module.exports = function createExperimentalTidal({
   const inFlight = new Map();
   let moderating = false;
   const entries = () => {
-    if (moderating) return [];
+    if (moderating || admission.busy()) return [];
     const first = queue.status({ limit: 25 }),
       rows = [...first.queue];
     for (let offset = 25; offset < Math.min(200, first.counts.queued); offset += 25)
@@ -24,10 +24,17 @@ module.exports = function createExperimentalTidal({
       timeoutMs: method === "resolve" ? 20000 : 10000,
     });
   let stopped = false;
+  const admission = require("./native-admission")({
+    queue,
+    provider,
+    isSelected,
+    waitForDelivery: () => Promise.allSettled([delivery.settled(), ...inFlight.values()]),
+  });
   const delivery = require("./tidal-delivery")({
     entries,
     provider,
     send,
+    isPaused: () => moderating || admission.busy(),
     isSelected,
     updated: () => changed({ ok: true, code: "tidal_delivery_changed" }),
   });
@@ -38,6 +45,7 @@ module.exports = function createExperimentalTidal({
     waitForDelivery: () => Promise.allSettled([...inFlight.values()]),
   });
   async function send(entry, automatic = false) {
+    if (admission.busy()) return { ok: false, error: "tidal_intake_in_progress" };
     if (!(await isSelected())) return { ok: false, error: "player_inactive" };
     if (inFlight.has(entry.id)) return { ok: false, error: "tidal_handoff_in_progress" };
     try {
@@ -114,6 +122,7 @@ module.exports = function createExperimentalTidal({
           .map((row) => ({ ...row, deliveryError: delivery.error(row.id) })),
       };
     }
+    if (method === "favorite") return provider("favorite", payload);
     if (!status?.enabled) return { ok: false, error: "tidal_experiment_disabled" };
     if (method === "review") return provider("review", payload);
     if (method === "monitor") {
@@ -173,7 +182,7 @@ module.exports = function createExperimentalTidal({
     }
     if (!resolved?.ok) return resolved;
     if (!(await isSelected())) return { ok: false, code: "rejected", reason: "player_inactive" };
-    let result = queue.submit({
+    let result = await admission.submit({
       requestId: payload.requestId,
       requesterId: payload.requesterId,
       requesterName: payload.requesterName,
@@ -187,8 +196,8 @@ module.exports = function createExperimentalTidal({
         provider("status", null),
       );
       changed(result);
-      delivery.trigger();
     }
+    delivery.trigger();
     if (!result.ok && result.reason === "duration_limit")
       return {
         ...result,

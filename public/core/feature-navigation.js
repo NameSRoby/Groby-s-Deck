@@ -56,7 +56,7 @@ window.addEventListener("message", (event) => {
       }
     }
     if (event.data.type === "feature-height" && Number.isFinite(event.data.height))
-      frame.style.height = `${Math.max(240, Math.min(16000, Math.ceil(event.data.height)))}px`;
+      frame.style.height = `${Math.max(240, Math.min(200000, Math.ceil(event.data.height)))}px`;
     if (event.data.type === "feature-open") {
       if (
         id === "song-request" &&
@@ -103,14 +103,23 @@ export function openFeaturePage(featureId, pageId) {
 }
 
 export function selectMainTab(key) {
+  const mods = key === "mods";
+  if (mods) key = "features";
+  const updates = key === "updates";
+  if (updates) key = "features";
   document.querySelectorAll("[data-tab]").forEach((button) => {
     const selected = button.dataset.tab === key;
     button.classList.toggle("active", selected);
     button.setAttribute("aria-selected", String(selected));
   });
-  document.querySelectorAll("[data-panel]").forEach((panel) => {
+  document.querySelectorAll("main > [data-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.panel !== key;
   });
+  if (mods) document.querySelector('[data-maintenance="mods"]')?.click();
+  if (updates) {
+    document.querySelector('[data-maintenance="packages"]')?.click();
+    document.getElementById("coreUpdates")?.scrollIntoView({ block: "start" });
+  }
 }
 
 export function syncFeatureNavigation(features) {

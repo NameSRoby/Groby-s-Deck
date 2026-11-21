@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#050507" />
-    <link rel="icon" type="image/png" href="/RaveLink-Core.png" />
-    <title>RaveLink Core</title>
+    <link rel="icon" type="image/png" href="/Grobys-Deck.png" />
+    <title>Groby’s Deck</title>
     <link rel="stylesheet" href="/core.css" />
     <link rel="stylesheet" href="/usability.css" />
     <link rel="stylesheet" href="/lighting.css" />
@@ -14,13 +14,16 @@
     <link rel="stylesheet" href="/navigation-settings.css" />
     <link rel="stylesheet" href="/dashboard.css" />
     <link rel="stylesheet" href="/control-deck.css" />
+    <link rel="stylesheet" href="/control-deck-bingo.css" />
+    <link rel="stylesheet" href="/command-code-editor.css" />
     <link rel="stylesheet" href="/app-polish.css" />
+    <link rel="stylesheet" href="/pill-input.css" />
   </head>
   <body>
     <header class="hudHeader">
       <div>
-        <h1>RAVELINK CORE</h1>
-        <div class="sub">WINDOWS CREATOR CORE // LIGHTING + STREAM CONTROL</div>
+        <h1>GROBY’S DECK</h1>
+        <div class="sub">YOUR STREAM. YOUR CONTROLS. YOUR DECK.</div>
       </div>
       <div class="headerRight">
         <button
@@ -95,7 +98,10 @@
         ><button type="button" data-theme="ocean">OCEAN</button
         ><button type="button" data-theme="matrix">MATRIX</button
         ><button type="button" data-theme="aurora">AURORA</button
-        ><button type="button" data-theme="solar">SOLAR</button>
+        ><button type="button" data-theme="solar">SOLAR</button
+        ><button type="button" data-theme="slate">SLATE</button
+        ><button type="button" data-theme="rosewood">ROSEWOOD</button
+        ><button type="button" data-theme="forest">FOREST</button>
       </div>
       <div class="themeColors">
         <label>ACTIVE<input id="themeAccent" type="color" /></label
@@ -123,7 +129,7 @@
         </button>
       </div>
       <p>
-        Use RaveLink from another phone, tablet or computer. The desktop app and localhost keep
+        Use Groby’s Deck from another phone, tablet or computer. The desktop app and localhost keep
         working alongside it.
       </p>
       <button id="lanFirewall" type="button">Set up Windows network access</button>
@@ -154,10 +160,10 @@
               id="lanQr"
               width="200"
               height="200"
-              alt="Scan to open RaveLink on your local network"
+              alt="Scan to open Groby’s Deck on your local network"
             />
             <div>
-              <strong>Scan to open RaveLink</strong>
+              <strong>Scan to open Groby’s Deck</strong>
               <p>Use your phone or tablet camera while connected to the same network.</p>
               <p><a id="lanLink" target="_blank" rel="noopener"></a></p>
               <button id="lanCopy" type="button">Copy link</button>
@@ -173,7 +179,7 @@
       </p>
       <button id="saveNetworkSharing" type="button">Save network access</button>
     </dialog>
-    <nav id="tabs" class="tabs" aria-label="RaveLink controls">
+    <nav id="tabs" class="tabs" aria-label="Groby’s Deck controls">
       <button class="tabButton active" data-tab="dashboard" type="button">DASHBOARD</button>
       <button class="tabButton" data-tab="lights" type="button">LIGHTS</button
       ><button class="tabButton" data-tab="fixtures" type="button">FIXTURES</button
@@ -182,14 +188,10 @@
         <summary class="tabButton">MORE</summary>
         <div class="moreNavMenu">
           <span>OTHER TABS &amp; TOOLS</span>
-          <button class="tabButton" data-tab="updates" type="button">
-            <strong>UPDATES</strong><small>Check, install, or roll back Core</small>
-          </button>
-          <button id="featuresTab" class="tabButton" data-tab="features" type="button" hidden="">
-            <strong>PACKAGES</strong><small>Install and manage optional features</small>
-          </button>
-          <button id="modsTab" class="tabButton" data-tab="mods" type="button" hidden="">
-            <strong>MODS</strong><small>Review supervised third-party extensions</small>
+          <button class="tabButton" data-tab="soundboard" type="button">SOUNDBOARD</button>
+          <button class="tabButton" data-tab="overlays" type="button">OVERLAY DESIGNER</button>
+          <button id="featuresTab" class="tabButton" data-tab="features" type="button">
+            <strong>UPDATES &amp; PACKAGES</strong><small>Manage features and update Core</small>
           </button>
         </div>
       </details>
@@ -711,7 +713,7 @@
                   >
                   <label
                     class="switchLabel"
-                    title="When an effect ends, run a short spatial settle pulse and restore the last state RaveLink sent before the effect."
+                    title="When an effect ends, run a short spatial settle pulse and restore the last state Groby’s Deck sent before the effect."
                     ><input id="twitchEffectsReturn" type="checkbox" /><span
                       class="toggleSwitch"
                       aria-hidden="true"
@@ -2135,9 +2137,9 @@
               </article>
             </div>
             <p class="effectHelp">
-              RaveLink will not create section prefixes that silently recolor the complete strip.
-              When a segment-capable transport is added, sections can be grouped, locked together,
-              and routed through the same chat-prefix system.
+              Groby’s Deck will not create section prefixes that silently recolor the complete
+              strip. When a segment-capable transport is added, sections can be grouped, locked
+              together, and routed through the same chat-prefix system.
             </p>
           </div>
         </div>
@@ -2190,8 +2192,8 @@
               <span class="alphaBadge">COMPATIBLE LAN MODELS</span>
             </summary>
             <p>
-              RaveLink controls compatible Govee lights directly over your home network. No Govee
-              cloud password or API key is needed.
+              Groby’s Deck controls compatible Govee lights directly over your home network. No
+              Govee cloud password or API key is needed.
             </p>
             <p class="sub">
               Features depend on your fixture and firmware. LAN Control must be available and
@@ -2249,7 +2251,7 @@
                 autocomplete="new-password" /></label
             ><label
               class="checkLabel"
-              title="Include this fixture when RaveLink sends lighting commands."
+              title="Include this fixture when Groby’s Deck sends lighting commands."
               ><input id="fixtureEnabled" type="checkbox" checked="" /> ENABLED</label
             ><label
               class="checkLabel"
@@ -2450,187 +2452,323 @@
           <div id="widgetConnectionNotice" class="notice" role="status"></div>
         </div>
       </section>
-      <section class="panel" data-panel="updates" hidden="">
+      <section class="panel" data-panel="soundboard" hidden>
         <div class="panelTitle">
           <div>
-            <span>CORE MAINTENANCE</span>
-            <h2>SAFE UPDATES</h2>
+            <h2>Soundboard</h2>
+            <p>
+              Sounds play on the PC hosting Groby&#8217;s Deck. Use an output such as a virtual
+              audio cable to feed OBS.
+            </p>
           </div>
-          <span id="updateStatus" class="statusLine">LOADING</span>
+          <button id="soundboardRefresh" type="button">Refresh</button>
         </div>
-        <div class="telemetryGrid">
-          <div><span>INSTALLED</span><strong id="installedVersion">UNKNOWN</strong></div>
-          <div><span>LATEST</span><strong id="latestVersion">NOT CHECKED</strong></div>
-          <div><span>STAGED</span><strong id="stagedVersion">NONE</strong></div>
-          <div><span>ROLLBACK</span><strong id="rollbackVersion">NONE</strong></div>
-        </div>
-        <div class="cluster">
-          <h3>RELEASE CHECKS</h3>
+        <div class="formGrid">
           <label
-            class="checkLabel"
-            title="Ask GitHub for the newest stable RaveLink release when the server starts. Nothing is downloaded or installed automatically."
-            ><input id="checkUpdatesOnLaunch" type="checkbox" /> CHECK FOR STABLE GITHUB RELEASES
-            WHEN RAVELINK STARTS</label
+            >Add sounds (WAV / MP3, up to 32 MiB each)<input
+              id="soundboardUpload"
+              type="file"
+              accept=".wav,.mp3"
+              multiple
+          /></label>
+          <div class="deckField">
+            <span>Outputs</span><input id="soundboardOutput" type="hidden" value='["default"]' />
+            <div id="soundboardOutputChoices" class="deckSoundOutputs"></div>
+          </div>
+          <label
+            >Sound volume (%)<input
+              id="soundboardVolume"
+              type="number"
+              min="0"
+              max="100"
+              value="80"
+          /></label>
+          <label
+            >When pressed again<select id="soundboardMode">
+              <option value="restart">Restart this sound</option>
+              <option value="overlap">Play another copy</option>
+              <option value="toggle">Stop if already playing</option>
+            </select></label
           >
-          <div class="actions">
-            <button id="saveUpdatePreference" type="button">SAVE PREFERENCE</button>
-            <button id="checkForUpdate" type="button">CHECK NOW</button>
-            <button id="downloadUpdate" type="button" disabled="">DOWNLOAD AND VERIFY</button>
-          </div>
-          <div id="updateNotice" class="notice" role="status" aria-live="polite">
-            AUTOMATIC CHECKS ARE OPT-IN. UPDATES ARE NEVER INSTALLED WITHOUT YOUR ACTION.
-          </div>
+          <label
+            >Add buttons to page<select id="soundboardPage">
+              <option value="">New Soundboard page</option>
+            </select></label
+          >
         </div>
-        <div class="cluster">
-          <h3>INSTALL OR RECOVER</h3>
-          <div class="actions">
-            <button id="applyUpdate" type="button" disabled="">INSTALL VERIFIED UPDATE</button>
-            <button id="rollbackUpdate" class="danger" type="button" disabled="">ROLL BACK</button>
-          </div>
-          <p class="sub">
-            INSTALLING CREATES A LOCAL SNAPSHOT, PRESERVES SETTINGS AND INSTALLED FEATURES, THEN
-            RESTARTS. A FAILED STARTUP RESTORES THE PREVIOUS VERSION AUTOMATICALLY.
-          </p>
+        <p>
+          Choose settings above, then add a deck button. Each button keeps its own output, volume
+          and repeat behavior; edit it in the deck to add waits, conditions or more actions.
+        </p>
+        <div class="actions">
+          <button id="soundboardStop" type="button">Stop all sounds</button
+          ><span id="soundboardStatus" role="status"></span>
         </div>
-      </section>
-      <section class="panel" data-panel="features" hidden="">
-        <div class="panelTitle">
-          <div>
-            <span>FIRST-PARTY PACKAGES</span>
-            <h2>FEATURE PACKAGES</h2>
-          </div>
-          <div>
-            <span id="featureHostStatus" class="statusLine">HOST OFFLINE</span
-            ><button id="refreshFeatures" type="button">REFRESH</button>
-          </div>
-        </div>
-        <div class="cluster">
-          <h3>AVAILABLE</h3>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>FEATURE</th>
-                  <th>VERSION</th>
-                  <th>RESOURCES</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody id="availableFeatureRows">
-                <tr>
-                  <td colspan="4">NO PACKAGES AVAILABLE</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="cluster">
-          <h3>INSTALLED</h3>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>FEATURE</th>
-                  <th>STATE</th>
-                  <th>PERMISSIONS</th>
-                  <th>RESOURCES</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody id="featureRows">
-                <tr>
-                  <td colspan="5">NO FEATURES INSTALLED</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div id="featureNotice" class="notice" role="status" aria-live="polite"></div>
+        <p id="soundboardNotice" class="notice" role="status" aria-live="polite"></p>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sound</th>
+                <th>Size</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="soundboardRows"></tbody>
+          </table>
         </div>
       </section>
-      <section class="panel" data-panel="mods" hidden="">
-        <div class="panelTitle">
-          <div>
-            <span>SUPERVISED EXTENSIONS</span>
-            <h2>MODS</h2>
-          </div>
-          <div>
-            <span id="modHostStatus" class="statusLine">HOST OFFLINE</span
-            ><button id="refreshMods" type="button">REFRESH</button>
-          </div>
+      <section
+        class="panel maintenancePage"
+        data-panel="features"
+        aria-label="Updates and packages"
+        hidden=""
+      >
+        <div class="actions" role="tablist" aria-label="Packages and updates">
+          <button type="button" role="tab" data-maintenance="packages" aria-selected="true">
+            Updates &amp; packages
+          </button>
+          <button
+            id="modsSectionTab"
+            type="button"
+            role="tab"
+            data-maintenance="mods"
+            aria-selected="false"
+            hidden
+          >
+            Mods
+          </button>
         </div>
-        <div class="cluster">
-          <div class="sectionHead">
-            <h3>DROP-IN REVIEW</h3>
-            <span id="modInboxStatus" class="inboxPath">mods\</span>
+        <section
+          id="coreUpdates"
+          data-maintenance-panel="packages"
+          class="maintenanceUpdates"
+          aria-labelledby="coreUpdatesTitle"
+        >
+          <div class="panelTitle">
+            <div>
+              <span>GROBY’S DECK</span>
+              <h2 id="coreUpdatesTitle">Core updates</h2>
+            </div>
+            <span id="updateStatus" class="statusLine">LOADING</span>
           </div>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>PACKAGE</th>
-                  <th>TYPE</th>
-                  <th>PERMISSIONS</th>
-                  <th>LIMITS</th>
-                  <th>ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="modInboxRows">
-                <tr>
-                  <td colspan="5">Drop a mod folder or ZIP into mods, then confirm activation.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="telemetryGrid">
+            <div><span>INSTALLED</span><strong id="installedVersion">UNKNOWN</strong></div>
+            <div><span>LATEST</span><strong id="latestVersion">NOT CHECKED</strong></div>
+            <div><span>STAGED</span><strong id="stagedVersion">NONE</strong></div>
+            <div><span>ROLLBACK</span><strong id="rollbackVersion">NONE</strong></div>
           </div>
-          <div id="modNotice" class="notice" role="status" aria-live="polite"></div>
-        </div>
-        <div class="cluster">
-          <h3>INSTALLED MODS</h3>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>MOD</th>
-                  <th>STATE</th>
-                  <th>APPROVAL</th>
-                  <th>RESOURCES</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody id="modRows">
-                <tr>
-                  <td colspan="5">NO MODS INSTALLED</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div id="modUiSurface" class="modUiSurface" hidden="">
-          <div class="sectionHead">
-            <h3 id="modUiTitle">MOD PANEL</h3>
-            <button
-              id="closeModUi"
-              class="iconButton"
-              type="button"
-              title="Close mod panel"
-              aria-label="Close mod panel"
+          <div class="cluster">
+            <h3>RELEASE CHECKS</h3>
+            <label
+              class="checkLabel"
+              title="Ask GitHub for the newest stable Groby’s Deck release when the server starts. Nothing is downloaded or installed automatically."
+              ><input id="checkUpdatesOnLaunch" type="checkbox" disabled /> Check for stable
+              releases on startup</label
             >
-              X
-            </button>
+            <div class="actions">
+              <button id="saveUpdatePreference" type="button" disabled>Save preference</button>
+              <button id="checkForUpdate" type="button">Check now</button>
+              <button id="downloadUpdate" type="button" disabled>Download and verify</button>
+            </div>
+            <div id="updateNotice" class="notice" role="status" aria-live="polite">
+              Loading update status…
+            </div>
           </div>
-          <iframe
-            id="modUiFrame"
-            sandbox="allow-scripts"
-            referrerpolicy="no-referrer"
-            title="Mod panel"
-          ></iframe>
-        </div>
+          <div class="cluster">
+            <h3>INSTALL OR RECOVER</h3>
+            <div class="actions">
+              <button id="applyUpdate" type="button" disabled="">Install verified update</button>
+              <button id="rollbackUpdate" class="danger" type="button" disabled="">
+                Roll back
+              </button>
+            </div>
+            <p class="sub">
+              Installing creates a rollback snapshot and restarts the app. Your settings and
+              installed features carry over.
+            </p>
+          </div>
+        </section>
+        <section
+          data-maintenance-panel="packages"
+          class="maintenancePackages"
+          aria-labelledby="packagesTitle"
+        >
+          <div class="panelTitle">
+            <div>
+              <span>OPTIONAL FEATURES</span>
+              <h2 id="packagesTitle">Packages</h2>
+            </div>
+            <div>
+              <span id="featureHostStatus" class="statusLine">HOST OFFLINE</span
+              ><button id="refreshFeatures" type="button">REFRESH</button>
+            </div>
+          </div>
+          <div class="cluster">
+            <h3>AVAILABLE</h3>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>FEATURE</th>
+                    <th>VERSION</th>
+                    <th>RESOURCES</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="availableFeatureRows">
+                  <tr>
+                    <td colspan="4">NO PACKAGES AVAILABLE</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="cluster">
+            <h3 id="installedPackages">INSTALLED PACKAGES</h3>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>FEATURE</th>
+                    <th>STATE</th>
+                    <th>PERMISSIONS</th>
+                    <th>RESOURCES</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="featureRows">
+                  <tr>
+                    <td colspan="5">NO FEATURES INSTALLED</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="featureNotice" class="notice" role="status" aria-live="polite"></div>
+          </div>
+        </section>
+        <section data-maintenance-panel="mods" hidden="">
+          <div class="panelTitle">
+            <div>
+              <span>SUPERVISED EXTENSIONS</span>
+              <h2>MODS</h2>
+            </div>
+            <div>
+              <span id="modHostStatus" class="statusLine">HOST OFFLINE</span
+              ><button id="refreshMods" type="button">REFRESH</button>
+            </div>
+          </div>
+          <div class="cluster">
+            <div class="sectionHead">
+              <h3>DROP-IN REVIEW</h3>
+              <span id="modInboxStatus" class="inboxPath">mods\</span>
+            </div>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PACKAGE</th>
+                    <th>TYPE</th>
+                    <th>PERMISSIONS</th>
+                    <th>LIMITS</th>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="modInboxRows">
+                  <tr>
+                    <td colspan="5">
+                      Drop a mod folder or ZIP into mods, then confirm activation.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="modNotice" class="notice" role="status" aria-live="polite"></div>
+          </div>
+          <div class="cluster">
+            <h3>INSTALLED MODS</h3>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>MOD</th>
+                    <th>STATE</th>
+                    <th>APPROVAL</th>
+                    <th>RESOURCES</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="modRows">
+                  <tr>
+                    <td colspan="5">NO MODS INSTALLED</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div id="modUiSurface" class="modUiSurface" hidden="">
+            <div class="sectionHead">
+              <h3 id="modUiTitle">MOD PANEL</h3>
+              <button
+                id="closeModUi"
+                class="iconButton"
+                type="button"
+                title="Close mod panel"
+                aria-label="Close mod panel"
+              >
+                X
+              </button>
+            </div>
+            <iframe
+              id="modUiFrame"
+              sandbox="allow-scripts"
+              referrerpolicy="no-referrer"
+              title="Mod panel"
+            ></iframe>
+          </div>
+        </section>
+      </section>
+      <section class="panel" data-panel="overlays" hidden="">
+        <iframe
+          id="overlayDesignerFrame"
+          title="Overlay designer"
+          style="
+            width: 100%;
+            height: calc(100vh - 130px);
+            min-height: 800px;
+            border: 0;
+            border-radius: 12px;
+          "
+        ></iframe>
       </section>
     </main>
     <script src="/browser-clipboard.js"></script>
     <script src="/network-sharing.js"></script>
     <script src="/theme-state.js"></script>
     <script src="/action-feedback.js"></script>
+    <dialog id="soundboardRename">
+      <h2>Rename sound</h2>
+      <label>Sound name<input id="soundboardName" maxlength="80" required /></label>
+      <div class="actions">
+        <button id="soundboardRenameSave" type="button">Save name</button
+        ><button id="soundboardRenameCancel" type="button">Cancel</button>
+      </div>
+    </dialog>
+    <dialog id="soundboardRemove">
+      <h2>Remove sound?</h2>
+      <p id="soundboardRemoveName"></p>
+      <p>Stops this sound and removes its audio file. Existing deck buttons remain editable.</p>
+      <div class="actions">
+        <button id="soundboardRemoveConfirm" type="button" class="danger">Remove sound</button
+        ><button id="soundboardRemoveCancel" type="button">Cancel</button>
+      </div>
+    </dialog>
+    <script src="/widget-setup.js"></script>
+    <script src="/core-updates.js"></script>
+    <script src="/core-results.js"></script>
     <script src="/core.js"></script>
+    <script type="module" src="/soundboard.js"></script>
+    <script src="/maintenance-navigation.js"></script>
     <script src="/hue-entertainment-setup.js"></script>
     <script src="/usability-tooltips.js"></script>
     <script src="/lighting-profiles.js"></script>
@@ -2644,8 +2782,10 @@
     <script src="/music-to-light.js"></script>
     <script src="/lighting-commands.js"></script>
     <script src="/workspace-navigation.js"></script>
+    <script src="/overlay-launcher.js"></script>
     <script src="/navigation-settings.js"></script>
     <script type="module" src="/dashboard.js"></script>
     <script src="/visible-choices.js"></script>
+    <script src="/request-intake-settings.js"></script>
   </body>
 </html>

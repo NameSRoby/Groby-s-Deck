@@ -1,5 +1,5 @@
 /**
- * Assemble the TIDAL companion from reviewed RaveLink sources. The renderer is
+ * Assemble the TIDAL companion from reviewed Groby’s Deck sources. The renderer is
  * runtime + adapter + polling in that order; adapter.cjs also remains importable
  * by Node tests. Refuse a changed adapter export instead of generating bad code.
  */
@@ -67,5 +67,5 @@ if (process.argv.includes("--check")) {
 } else {
   fs.mkdirSync(output, { recursive: true });
   for (const [file, value] of files) fs.writeFileSync(path.join(output, file), value);
-  console.log("Built self-contained RaveLink TIDAL companion 0.1.8.");
+  console.log("Built self-contained Groby’s Deck TIDAL companion 0.1.8.");
 }

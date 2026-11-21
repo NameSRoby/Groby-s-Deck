@@ -1,13 +1,13 @@
-# @ravelink/mod-sdk
+# @grobys-deck/mod-sdk
 
-Standalone API helpers for isolated RaveLink mods. The package has no runtime dependencies and imports no RaveLink server implementation.
+Standalone API helpers for isolated Groby’s Deck mods. The package has no runtime dependencies and imports no Groby’s Deck server implementation.
 
 Start with the included [runnable button starter](starter/README.md). The full
-[author guide](https://github.com/NameSRoby/RaveLink-Core/blob/main/docs/MOD_AUTHOR_GUIDE.md)
+[author guide](https://github.com/NameSRoby/Groby-s-Deck/blob/main/docs/MOD_AUTHOR_GUIDE.md)
 covers manifests, permissions, lifecycle, testing, packaging, installation and
-troubleshooting. The [API reference](https://github.com/NameSRoby/RaveLink-Core/blob/main/docs/MOD_API_REFERENCE.md)
+troubleshooting. The [API reference](https://github.com/NameSRoby/Groby-s-Deck/blob/main/docs/MOD_API_REFERENCE.md)
 lists every SDK method, shipped host capability, resource bound and administration API.
-The [application API map](https://github.com/NameSRoby/RaveLink-Core/blob/main/docs/API_REFERENCE.md)
+The [application API map](https://github.com/NameSRoby/Groby-s-Deck/blob/main/docs/API_REFERENCE.md)
 explains which interfaces belong to separate clients or optional features.
 
 This SDK is available from this repository; external npm publication is a separate
@@ -17,7 +17,7 @@ review of reduced network isolation; the deterministic test harness needs no suc
 runtime override. Event publication has no subscriber-delivery acknowledgement.
 
 ```js
-const { defineMod, createCapabilityClient } = require("@ravelink/mod-sdk");
+const { defineMod, createCapabilityClient } = require("@grobys-deck/mod-sdk");
 
 module.exports = defineMod({
   async activate(context) {
@@ -30,9 +30,9 @@ module.exports = defineMod({
 });
 ```
 
-Use `@ravelink/mod-sdk/testing` for deterministic lifecycle, request, event, and fake-capability tests. Mods must still declare every consumed/provided capability and permission in `ravelink.mod.json`; SDK calls cannot expand those grants.
+Use `@grobys-deck/mod-sdk/testing` for deterministic lifecycle, request, event, and fake-capability tests. Mods must still declare every consumed/provided capability and permission in `groby.mod.json`; SDK calls cannot expand those grants.
 
-The exact host contracts are exported as `@ravelink/mod-sdk/schemas/manifest-v1` and `@ravelink/mod-sdk/schemas/broker-envelope-v1`.
+The exact host contracts are exported as `@grobys-deck/mod-sdk/schemas/manifest-v1` and `@grobys-deck/mod-sdk/schemas/broker-envelope-v1`.
 
 Dashboard buttons can discover an explicitly contributed action without a custom
 HTML panel. The action's capability must appear in `provides`; its handler runs

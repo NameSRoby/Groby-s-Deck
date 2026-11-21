@@ -46,6 +46,14 @@ buttons into order with a floating preview and live insertion position, tap them
 last layout change. Add pages with **+ Page**, and choose a folder behavior to
 open another page. Editing a button never executes its action.
 
+The button editor separates **Actions** from **Appearance**. Actions contains the
+library, button behaviour, keyboard trigger, press/hold flows and sequence
+controls. Appearance contains icons, colours, backlight, backgrounds, toggle
+faces and slider style/orientation, with a live preview. Slider movement and snap
+increments stay in Actions. Name and page position are shared above both tabs.
+Switching tabs preserves your draft. Save and Close remain visible while the
+content scrolls, including on phones. Arrow keys, Home and End navigate the tabs.
+
 The Edit toolbar offers **Display** and **Buttons per row** directly. Row changes
 apply to the current phone, tablet or desktop size. **Auto fit** keeps icon and
 text together when they fit, alternates them when crowded, and uses the icon on
@@ -68,7 +76,7 @@ actions. Each sequence can contain several functions and delays. Set the initial
 state and the state after the first press with separate labels, icons and LED
 colors. Only a successful press advances it; failures, holds and cancelled actions
 keep the prior state. Connected screens share this state. Custom toggles track
-RaveLink's successful commands, not changes made in other apps, and start at the
+Groby’s Deck's successful commands, not changes made in other apps, and start at the
 first press after Core restarts. Built-in owner-confirmed toggles read the actual
 service state instead.
 
@@ -89,6 +97,57 @@ Open-target, hotkey, typing and media-key actions run on the Windows PC hosting
 Core, including when pressed from a phone. Keyboard actions target its current
 desktop/application; provider controls use their dedicated owners.
 
+## Timed actions and sequences
+
+In the button editor, build the **Press action** from top to bottom:
+
+- **+ Add action** adds a function and its normal controls.
+- **+ Add wait** inserts a timer; choose seconds, minutes or hours.
+- **Action → wait → action** creates a timed-action starter. Choose what happens
+  first, how long it stays that way, and what happens afterwards. For example:
+  set an OBS source visible → wait 10 seconds → set that source hidden.
+- **Wait first** delays the start. Add more action/wait blocks to continue the chain.
+- Duplicate, move or remove individual steps. The old sixteen-step cutoff is gone;
+  the saved deck still has its ordinary overall size limit.
+
+**Sequence controls** sets 1–1,000 repetitions. Enable **Press again to stop a
+running sequence** to make that same button stop it; **Stop running actions**
+stops all running sequences. Waiting/running status shows the current step and
+repetition. First/second-press and optional hold sequences remain available.
+
+Each wait can last up to 24 hours. Timers run on the Groby’s Deck PC and continue
+when a phone disconnects or the deck closes. Core must stay running; interrupted
+sequences do not resume automatically after restart. Stop cancels remaining steps.
+Ordinary actions retain their result; Remember / Restore blocks also restore saved
+values. Actions use their normal permissions and stop the chain on failure.
+
+## If / Then flows and temporary changes
+
+Selecting another library action adds it to the flow. **Add actions here** selects
+the branch that receives library choices. First press, second press and hold can
+each have their own flow.
+
+- **Add condition** reads an action's current available, active, muted, numeric or
+  status value, then runs **Then** or **Otherwise**. Unknown state stops the flow.
+- **Do together** starts up to eight actions at the same time. **Do in order**
+  keeps a sub-sequence ordered inside a Together block.
+- **Repeat block** repeats just that part of the flow.
+- **Remember current values** snapshots supported OBS visibility, scenes, filters,
+  mute and volume values, and Windows audio mute/volume before changing them.
+- **Restore previous values** returns those exact values. Stop, failure and normal
+  shutdown also attempt cleanup. Irreversible actions such as messages or ads
+  cannot be undone. A sudden Core exit cannot send restoration commands.
+
+For example: Remember → mute mic 1 and unmute mic 2 → Wait 2 minutes → Restore.
+OBS microphone actions affect the stream; Windows microphone actions affect the
+device. An outstanding temporary flow prevents another deck/automation flow from
+changing the same remembered target.
+
+Twitch rewards, chat commands, events and timers use this same builder in
+**Twitch Integration → Rewards & automations**. Saved automations appear under
+**Twitch automations** in the deck library with Start/resume, Pause, Start/pause
+and timer Restart actions. See [Twitch automations](TWITCH_AUTOMATIONS.md).
+
 ## Style and presets
 
 Open **Button settings > Style & presets** and choose whether to style **All
@@ -103,6 +162,14 @@ animated GIFs and labels are preserved; Undo is available on the deck.
 The **Individual buttons** tab lists your controls and opens their existing
 editor for actions, picture/GIF, symbols, text, colors and effects. It also offers
 **+ Add a button**.
+
+**Button background** offers **None**, **Smoke**, **Aurora** and **Embers** with
+speed and strength controls. Set one button in its appearance editor, or apply
+it to all buttons/a page through **Style & presets**. Choose **Keep current
+colors & effects** to change only the background. **Pause effects** in the deck
+toolbar also appears in fullscreen. System reduced-motion settings disable
+these animations; hidden/offscreen buttons pause their motion. Labels, artwork,
+actions and status lighting remain separate from the background.
 
 ## Layout and fullscreen
 
@@ -187,13 +254,13 @@ brightness; it applies the setting only when that new button is pressed.
 
 Choose **+ ? Keyboard key** or add a **Keyboard shortcut** action to any macro.
 Pick a rare key from **F13?F24**, optionally combined with Ctrl+Shift, or enter
-another valid key combination. Input runs on the RaveLink PC, including from LAN.
+another valid key combination. Input runs on the Groby’s Deck PC, including from LAN.
 The optional delayed Send button lets you focus another app before sending a key.
 It cancels if the editor is closed. Saving a button never sends input.
 
 Existing Discord microphone/deafen buttons migrate to F13/F14 macros while keeping
 their appearance and position. These report key execution, not the other app's
-state. The legacy accessibility mod is disabled by default. RaveLink does not
+state. The legacy accessibility mod is disabled by default. Groby’s Deck does not
 launch, restart or close Discord.
 
 ## OBS buttons
@@ -204,7 +271,7 @@ OBS Studio 28 and newer includes
 the required WebSocket server; there is no separate plugin to install.
 
 In OBS, open **Tools → WebSocket Server Settings**, enable the server and press
-**Apply**. Keep authentication enabled. In RaveLink, press **Refresh OBS list**,
+**Apply**. Keep authentication enabled. In Groby’s Deck, press **Refresh OBS list**,
 then **Connect this PC’s OBS**. This explicitly imports the existing local
 connection without editing OBS settings or restarting OBS. For OBS on another
 PC, expand connection details and enter its private IPv4 address, port and password.
@@ -232,7 +299,7 @@ affects that scene instance; it does not power off the camera or mute its microp
 Buttons follow OBS events for feedback and use the same Core connection from
 localhost, the desktop app and LAN phones/tablets. Missing sources, disconnected
 OBS and different scene collections stay explicit. Connection recovery never
-replays an uncertain command. RaveLink does not start or stop the OBS application.
+replays an uncertain command. Groby’s Deck does not start or stop the OBS application.
 See the [OBS remote-control guide](https://obsproject.com/kb/remote-control-guide)
 and [official WebSocket protocol](https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md).
 
@@ -341,7 +408,7 @@ the buttons on every screen; tall widget lists can scroll independently.
 Enable **Keyboard screen navigation** to use the selected Previous/Next keys.
 Click a key field and press the key or combination you want. **Enable button
 keyboard triggers** also lets each button's **Keyboard trigger** run its actions
-while RaveLink is focused. A macro can contain any supported action. Triggers
+while Groby’s Deck is focused. A macro can contain any supported action. Triggers
 ignore held-key repeats, edit mode, dialogs and text fields. Duplicate triggers
 on a button page or conflicts with navigation keys must be changed before saving.
 These are browser-focused controls, separate from keyboard-output actions that
@@ -371,6 +438,29 @@ swipes over vertical faders leave volume unchanged. In fullscreen paging mode,
 hold a horizontal fader briefly before dragging it so ordinary page swipes can
 pass across it. Keyboard and mouse range controls remain available.
 
+Use the large **+** and **−** controls for precise adjustments. Tap for one step,
+or hold to change the level slowly. Releasing, cancelling or leaving the deck
+stops the repeat. Tap the percentage to enter an exact number.
+
+Faders use a slim visible rail with a broad transparent touch area, a centered
+thumb and no surrounding acrylic panel. A vertical desktop dock centers the
+control beside the button grid.
+
+For TIDAL, connect its companion so adjustments change the player's saved volume.
+Windows session-only changes can be overwritten on the next song. Client updates
+can replace the companion; check TIDAL Setup if that connection disappears. Choose
+your desired level again after connecting.
+
+Enable **Edit > Layout > Fill available space with audio sliders** for longer
+vertical travel or wider horizontal faders. This option adapts to the screen and
+keeps labels and controls visible.
+
+**Fullscreen touch feedback** and its **Sensitivity** slider appear directly in
+deck Edit mode. Feedback is off by default and applies only to touch use in the
+fullscreen deck. Higher sensitivity gives more frequent slider ticks; it does
+not change device vibration strength. Unsupported browsers show a disabled option.
+Hardware and device settings can prevent vibration even when the API is available.
+
 The action library also offers **Next song**, **Previous song**, and **Media player
 play / pause**. These target the selected native TIDAL, Spotify or Apple Music
 session on the host, including from a phone or tablet. They never fall back to a
@@ -391,3 +481,7 @@ up to 8 MiB, or a muted MP4/WebM up to 16 MiB. Choose fit and brightness, then s
 One media surface spans the button faces and respects rounded corners and gaps.
 Video pauses when hidden and releases playback when removed. This media remains
 local runtime data and is excluded from source and release archives.
+
+## Soundboard actions
+
+Choose **Play sound file** in a button's Actions tab, browse for an MP3 or WAV, then select one or more host-PC outputs. Volume and repeat behavior are optional. These are ordinary `native.soundboard.play` actions with the same waits, repeats, conditions and keyboard shortcuts as other buttons. The optional Soundboard library can manage files or generate several buttons. `native.soundboard.stop` stops one clip or all clips. See [Soundboard](USER_GUIDE.md#soundboard) for limits and output behavior.

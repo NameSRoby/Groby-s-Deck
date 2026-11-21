@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-namespace RaveLink.Core.WindowsHost
+namespace Groby.Deck.WindowsHost
 {
     internal sealed partial class DashboardWindow
     {
@@ -30,7 +30,7 @@ namespace RaveLink.Core.WindowsHost
             try {
                 if (disposed || !e.IsUserInitiated || popups.Count >= 4) return;
                 if (e.Uri != "about:blank" && !DesktopPolicy.IsWorkspace(e.Uri, port)) { OpenExternal(e.Uri); return; }
-                popup = new Form { Text = "RaveLink", Icon = Icon, Size = new Size(900, 720), BackColor = BackColor, StartPosition = FormStartPosition.CenterParent };
+                popup = new Form { Text = "Groby’s Deck", Icon = Icon, Size = new Size(900, 720), BackColor = BackColor, StartPosition = FormStartPosition.CenterParent };
                 var view = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = BackColor, AllowExternalDrop = false };
                 popup.Controls.Add(view); popups.Add(popup);
                 var lifetime = new System.Windows.Forms.Timer { Interval = 120000 };
@@ -67,7 +67,7 @@ namespace RaveLink.Core.WindowsHost
         private void OnDownload(object sender, CoreWebView2DownloadStartingEventArgs e)
         {
             if (disposed) { e.Cancel = true; return; }
-            using (var dialog = new SaveFileDialog { FileName = Path.GetFileName(e.ResultFilePath), OverwritePrompt = true, RestoreDirectory = true, Title = "Save RaveLink download", Filter = "All files (*.*)|*.*" }) {
+            using (var dialog = new SaveFileDialog { FileName = Path.GetFileName(e.ResultFilePath), OverwritePrompt = true, RestoreDirectory = true, Title = "Save Groby’s Deck download", Filter = "All files (*.*)|*.*" }) {
                 e.Handled = true;
                 if (dialog.ShowDialog(this) != DialogResult.OK) { e.Cancel = true; return; }
                 e.ResultFilePath = dialog.FileName;

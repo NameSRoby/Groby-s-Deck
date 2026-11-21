@@ -13,7 +13,7 @@
   const port = Number(location.port);
   if (!/^[a-f0-9]{64}$/.test(fragment)) {
     document.getElementById("pairingStatus").textContent =
-      "Return to RaveLink Setup and choose Connect YouTube Music again.";
+      "Return to Groby’s Deck Setup and choose Connect YouTube Music again.";
     return;
   }
   history.replaceState(null, "", location.pathname);
@@ -78,11 +78,12 @@
       });
       status.textContent =
         result.error ||
-        "Connected. Return to RaveLink to request songs. Playback stays in your music tab.";
+        "Connected. Return to Groby’s Deck to request songs. Playback stays in your music tab.";
       if (!result.paired) button.disabled = false;
       else document.getElementById("refreshMusicTabs").disabled = true;
     } catch {
-      status.textContent = "Connection could not be confirmed. Return to RaveLink and try again.";
+      status.textContent =
+        "Connection could not be confirmed. Return to Groby’s Deck and try again.";
       button.disabled = false;
     }
   };

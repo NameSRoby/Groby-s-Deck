@@ -9,7 +9,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
-using RaveLink.Core.WindowsHost;
+using Groby.Deck.WindowsHost;
 
 internal static class DesktopHarness
 {

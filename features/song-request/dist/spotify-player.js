@@ -26,6 +26,12 @@ module.exports = function createSpotifyPlayer({
     stopped = false,
     lastError = "",
     moderating = false;
+  const admission = require("./native-admission")({
+    queue,
+    provider,
+    isSelected,
+    waitForDelivery: () => work || Promise.resolve(),
+  });
   const entries = () => {
     const first = queue.status({ limit: 25 }),
       rows = [...first.queue];
@@ -35,7 +41,7 @@ module.exports = function createSpotifyPlayer({
   };
   async function run() {
     try {
-      for (let index = 0; index < 10 && !stopped && !moderating; index++) {
+      for (let index = 0; index < 10 && !stopped && !moderating && !admission.busy(); index++) {
         if (!(await isSelected())) return;
         const status = await provider("status", null);
         if (!status.ready || status.capacity.available < 1) return;
@@ -72,7 +78,7 @@ module.exports = function createSpotifyPlayer({
     }
   }
   function trigger() {
-    if (!work && !stopped && !moderating && entries().length) {
+    if (!work && !stopped && !moderating && !admission.busy() && entries().length) {
       lastError = "";
       work = Promise.resolve()
         .then(run)
@@ -99,7 +105,8 @@ module.exports = function createSpotifyPlayer({
         delivery: { processing: Boolean(work), lastError },
       };
     }
-    if (method === "setup" || method === "control") return provider(method, payload);
+    if (method === "setup" || method === "control" || method === "favorite")
+      return provider(method, payload);
     if (method === "lookup") {
       const state = queue.status();
       return provider("resolve", {
@@ -168,14 +175,14 @@ module.exports = function createSpotifyPlayer({
     }
     if (!result.ok) return { ok: false, code: "rejected", reason: result.error };
     if (!(await isSelected())) return { ok: false, code: "rejected", reason: "player_inactive" };
-    let submitted = queue.submit({ ...payload, candidate: result.candidate });
+    let submitted = await admission.submit({ ...payload, candidate: result.candidate });
     if (submitted.ok) {
       submitted = await require("./desktop-queue-position")(queue, providerName, submitted, () =>
         provider("status", null),
       );
       changed(submitted);
-      trigger();
     }
+    trigger();
     return submitted;
   }
   handle.route = async (request, preferences) => {

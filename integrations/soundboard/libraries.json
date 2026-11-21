@@ -1,0 +1,18 @@
+[
+  {
+    "name": "NAudio.Core",
+    "version": "2.3.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.core/2.3.0/naudio.core.2.3.0.nupkg",
+    "packageSha256": "2940c2dbeabe7736424549227de3d27f10100858be56920ab120e4621b7f320c",
+    "file": "NAudio.Core.dll",
+    "sha256": "4f8d8c4140146674b103c8a3c46fbc4c768a86c0012a167168e3f7da2b3e5c09"
+  },
+  {
+    "name": "NAudio.Wasapi",
+    "version": "2.3.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.wasapi/2.3.0/naudio.wasapi.2.3.0.nupkg",
+    "packageSha256": "b80830deb834f01838d87ef6dc3d177dba5cde658259bb9820bd60194ee595f1",
+    "file": "NAudio.Wasapi.dll",
+    "sha256": "a05e371abf96195770ac4f84653d987d63731fed528e98c7fe0d10ce66e37d7e"
+  }
+]

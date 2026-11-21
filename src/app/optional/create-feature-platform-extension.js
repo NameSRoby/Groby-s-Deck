@@ -21,6 +21,7 @@ function createFeaturePlatformExtension(options = {}) {
     const rootDir = path.resolve(options.rootDir || context.rootDir);
     let registry;
     let twitchOAuth;
+    let twitchFlowActions;
     let youtubeCatalog;
     const youtubeBrowserProvider = require("../../../integrations/youtube-browser/provider.cjs")({
       runtimeDir: context.runtimeDir,
@@ -66,13 +67,33 @@ function createFeaturePlatformExtension(options = {}) {
           vaultPath: path.join(context.runtimeDir, "features", "twitch-integration.vault.json"),
           defaultClientId: TWITCH_PUBLIC_CLIENT_ID,
           onIntakeModeChange: (mode) => context.twitchIntakeGate?.setMode?.(mode),
-          onRedemption:
-            require("../../capabilities/feature-platform/providers/twitch-redemption-router")({
-              twitchProvider,
-              chatCommands,
-              widgetController: context.widgetController,
-            }),
+          getAutomationEvents: (userId) => [
+            ...new Set([
+              ...automations.events(userId),
+              ...(context.streamOverlays?.events() || []),
+              ...(automations.events(userId).includes("channel.raid")
+                ? ["channel.shoutout.create", "stream.offline"]
+                : []),
+            ]),
+          ],
+          onEvent: (...args) => {
+            twitchFlowActions?.shoutouts.receive(...args);
+            context.streamOverlays?.receive(...args);
+            return automations.event(...args);
+          },
+          onRedemption: async (event, managed) => {
+            context.streamOverlays?.receive(
+              "channel.channel_points_custom_reward_redemption.add",
+              event,
+            );
+            const result = await automations.redemption(event, managed);
+            return result.handled ? result : legacyRedemption(event, managed);
+          },
+          onChatPresentation: (event, metadata) =>
+            context.streamOverlays?.receive("channel.chat.message", event, metadata),
           onChat: async (event, monitorConfig) => {
+            const automation = await automations.chat(event);
+            if (automation.handled) return automation;
             const handled = await chatCommands.handle(event, monitorConfig);
             const requester = chatCommands.profileFor(event?.chatter_user_id);
             twitchProvider().observeRequesterRole(requester.userId, requester.role);
@@ -85,6 +106,31 @@ function createFeaturePlatformExtension(options = {}) {
     const twitchClips = require("../../domains/twitch/twitch-clips.service")({
       getProvider: twitchProvider,
       storePath: path.join(context.runtimeDir, "system", "twitch-clips.json"),
+    });
+    const legacyRedemption =
+      require("../../capabilities/feature-platform/providers/twitch-redemption-router")({
+        twitchProvider,
+        chatCommands,
+        widgetController: context.widgetController,
+      });
+    const automations = require("../../domains/twitch/twitch-automations.service")({
+      file: path.join(context.runtimeDir, "system", "twitch-automations.json"),
+      getProvider: twitchProvider,
+      deck: {
+        catalog: () => context.controlDeck.catalog(),
+        runAutomation: (...args) => context.controlDeck.runAutomation(...args),
+        cancel: (id) => context.controlDeck.cancel(id),
+      },
+      legacy: legacyRedemption,
+      getShoutouts: () => twitchFlowActions?.shoutouts,
+    });
+    twitchFlowActions = require("../../domains/twitch/twitch-flow-actions")({
+      getProvider: twitchProvider,
+      getAutomations: () => automations,
+      isActive: () =>
+        !!registry
+          ?.list()
+          .features.some((row) => row.id === "twitch-integration" && row.lifecycle === "active"),
     });
     function youtubeProvider() {
       if (!youtubeCatalog) {
@@ -200,6 +246,11 @@ function createFeaturePlatformExtension(options = {}) {
             : {}),
       });
     }
+    const intake = require("../../domains/twitch/request-intake-settings")({
+      file: path.join(context.runtimeDir, "system/request-intake.json"),
+      provider: twitchProvider,
+      registry: () => registry,
+    });
     registry = createFeatureHostRegistry({
       // Older installations retain packages when updating Core. This former
       // facade is now supplied by Lights and must never start a duplicate worker.
@@ -225,19 +276,27 @@ function createFeaturePlatformExtension(options = {}) {
           ]),
         ),
         ...Object.fromEntries(
-          ["status", "setup", "resolve", "enqueue", "remove", "control", "review", "playlist"].map(
-            (method) => [
-              "spotify.desktop.host.v1/" + method,
-              (payload, caller) =>
-                caller.featureId === "song-request"
-                  ? method === "resolve"
-                    ? resolveSongInput("spotify", payload, (input) =>
-                        spotifyProvider.handle(method, input),
-                      )
-                    : spotifyProvider.handle(method, payload || {})
-                  : { ok: false, error: "spotify_access_denied" },
-            ],
-          ),
+          [
+            "status",
+            "setup",
+            "resolve",
+            "enqueue",
+            "remove",
+            "control",
+            "review",
+            "playlist",
+            "favorite",
+          ].map((method) => [
+            "spotify.desktop.host.v1/" + method,
+            (payload, caller) =>
+              caller.featureId === "song-request"
+                ? method === "resolve"
+                  ? resolveSongInput("spotify", payload, (input) =>
+                      spotifyProvider.handle(method, input),
+                    )
+                  : spotifyProvider.handle(method, payload || {})
+                : { ok: false, error: "spotify_access_denied" },
+          ]),
         ),
         "playlist.exports.host.v1/action": (payload, caller) =>
           caller.featureId === "song-request"
@@ -256,6 +315,10 @@ function createFeaturePlatformExtension(options = {}) {
             : { ok: false, error: "tidal_playlist_denied" },
         "tidal.desktop.experimental.v1/status": () =>
           tidalBridge ? tidalBridge.status() : { ok: true, enabled: false },
+        "tidal.desktop.experimental.v1/favorite": (payload, caller) =>
+          caller.featureId === "song-request"
+            ? getTidalCatalog().favorite(payload)
+            : { ok: false, error: "tidal_access_denied" },
         "tidal.desktop.experimental.v1/volume": (payload, caller) =>
           caller.featureId === "song-request" && tidalBridge
             ? tidalBridge.volume(payload)
@@ -307,11 +370,16 @@ function createFeaturePlatformExtension(options = {}) {
             ok: true,
             connected: state.connected,
             commandPermissions: state.monitorConfig.commandPermissions,
+            ...intake.status(),
           };
         },
         "twitch.commands.host.v1/configure": async (payload) => {
+          if (payload.songRequestChatEnabled !== undefined)
+            await intake.configure({ songRequestChatEnabled: payload.songRequestChatEnabled });
           const state = await twitchProvider().configureMonitor({
-            commandPermissions: payload.commandPermissions,
+            ...(payload.commandPermissions
+              ? { commandPermissions: payload.commandPermissions }
+              : {}),
           });
           return {
             ok: true,
@@ -326,6 +394,22 @@ function createFeaturePlatformExtension(options = {}) {
         "twitch.host.v1/inspect-reward": (payload) => twitchProvider().inspectReward(payload),
         "twitch.host.v1/list-rewards": (payload) => twitchProvider().listRewards(payload),
         "twitch.host.v1/create-reward": (payload) => twitchProvider().createReward(payload),
+        "twitch.host.v1/automation-community-preview": (payload) =>
+          automations.communityPreview(payload),
+        "twitch.host.v1/automation-community-import": (payload) =>
+          automations.communityImport(payload),
+        "twitch.host.v1/automation-community-tracking": (payload) =>
+          automations.communityTracking(payload),
+        "twitch.host.v1/automation-community-quotes": (payload) =>
+          automations.communityQuotes(payload),
+        "twitch.host.v1/automation-status": () => automations.status(),
+        "twitch.host.v1/automation-catalog": () => automations.catalog(),
+        "twitch.host.v1/automation-save": (payload) => automations.save(payload),
+        "twitch.host.v1/automation-remove": (payload) => automations.remove(payload),
+        "twitch.host.v1/automation-reward": (payload) => automations.reward(payload),
+        "twitch.host.v1/automation-cancel": (payload) => automations.cancel(payload),
+        "twitch.host.v1/automation-control": (payload) => automations.control(payload),
+        "twitch.host.v1/automation-preview": (payload) => automations.preview(payload),
         "twitch.rewards.manage.v1/set-paused": (payload) =>
           require("../../capabilities/feature-platform/providers/twitch-song-reward-pause")(
             twitchProvider(),
@@ -358,6 +442,25 @@ function createFeaturePlatformExtension(options = {}) {
       allowUnsafeRuntime: options.allowUnsafeRuntime === true,
     });
     registerFeaturePlatformRoutes(context.app, { registry });
+    const { requireLocalOperator } = require("../runtime/local-operator.middleware");
+    context.app.get("/api/request-intake", requireLocalOperator, async (_req, res, next) => {
+      try {
+        res.json(await intake.configure({}));
+      } catch (error) {
+        next(error);
+      }
+    });
+    context.app.put("/api/request-intake", requireLocalOperator, async (req, res, next) => {
+      try {
+        res.json(await intake.configure(req.body || {}));
+      } catch (error) {
+        next(error);
+      }
+    });
+    registry.subscribeLifecycle(() => {
+      void intake.configure({}).catch(() => {});
+    });
+
     const tidalChoicePath = path.join(context.runtimeDir, "tidal-desktop-enabled.json"),
       tidalChoice = readJsonFile(tidalChoicePath, null),
       tidalEnabled =
@@ -404,6 +507,8 @@ function createFeaturePlatformExtension(options = {}) {
       const twitchActive = snapshot?.features?.some(
         (row) => row.id === "twitch-integration" && row.lifecycle === "active",
       );
+      automations.setActive(twitchActive);
+      if (!twitchActive) twitchFlowActions.shoutouts.clear();
       if (!twitchActive) twitchOAuth?.suspendMonitor?.();
       else if (twitchOAuth) twitchOAuth.ensureStatus().catch(() => {});
     });
@@ -435,12 +540,16 @@ function createFeaturePlatformExtension(options = {}) {
           .features.some((row) => row.id === "twitch-integration" && row.lifecycle === "active")
           ? twitchProvider()
           : null,
+      overlayRecords: (widgets) => automations.overlayRecords(widgets),
       twitchClips,
+      twitchFlowActions,
       dashboardRewards,
       registry,
       startup,
       mediaObserver,
       async shutdown() {
+        twitchFlowActions.shutdown();
+        automations.shutdown();
         unsubscribeLifecycle?.();
         spotifyProvider.close();
         await youtubeBrowserProvider.close();

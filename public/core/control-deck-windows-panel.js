@@ -213,14 +213,6 @@ export function createWindowsPanel({
         pin(name + " controls", "native.audio.controls:" + target, {}, "\u25d5"),
       ),
     );
-    bindDeckSlider({
-      input: slider,
-      output: value,
-      send: (level) => change(card, { action: "volume", level }),
-      onError: (error) => {
-        notice.textContent = explain(error);
-      },
-    });
     copy.append(label, detail);
     head.append(copy, pins);
     const controls = el("div", undefined, "deckWindowsAudioValues");
@@ -229,6 +221,14 @@ export function createWindowsPanel({
     controls.append(track, value, mute);
     element.append(head, controls);
     parent.append(element);
+    bindDeckSlider({
+      input: slider,
+      output: value,
+      send: (level) => change(card, { action: "volume", level }),
+      onError: (error) => {
+        notice.textContent = explain(error);
+      },
+    });
     cards.set(target, card);
     return card;
   }
@@ -438,6 +438,7 @@ export function createWindowsPanel({
       editing = options.editing === true;
       restore.hidden = !inline || !editing || !hiddenTargets.size;
       dialog.dataset.orientation = options.orientation || "vertical";
+      dialog.dataset.sliderFill = String(options.fillSpace === true);
       search.value = "";
       notice.textContent = "";
       title.textContent = inline ? "Audio mixer" : "Windows controls";

@@ -1,6 +1,6 @@
-# Bundled RaveLink TIDAL companion
+# Bundled Groby’s Deck TIDAL companion
 
-RaveLink maintains this small Windows companion locally. It needs the regular
+Groby’s Deck maintains this small Windows companion locally. It needs the regular
 TIDAL Desktop app, not TidaLuna or an external plugin installer. No account tokens,
 audio files, DRM code, TIDAL binaries, or upstream plugin platform are packaged.
 Live desktop and account acceptance are tracked separately from automated checks.
@@ -10,7 +10,7 @@ Use the bundled companion's Player setup below. The authenticated bridge URLs
 and `song.tidal.experimental.v1` capability keep their existing names for
 compatibility; removing the old distribution does not remove live queue support.
 
-Song lookup uses each user's TIDAL OAuth authorization with PKCE. RaveLink ships
+Song lookup uses each user's TIDAL OAuth authorization with PKCE. Groby’s Deck ships
 only its public client ID, no developer secret or maintainer account token, and
 uses no hosted credential server. User tokens are encrypted on the local PC.
 Direct track URLs/IDs do not require the separate catalog sign-in.
@@ -54,7 +54,7 @@ the companion with TIDAL closed, then reopen it to load the new renderer.
 
 ## Command line alternative
 
-From the RaveLink directory, with TIDAL closed for install/uninstall:
+From the Groby’s Deck directory, with TIDAL closed for install/uninstall:
 
 ```powershell
 npm.cmd run tidal:companion -- status
@@ -118,13 +118,13 @@ instead of assuming dispatch is synchronous. No clear, playback-start or playlis
 replacement command is sent. The initial maximum song length remains ten minutes;
 change it under Request limits & song length to allow longer tracks.
 
-For the RaveLink app registration, add the exact redirect URI
+For the Groby’s Deck app registration, add the exact redirect URI
 `http://127.0.0.1:5050/auth/tidal/callback` and enable `search.read`. A custom app
 ID override and the actual callback address are available in Developer Mode;
 the saved ID is never displayed. A custom Core port requires that exact URI registered with
 TIDAL. No client secret is accepted. Live sign-in and catalog access remain an
 acceptance gate; the current API specification has ambiguous internal-scope
-annotations on search. RaveLink reports access denial without a secret fallback.
+annotations on search. Groby’s Deck reports access denial without a secret fallback.
 
 Upgrade to companion 0.1.5 by quitting TIDAL completely (including its tray icon),
 then choosing Update companion in Setup and reopening TIDAL. This preserves
@@ -141,8 +141,8 @@ Failures reported before dispatch are recorded as not sent and can be retried
 without an uncertain-delivery review. No uncertain write is automatically replayed.
 
 Licenses and credits: [NOTICE.md](NOTICE.md),
-[TidaLuna Ms-PL](LICENSE.TidaLuna), [RaveLink Apache-2.0](LICENSE.RaveLink).
+[TidaLuna Ms-PL](LICENSE.TidaLuna), [Groby’s Deck Apache-2.0](LICENSE.Groby’s Deck).
 
-Companion 0.1.5 reports upcoming manual-request UIDs/count and the current native UID to Core. Core and the adapter both enforce ten upcoming requests while preserving the playlist. Remaining requests stay in RaveLink; native queue changes wake the FIFO delivery worker without a UI timer. The count excludes history, the playing item and underlying playlist entries. Queue reports contain no account credentials or media bytes.
+Companion 0.1.5 reports upcoming manual-request UIDs/count and the current native UID to Core. Core and the adapter both enforce ten upcoming requests while preserving the playlist. Remaining requests stay in Groby’s Deck; native queue changes wake the FIFO delivery worker without a UI timer. The count excludes history, the playing item and underlying playlist entries. Queue reports contain no account credentials or media bytes.
 
 Companion 0.1.6 adds exact-UID native removal and skipping for Song Request moderation. Quit TIDAL completely, update the companion in Player > TIDAL > Setup, then reopen TIDAL. Core confirms removal before reporting success, preserves unrelated playlist items and requires review when an older delivery has no recorded UID.

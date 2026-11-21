@@ -341,6 +341,21 @@
         if (n) stage.append(n);
       }
     }
+    if (c.layoutMode === "canvas")
+      for (const segment of c.segments) {
+        const layer = [...stage.children].find((n) => n.dataset.segmentId === segment.id);
+        for (const [data, element] of [
+          [segment, layer],
+          ...segment.blocks.map((block) => [
+            block,
+            layer?.querySelector('[data-block-id="' + block.id + '"]'),
+          ]),
+        ]) {
+          if (!element || !data.frame || !data.crop) continue;
+          const r = data.crop;
+          element.style.clip = `rect(${r.top || 0}px, ${data.frame.width - (r.right || 0)}px, ${data.frame.height - (r.bottom || 0)}px, ${r.left || 0}px)`;
+        }
+      }
     resizeObservers.get(stage)?.disconnect();
     const observer = new ResizeObserver(() => marquee(stage));
     resizeObservers.set(stage, observer);

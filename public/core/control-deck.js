@@ -1,3 +1,4 @@
+import { explainDeckError as explain } from "./control-deck-errors.js";
 /** Dashboard button mode. Execution, permissions and macro state belong to Core.
  * Editing and page navigation never trigger an action. Poll only the visible deck.
  */
@@ -7,7 +8,8 @@ import { createDeckFeed } from "./control-deck-feed.js";
 import { createDeckWidgets } from "./control-deck-widgets.js";
 import { applyDeckLayout, createDeckLayout } from "./control-deck-layout.js";
 import { createDeckFullscreen } from "./control-deck-fullscreen.js";
-import { createDeckPager } from "./control-deck-pager.js";
+import { createDeckPager, renderDeckPageTabs } from "./control-deck-pager.js";
+import { createDeckBingo } from "./control-deck-bingo.js";
 import { installDeckKeys } from "./control-deck-keys.js";
 import { createDeckAudioUi } from "./control-deck-audio-ui.js";
 import { appendDeckSlider, sliderControl } from "./control-deck-slider.js";
@@ -16,6 +18,8 @@ import { createDeckSettings } from "./control-deck-settings.js";
 import { createDeckPanels } from "./control-deck-panels.js";
 import { deckIndicator } from "./control-deck-feedback.js";
 import { createDeckDisplay } from "./control-deck-display.js";
+import { sequenceStatus, sequenceAvailable } from "./control-deck-sequence-options.js";
+import { paintButtonBackground, installBackgroundControls } from "./control-deck-backgrounds.js";
 import { createDeckEditor } from "./control-deck-editor.js";
 import { createDeckIntegrations } from "./control-deck-integrations.js";
 import { openFeaturePage, selectMainTab } from "./feature-navigation.js";
@@ -29,6 +33,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     closed = false,
     undoLayout = null,
     suppressClickUntil = 0;
+  let bingoOpen = false;
   const pending = new Set(),
     holds = new Map();
   let receiptTimer,
@@ -86,6 +91,22 @@ export function initControlDeck(panel, onOverview = () => {}) {
   rack.setAttribute("aria-label", "Volume controls");
   $("Grid").before(workspace);
   workspace.append($("Grid"), rack);
+  const bingo = createDeckBingo({
+    host,
+    workspace,
+    request,
+    visible: isVisible,
+    onOpen: () => {
+      editing = false;
+      bingoOpen = true;
+      render();
+      bingo.tab.focus();
+    },
+    openDesigner: () => {
+      fullscreen.leave();
+      document.querySelector('[data-tab="overlays"]')?.click();
+    },
+  });
   const widgets = createDeckWidgets({
     host,
     request,
@@ -119,16 +140,6 @@ export function initControlDeck(panel, onOverview = () => {}) {
       throw Error(result.error?.code || result.error || "deck_request_failed");
     return Object.hasOwn(result, "value") ? result.value : result;
   }
-  const errors = {
-    control_deck_revision_conflict:
-      "This deck changed in another window. Reload its current settings and try again.",
-    deck_revision_conflict:
-      "This deck changed in another window. Reload its current settings and try again.",
-    control_deck_action_unavailable:
-      "This action is unavailable. Check its package, permissions or connection.",
-    control_deck_busy: "This button is already running. Wait for it or stop the running action.",
-  };
-  const explain = (error) => errors[error.message] || String(error.message).replaceAll("_", " ");
   async function save(config, remember = true) {
     config = placeDeckSliders(config);
     if (saving) throw Error("Deck settings are still saving.");
@@ -151,16 +162,18 @@ export function initControlDeck(panel, onOverview = () => {}) {
       mode.querySelectorAll("button").forEach((b) => (b.disabled = false));
     }
   }
+  function selectPage(id) {
+    bingoOpen = false;
+    pageId = id;
+    render();
+  }
   const editor = createDeckEditor({
     onObsSetup: () => panels.open("obs"),
     request,
     save,
     getConfig: () => snapshot.config,
     getCatalog: () => catalog,
-    onPage: (id) => {
-      pageId = id;
-      render();
-    },
+    onPage: selectPage,
     note,
   });
   const layout = createDeckLayout({
@@ -171,13 +184,15 @@ export function initControlDeck(panel, onOverview = () => {}) {
     request,
   });
   const settings = createDeckSettings({
+    refreshDeck: refresh,
+    host,
     getConfig: () => snapshot.config,
     getPageId: () => pageId,
     save,
     editor,
     explain,
   });
-  const settingsButton = node("button", "deckQuietButton", "Button settings");
+  const settingsButton = node("button", "deckSettingsButton", "Button settings");
   settingsButton.id = "deckSettingsOpen";
   settingsButton.type = "button";
   settingsButton.onclick = () => settings.open();
@@ -237,10 +252,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     host,
     getConfig: () => snapshot?.config,
     getPageId: () => pageId,
-    onPage: (id) => {
-      pageId = id;
-      render();
-    },
+    onPage: selectPage,
     onSwipe: () => {
       holds.forEach(clearTimeout);
       holds.clear();
@@ -258,7 +270,9 @@ export function initControlDeck(panel, onOverview = () => {}) {
         .catch((e) => note(explain(e), true));
   };
   host.querySelector(".deckTools").append(undo);
-  const display = createDeckDisplay(host),
+  const display = createDeckDisplay(host, () => {
+      if (snapshot && isVisible()) updateStates();
+    }),
     quick = node("div", "deckQuickOptions");
   const quickDisplay = node("select"),
     quickColumns = node("select"),
@@ -366,16 +380,11 @@ export function initControlDeck(panel, onOverview = () => {}) {
     );
   }
   function available(button) {
-    return (
-      button.kind === "folder" ||
-      (button.steps || []).every((step) => {
-        const action = catalog.find((a) => a.id === step.actionId);
-        return !!action && action.available !== false;
-      })
-    );
+    return sequenceAvailable(button, catalog);
   }
   function appearance(tile, button) {
     const a = button.appearance || {};
+    paintButtonBackground(tile, button.kind === "slider" ? { ...a, backgroundProfile: "none" } : a);
     const led = node("span", "deckLedSource"),
       face = node("span", "deckAcrylicFace");
     led.setAttribute("aria-hidden", "true");
@@ -469,7 +478,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
             : feedback;
     status.textContent =
       running || pending.has(button.id)
-        ? "Running…"
+        ? sequenceStatus(running, button.cancelOnPress)
         : label
           ? String(label).replaceAll("_", " ")
           : !available(button)
@@ -505,7 +514,9 @@ export function initControlDeck(panel, onOverview = () => {}) {
     tile.setAttribute("aria-pressed", String(pressed));
     tile.disabled =
       !editing &&
-      (!available(button) || (button.kind !== "slider" && (pending.has(button.id) || !!running)));
+      (!available(button) ||
+        (button.kind !== "slider" &&
+          (pending.has(button.id) || (!!running && !button.cancelOnPress))));
     const slider = tile.querySelector(".deckVolumeSlider");
     if (slider) {
       slider.disabled = editing || !available(button);
@@ -540,7 +551,9 @@ export function initControlDeck(panel, onOverview = () => {}) {
         "POST",
         { trigger, ...(value === undefined ? {} : { value }) },
       );
-      note("Requested " + button.title + ".");
+      note(
+        accepted.cancelled ? "Stopped " + button.title + "." : "Requested " + button.title + ".",
+      );
       if (accepted.navigation) {
         const n = accepted.navigation;
         if (n.panel) await panels.open(n.panel, n);
@@ -610,13 +623,12 @@ export function initControlDeck(panel, onOverview = () => {}) {
     };
   }
   function updateStates() {
+    display.cancelFeedback();
     widgets.update(snapshot, editing, statusConnected);
-    for (const tile of host.querySelectorAll("[data-deck-button]")) {
-      const button = snapshot.config.pages
-        .flatMap((p) => p.buttons)
-        .find((b) => b.id === tile.dataset.deckButton);
-      if (button) paintState(tile, button);
-    }
+    display.paintButtons(
+      snapshot.config.pages.flatMap((page) => page.buttons),
+      paintState,
+    );
     $("CancelRuns").hidden = !snapshot.running?.length;
     display.schedule();
   }
@@ -646,22 +658,11 @@ export function initControlDeck(panel, onOverview = () => {}) {
         return `@keyframes ${colorAnimation(b.id)} {${colors.map((color, i) => `${(i * 100) / (colors.length - 1)}% {--deck-color:${color}}`).join("")}}`;
       })
       .join("\n");
-    $("Pages").hidden = pages.length < 2;
     $("NewPage").hidden = $("PageSettings").hidden = setup.hidden = !editing;
     $("Layout").hidden = settingsButton.hidden = !editing;
     syncQuickOptions();
-    $("Pages").replaceChildren(
-      ...pages.map((p) => {
-        const b = node("button", "", p.name);
-        b.type = "button";
-        b.setAttribute("aria-pressed", String(p.id === pageId));
-        b.onclick = () => {
-          pageId = p.id;
-          render();
-        };
-        return b;
-      }),
-    );
+    renderDeckPageTabs($("Pages"), pages, bingoOpen ? "" : pageId, selectPage, bingo.tab);
+    bingo.set(deck && bingoOpen);
     host.dataset.editing = String(editing);
     $("Edit").setAttribute("aria-pressed", String(editing));
     $("Edit").setAttribute("aria-label", editing ? "Done editing buttons" : "Edit buttons");
@@ -756,6 +757,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     add.onclick = () => editor.button(null, pageId);
     $("Grid").append(add);
     audioUi.finish(page, editing);
+    installBackgroundControls(host);
     display.schedule();
     feed.sync();
   }
@@ -769,12 +771,12 @@ export function initControlDeck(panel, onOverview = () => {}) {
       snapshot = next;
       audioUi.settle();
       if (changed) render();
-      else if (!host.querySelector('input[data-dragging="true"]')) updateStates();
+      else display.scheduleFeedback();
       document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: next.windowsAudio }));
     },
     offline() {
       statusConnected = false;
-      if (snapshot) updateStates();
+      if (snapshot) display.scheduleFeedback();
     },
   });
   function refresh(force = false) {
@@ -796,6 +798,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
       })
       .catch((e) => note(explain(e), true));
   const observer = new IntersectionObserver(() => {
+    bingo.sync();
     if (isVisible()) {
       void refresh();
       void audioUi.refresh();
@@ -803,6 +806,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
   });
   observer.observe(panel);
   document.addEventListener("visibilitychange", () => {
+    bingo.sync();
     if (isVisible()) void refresh();
     else feed.sync();
   });

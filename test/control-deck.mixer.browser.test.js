@@ -132,6 +132,16 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   const mixer = page.locator("#deckAudioMixer"),
     systemSlider = mixer.getByRole("slider", { name: "System audio volume", exact: true });
   await systemSlider.waitFor();
+  const nativeIncrease = mixer.getByRole("button", {
+    name: "Increase System audio volume",
+    exact: true,
+  });
+  assert.equal(await nativeIncrease.isVisible(), true);
+  const nativeTarget = await nativeIncrease.boundingBox();
+  assert(
+    nativeTarget.width >= 44 && nativeTarget.height >= 44,
+    "native Windows faders have large precision controls too",
+  );
   const mixerBounds = await mixer.boundingBox(),
     hostBounds = await page.locator("#controlDeck").boundingBox();
   assert(
@@ -382,5 +392,39 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     "overflow mixer pages swipe without scrolling the bank or changing audio: " +
       JSON.stringify(writes.slice(countBeforePaging)),
   );
+  await page.locator("#deckExitFullscreen").click();
+  await page.waitForFunction(() => !document.fullscreenElement);
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: "Audio mixer", exact: true }).click();
+  await mixer.waitFor({ state: "visible" });
+  assert.equal(await page.locator("#controlDeck").getAttribute("data-focus"), "false");
+  if (process.env.RAVELINK_CAPTURE_TOUCH === "1") {
+    const capture = core.services.controlDeck.snapshot();
+    capture.config.layout.sliderFill = true;
+    capture.config.layout.hapticsEnabled = true;
+    core.services.controlDeck.save(capture.config, capture.revision);
+    await page.setViewportSize({ width: 430, height: 932 });
+    await page.getByRole("button", { name: "Fullscreen", exact: true }).click();
+    await page.waitForFunction(
+      () => document.querySelector("#controlDeck").dataset.focus === "true",
+    );
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.resolve("runtime/touch-phone-fullscreen.png") });
+    await page.locator("#deckExitFullscreen").click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.waitForTimeout(200);
+    await page.locator("#deckEdit").click();
+    await page.locator("#deckHapticsEnabled").waitFor({ state: "visible" });
+    await page.screenshot({ path: path.resolve("runtime/touch-phone-edit.png"), fullPage: true });
+    await page.locator("#deckEdit").click();
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.getByRole("button", { name: "Fullscreen", exact: true }).click();
+    await page.waitForFunction(
+      () => document.querySelector("#controlDeck").dataset.focus === "true",
+    );
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.resolve("runtime/touch-tablet-fullscreen.png") });
+    await page.locator("#deckExitFullscreen").click();
+  }
   assert.deepEqual(errors, []);
 });

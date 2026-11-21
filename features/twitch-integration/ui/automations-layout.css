@@ -1,0 +1,534 @@
+/* The automation list and its inline editor share the package theme. */
+:root {
+  color-scheme: dark;
+  --bg: #0b101b;
+  --panel: #121a2a;
+  --surface: #202d46;
+  --text: #edf1ff;
+  --muted: #aab7d1;
+  --line: #2a3855;
+  --edge: var(--line);
+  --accent: #bd376d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+}
+
+main {
+  width: 100%;
+  padding: clamp(0px, 1.5vw, 20px);
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+h2 {
+  margin: 0 0 12px;
+  font-size: 19px;
+}
+h3 {
+  font-size: 17px;
+}
+p {
+  margin: 8px 0 16px;
+  color: var(--muted);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: #bb7194;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+:where(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--muted);
+  outline-offset: 2px;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+input[type="color"] {
+  height: 44px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+}
+.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.toolbar p {
+  margin: 0;
+}
+.primary {
+  background: #7d234b;
+}
+.danger {
+  border-color: #b24d6b;
+}
+section,
+aside {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+details {
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+dialog {
+  max-width: 480px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+dialog::backdrop {
+  background: #000a;
+}
+[hidden] {
+  display: none !important;
+}
+#notice {
+  min-height: 20px;
+  margin: 8px 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+#runs button {
+  margin-left: 8px;
+}
+#history {
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.automationExamples {
+  margin: 10px 0;
+  padding: 8px 0;
+}
+.automationExamples summary {
+  color: var(--text);
+  font-weight: 600;
+}
+.automationListToolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 12px 0;
+}
+.automationListToolbar h2 {
+  margin-right: auto;
+}
+.automationListToolbar label {
+  min-width: 130px;
+}
+.automationListToolbar label:first-of-type {
+  flex: 1 1 200px;
+  max-width: 360px;
+}
+.automationCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0 14px;
+}
+.automationCategories button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.automationCategories button[aria-pressed="true"] {
+  border-color: #a44b76;
+  background: #442139;
+  color: var(--text);
+}
+#automationList {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.automationColumns {
+  display: grid;
+  grid-template-columns: 44px minmax(100px, 1fr) minmax(120px, 2fr) 90px 90px 100px 150px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+}
+.automationColumns > * {
+  min-width: 0;
+}
+.automationColumnLabels {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.automationColumnLabels > :nth-child(2) {
+  padding-inline-start: 6px;
+}
+.automationColumnLabels > :last-child {
+  text-align: end;
+}
+.automationGroupHeading {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+}
+.automationItem {
+  border-bottom: 1px solid var(--line);
+}
+.automationItem:nth-child(odd) {
+  background: #ffffff04;
+}
+.automationItem:last-child {
+  border-bottom: 0;
+  border-radius: 0 0 12px 12px;
+}
+.automationItem > .automationColumns {
+  cursor: pointer;
+}
+.automationItem > .automationColumns:hover {
+  background: #ffffff05;
+}
+.automationItem > .automationColumns:has(.automationRowTitle[aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--panel) 88%, var(--accent));
+}
+#automationList .automationRowTitle {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.automationRowTitle strong {
+  font-size: 14px;
+}
+.automationRowTitle small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.automationResponse,
+.automationGlobal,
+.automationUser,
+.automationRole {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.automationGlobal,
+.automationUser {
+  font-variant-numeric: tabular-nums;
+}
+.automationManage {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.automationManage button {
+  min-height: 36px;
+  padding: 6px 8px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.automationRemove {
+  color: #efa7bc;
+}
+#automationList .automationEnable {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  width: 42px;
+  min-height: 44px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+.automationEnable::before {
+  position: absolute;
+  z-index: -1;
+  inset: 9px 0;
+  border-radius: inherit;
+  background: #566077;
+  content: "";
+}
+.automationEnable > span {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+}
+.automationEnable[aria-checked="true"]::before {
+  background: #a82357;
+}
+.automationEnable[aria-checked="true"] > span {
+  margin-inline-start: auto;
+}
+.automationTimer {
+  padding: 0 12px 10px;
+}
+.automationEmpty {
+  padding: 20px 12px;
+}
+
+.automationItem #editor {
+  padding: clamp(12px, 2vw, 20px);
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--panel) 88%, var(--surface));
+}
+#editorParking:empty {
+  display: none;
+}
+#editorParking #editor {
+  margin-top: 16px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.automationDuration {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(95px, auto);
+  gap: 8px;
+}
+.rewardSettings {
+  min-width: 0;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+}
+.rewardSettings legend {
+  padding: 0 8px;
+  font-weight: 700;
+}
+.rewardSettings > details,
+#rewardFields .fields {
+  margin-top: 12px;
+}
+.automationTriggers,
+.library {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.automationTriggers {
+  margin: 0;
+}
+.library {
+  margin: 12px 0;
+  background: var(--panel);
+}
+.automationTriggers > summary,
+.library > summary {
+  font-weight: 600;
+}
+.automationTriggers > .fields {
+  margin: 10px 0 6px;
+}
+.automationTriggers .pillField {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.automationTriggers .pillField > label {
+  display: block;
+  margin: 0;
+}
+.automationTriggers > small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.triggerCount {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.triggerCount:empty {
+  display: none;
+}
+#commandOfflineField input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+}
+.automationActionPicker {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.automationActionPicker label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+#editor .deckStep {
+  background: var(--panel);
+}
+.deckSequence {
+  min-width: 0;
+}
+.deckFlowSelectTarget {
+  margin-bottom: 12px;
+}
+[data-flow-selected="true"] {
+  outline: 1px solid #d87aa4;
+  outline-offset: 4px;
+}
+.automationBuild {
+  margin-top: 18px;
+  color: var(--muted);
+  text-align: right;
+  font-size: 11px;
+}
+
+@media (pointer: coarse) {
+  .automationManage button {
+    min-height: 44px;
+  }
+}
+@media (max-width: 1200px) {
+  .automationColumns {
+    grid-template-columns: 44px minmax(90px, 1fr) minmax(100px, 1.5fr) 72px 72px 80px 150px;
+    gap: 10px;
+  }
+}
+@media (max-width: 1000px) {
+  .automationColumnLabels {
+    display: none;
+  }
+  .automationColumns {
+    grid-template-columns: 44px repeat(2, minmax(0, 1fr));
+  }
+  .automationResponse {
+    grid-area: 2 / 2 / auto / -1;
+  }
+  .automationManage {
+    grid-area: 1 / 3;
+  }
+  .automationGlobal {
+    grid-area: 3 / 2;
+  }
+  .automationGlobal::before {
+    content: "Global cooldown: ";
+  }
+  .automationUser {
+    grid-area: 3 / 3;
+  }
+  .automationUser::before {
+    content: "Per-user cooldown: ";
+  }
+  .automationRole {
+    grid-area: 4 / 2 / auto / -1;
+  }
+}
+@media (max-width: 760px) {
+  .fields,
+  .deckFlowBranches {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .deckSequenceTools button {
+    flex: 1 1 140px;
+  }
+}
+@media (max-width: 540px) {
+  body {
+    padding: 12px;
+  }
+  .automationRowTitle {
+    grid-column: 2 / -1;
+  }
+  .automationManage {
+    grid-area: 5 / 2 / auto / -1;
+    justify-content: flex-start;
+  }
+}

@@ -1,0 +1,141 @@
+/* Keep both layers metrically identical; all editing stays in the native textarea. */
+.commandCodeEditor {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  isolation: isolate;
+  background: #101827;
+  border-radius: 8px;
+  --command-text: #edf1ff;
+  --command-flow: #cfa5f3;
+  --command-function: #f3d38d;
+  --command-variable: #8acbff;
+  --command-number: #ffb78b;
+  --command-string: #a5dfa8;
+  --command-operator: #f5a5bd;
+  --command-bracket: #b9c9e5;
+}
+.commandCodeEditor .commandCodeInput,
+.commandCodeHighlight {
+  box-sizing: border-box;
+  font:
+    400 14px/1.7 ui-monospace,
+    Consolas,
+    monospace !important;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+  tab-size: 2;
+  text-align: left;
+  text-transform: none;
+  text-indent: 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.commandCodeEditor .commandCodeInput {
+  display: block;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--command-text);
+  resize: vertical;
+}
+.commandCodeInput::selection {
+  background: #34547e;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+.commandCodeHighlight {
+  position: absolute;
+  inset: 0 auto auto 0;
+  margin: 0;
+  border: solid transparent;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  color: var(--command-text);
+}
+.commandToken-text {
+  color: var(--command-text, #edf1ff);
+}
+.commandToken-flow {
+  color: var(--command-flow, #cfa5f3);
+}
+.commandToken-function {
+  color: var(--command-function, #f3d38d);
+}
+.commandToken-variable {
+  color: var(--command-variable, #8acbff);
+}
+.commandToken-number {
+  color: var(--command-number, #ffb78b);
+}
+.commandToken-string {
+  color: var(--command-string, #a5dfa8);
+}
+.commandToken-operator {
+  color: var(--command-operator, #f5a5bd);
+}
+.commandToken-bracket {
+  color: var(--command-bracket, #b9c9e5);
+}
+.commandCodeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 6px 0 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #101827;
+  font: 12px/1.6 system-ui;
+  min-width: 0;
+}
+.commandCodeLegend[hidden] {
+  display: none !important;
+}
+.deckStepParameters
+  > :is(.commandCodeField, .commandCodeLegend, .commandCodeHelp, .commandVariablePicker) {
+  grid-column: 1 / -1;
+}
+.commandCodeField[hidden] + .commandCodeLegend {
+  display: none !important;
+}
+.commandCodeLegend button {
+  margin-left: auto;
+  font: inherit;
+  padding: 6px 10px;
+  min-height: 44px;
+  color: #edf1ff;
+  background: #1b2a42;
+  border: 1px solid #50627e;
+  border-radius: 6px;
+}
+.commandCodeEditor[data-plain="true"] .commandCodeInput {
+  color: var(--command-text) !important;
+  -webkit-text-fill-color: var(--command-text);
+}
+.commandCodeEditor[data-plain="true"] .commandCodeHighlight {
+  visibility: hidden;
+}
+@media (forced-colors: active) {
+  .commandCodeEditor .commandCodeInput {
+    color: CanvasText !important;
+    -webkit-text-fill-color: CanvasText;
+    caret-color: CanvasText;
+  }
+  .commandCodeHighlight,
+  .commandCodeLegend {
+    display: none;
+  }
+}

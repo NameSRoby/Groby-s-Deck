@@ -88,6 +88,29 @@ module.exports = function installFeatureRelay(config) {
     // Child messages are only trusted from this exact frame. A sandboxed frame
     // may report origin "null", so checking origin alone cannot identify it.
     if (event.source !== frame.contentWindow) return;
+    if (message.type === "clipboard-write") {
+      let ok = false;
+      if (
+        config.featureId === "twitch-integration" &&
+        config.pageId === "command-list" &&
+        typeof message.id === "string" &&
+        message.id.length <= 80 &&
+        typeof message.text === "string" &&
+        message.text.length <= 12000 &&
+        navigator.userActivation?.isActive &&
+        frame.getBoundingClientRect().width > 0
+      ) {
+        try {
+          await navigator.clipboard.writeText(message.text);
+          ok = true;
+        } catch {}
+      }
+      frame.contentWindow.postMessage(
+        { channel, type: "clipboard-result", id: message.id, ok },
+        "*",
+      );
+      return;
+    }
     if (message.type === "feature-height") {
       if (
         config.surface === "panel" &&
@@ -95,7 +118,7 @@ module.exports = function installFeatureRelay(config) {
         Number.isFinite(message.height) &&
         message.height > 0
       ) {
-        const height = Math.max(240, Math.min(16000, Math.ceil(message.height)));
+        const height = Math.max(240, Math.min(200000, Math.ceil(message.height)));
         frame.style.height = height + "px";
         if (window.parent !== window)
           window.parent.postMessage({ channel, type: "feature-height", height }, location.origin);
@@ -143,7 +166,7 @@ module.exports = function installFeatureRelay(config) {
         ["working", "success", "error"].includes(message.state) &&
         typeof message.message === "string"
       )
-        window.RaveLinkFeedback.show(message.message.slice(0, 240), message.state);
+        window.GrobyFeedback.show(message.message.slice(0, 240), message.state);
       return;
     }
     if (message.type !== "call" || !allowed.has(message.capability))

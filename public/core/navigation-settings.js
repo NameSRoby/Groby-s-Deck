@@ -11,9 +11,9 @@
     lights: "Lights",
     fixtures: "Fixtures",
     widget: "Widget",
-    updates: "Updates",
-    features: "Packages",
-    mods: "Community mods",
+    features: "Updates & packages",
+    overlays: "Overlay designer",
+    soundboard: "Soundboard",
     "feature:song-request": "Song Request",
     "feature:twitch-integration": "Twitch Integration",
   };
@@ -56,7 +56,7 @@
     if (!loaded) return;
     for (const button of [...nav.querySelectorAll("[data-tab]")]) {
       const id = button.dataset.tab,
-        mode = saved[id] || defaultMode(id),
+        mode = saved[id] || (id === "features" ? saved.updates : null) || defaultMode(id),
         target = mode === "main" ? nav : more;
       button.classList.toggle("navigationHidden", mode === "hidden");
       if (button.parentElement !== target) {
@@ -85,7 +85,7 @@
         ["hidden", "Hidden"],
       ])
         select.add(new Option(text, value));
-      select.value = saved[id] || defaultMode(id);
+      select.value = saved[id] || (id === "features" ? saved.updates : null) || defaultMode(id);
       label.append(document.createTextNode(name), select);
       choices.append(label);
     }

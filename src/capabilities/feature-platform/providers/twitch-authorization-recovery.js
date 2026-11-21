@@ -4,11 +4,18 @@
  * docs/DEVELOPMENT.md#lighting-and-dynamic-effects
  */
 const TYPES = new Set([
+  ...["begin", "progress", "lock", "end"].map((suffix) => "channel.prediction." + suffix),
+  "channel.channel_points_custom_reward_redemption.update",
+  "channel.shoutout.create",
   "channel.channel_points_custom_reward_redemption.add",
   "channel.chat.message",
+  "channel.chat.message_delete",
+  "channel.chat.clear_user_messages",
+  "channel.chat.clear",
   "channel.follow",
   "channel.subscribe",
   "channel.subscription.message",
+  "channel.subscription.end",
   "channel.subscription.gift",
   "channel.cheer",
   "channel.raid",
@@ -17,6 +24,10 @@ const TYPES = new Set([
   "channel.hype_train.begin",
   "channel.hype_train.progress",
   "channel.hype_train.end",
+  "channel.ad_break.begin",
+  "channel.poll.begin",
+  "channel.poll.progress",
+  "channel.poll.end",
 ]);
 const REASONS = new Set(["authorization_revoked", "user_removed", "version_removed"]);
 

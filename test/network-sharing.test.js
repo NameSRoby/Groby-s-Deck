@@ -132,7 +132,7 @@ test(
     assert.equal(plan.profile, "Private");
     assert.equal(plan.remoteAddress, "LocalSubnet");
     assert.equal(plan.direction, "Inbound");
-    assert.equal(path.basename(plan.program), "RaveLink-Core-Node.exe");
+    assert.equal(path.basename(plan.program), "Grobys-Deck-Node.exe");
   },
 );
 test("LAN gateway enables full operator controls without changing localhost or accepting hostile origins", async (t) => {
@@ -141,7 +141,7 @@ test("LAN gateway enables full operator controls without changing localhost or a
     lan = `http://127.0.0.1:${port}`;
   assert.equal(e.services.networkSharing.snapshot().enabled, false);
   assert.equal((await e.configure(true, port)).body.active, true);
-  assert.match(await fetch(lan).then((r) => r.text()), /RaveLink Core/);
+  assert.match(await fetch(lan).then((r) => r.text()), /Groby’s Deck/);
   assert.equal((await fetch(lan + "/api/dashboard")).status, 200);
   const theme = { accent: "#2474bf", bg: "#050507", surface: "#121a2f", text: "#eaeaea", glow: 65 };
   const write = (origin) =>

@@ -4,6 +4,7 @@
  * docs/DEVELOPMENT.md#lighting-and-dynamic-effects
  */
 let context;
+const counterSyntax = require("./counter-syntax");
 
 async function activate(nextContext) {
   context = nextContext;
@@ -17,6 +18,44 @@ async function host(method, payload, timeoutMs = 5000) {
 }
 
 async function handleRequest(request) {
+  if (
+    request.capability === "twitch.automations.v1" &&
+    [
+      "community-preview",
+      "community-import",
+      "community-quotes",
+      "community-tracking",
+      "status",
+      "catalog",
+      "save",
+      "remove",
+      "reward",
+      "cancel",
+      "rewards",
+      "control",
+      "preview",
+    ].includes(request.method)
+  ) {
+    let payload;
+    try {
+      payload = counterSyntax.fields(request.payload, counterSyntax.display);
+    } catch (error) {
+      return { ok: false, error: String(error.message).slice(0, 250) };
+    }
+    const result = await host(
+      request.method === "rewards" ? "list-rewards" : "automation-" + request.method,
+      payload,
+      ["reward", "save"].includes(request.method) ? 29000 : 6000,
+    );
+    return counterSyntax.fields(result, (text) => {
+      try {
+        return counterSyntax.display(text);
+      } catch {
+        // Keep unsupported saved text available for correction; Save reports its error.
+        return text;
+      }
+    });
+  }
   const routes = {
     "twitch.connection.read.v1/status": ["status", 1500],
     "twitch.oauth.admin.v1/configure": ["configure", 1500],

@@ -104,6 +104,7 @@ function overlayFrom(input, fallback = DEFAULT_OVERLAY) {
     /^#[0-9a-fA-F]{6}$/.test(String(value || "")) ? String(value).toLowerCase() : previous;
   const oneOf = (value, values, previous) => (values.includes(value) ? value : previous);
   const optionalInteger = (value, minimum, maximum) => {
+    if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
     return Number.isInteger(number) && number >= minimum && number <= maximum ? number : null;
   };
@@ -142,6 +143,16 @@ function overlayFrom(input, fallback = DEFAULT_OVERLAY) {
           height: integer(frame.height, 1, 600, 30),
         })
       : null;
+  const cropFrom = (crop = {}, frame = {}) => {
+    const left = integer(crop.left, 0, Math.max(0, (frame?.width || 1) - 1), 0);
+    const top = integer(crop.top, 0, Math.max(0, (frame?.height || 1) - 1), 0);
+    return {
+      left,
+      top,
+      right: integer(crop.right, 0, Math.max(0, (frame?.width || 1) - left - 1), 0),
+      bottom: integer(crop.bottom, 0, Math.max(0, (frame?.height || 1) - top - 1), 0),
+    };
+  };
   const seen = new Set();
   const seenBlocks = new Set();
   const segments = [];
@@ -179,6 +190,7 @@ function overlayFrom(input, fallback = DEFAULT_OVERLAY) {
           id: blockId,
           kind,
           frame: frameFrom(rawBlock.frame),
+          crop: cropFrom(rawBlock.crop, rawBlock.frame),
           contentScale: Math.max(0.05, Math.min(20, Number(rawBlock.contentScale) || 1)),
           lockSize: rawBlock.lockSize === true,
           lockRatio: rawBlock.lockRatio === true,
@@ -197,10 +209,25 @@ function overlayFrom(input, fallback = DEFAULT_OVERLAY) {
         align: oneOf(raw.align, ["left", "center", "right"], "left"),
         wrap: raw.wrap !== false,
         frame: frameFrom(raw.frame),
+        crop: cropFrom(raw.crop, raw.frame),
         lockSize: raw.lockSize === true,
         lockRatio: raw.lockRatio === true,
         scaleContents: raw.scaleContents !== false,
-        shape: oneOf(raw.shape, ["rectangle", "rounded", "ellipse"], "rectangle"),
+        shape: oneOf(
+          raw.shape,
+          [
+            "rectangle",
+            "rounded",
+            "ellipse",
+            "triangle",
+            "diamond",
+            "hexagon",
+            "chevron",
+            "parallelogram",
+            "star",
+          ],
+          "rectangle",
+        ),
         size: oneOf(raw.size, ["compact", "wide", "full"], "wide"),
         style: segmentStyleFrom(raw.style),
         blocks: Object.freeze(blocks),

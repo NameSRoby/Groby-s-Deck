@@ -36,8 +36,8 @@ module.exports = function registerTidalOAuth(app, getCatalog) {
   app.get("/auth/tidal/result", local, (req, res) => {
     const messages = {
       connected:
-        "TIDAL connected. Return to RaveLink and refresh the account status. You can close this window.",
-      tidal_oauth_denied: "Sign-in cancelled. Return to RaveLink to try again.",
+        "TIDAL connected. Return to Groby’s Deck and refresh the account status. You can close this window.",
+      tidal_oauth_denied: "Sign-in cancelled. Return to Groby’s Deck to try again.",
       tidal_oauth_state_invalid:
         "This callback does not match the active sign-in. Start a new sign-in from RaveLink.",
       tidal_oauth_session_expired:
@@ -52,11 +52,11 @@ module.exports = function registerTidalOAuth(app, getCatalog) {
     const message =
       typeof req.query.result === "string" && Object.hasOwn(messages, req.query.result)
         ? messages[req.query.result]
-        : "TIDAL sign-in failed. Return to RaveLink and try again.";
+        : "TIDAL sign-in failed. Return to Groby’s Deck and try again.";
     res
       .type("html")
       .send(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>RaveLink · TIDAL</title><style>body{background:#10131c;color:#f4f5f7;font:18px system-ui;margin:48px;max-width:640px;line-height:1.6}</style></head><body><h1>TIDAL sign-in</h1><p>${message}</p></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Groby’s Deck · TIDAL</title><style>body{background:#10131c;color:#f4f5f7;font:18px system-ui;margin:48px;max-width:640px;line-height:1.6}</style></head><body><h1>TIDAL sign-in</h1><p>${message}</p></body></html>`,
       );
   });
 };

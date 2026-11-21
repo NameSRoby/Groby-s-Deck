@@ -18,6 +18,8 @@ const defaults = {
   updates: "more",
   features: "more",
   mods: "more",
+  overlays: "more",
+  soundboard: "more",
   "feature:song-request": "main",
   "feature:twitch-integration": "main",
 };

@@ -53,6 +53,7 @@
   font-size: 13px;
   line-height: 1.4;
   margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 .nowAlbum {
   font-size: 12px;
@@ -82,9 +83,37 @@
   border-radius: 4px;
   padding: 2px 5px;
 }
+.playerFavorites:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.nowFacts .playerFavorites button {
+  min-width: 32px;
+  min-height: 28px;
+  padding: 2px 5px;
+  line-height: 1;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.favoriteNotice:not(:empty) {
+  padding-inline-start: 4px;
+  overflow-wrap: anywhere;
+}
+.favoriteNotice.failed {
+  color: var(--bad, #ff819b);
+}
+@media (pointer: coarse) {
+  .nowFacts .playerFavorites button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 #nowTimeline {
   max-width: 600px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 #nowProgress {
   display: block;
@@ -126,6 +155,7 @@
   .tidal-mode .playerSide .nowPlayingCard {
     grid-template-columns: 72px minmax(0, 1fr);
     gap: 10px;
+    align-items: start;
   }
   .nowCover {
     width: 72px;

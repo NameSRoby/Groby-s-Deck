@@ -24,7 +24,7 @@
               .replace(/[\\`*_\[\]#]/g, "\\$&")
               .replaceAll("<", "&lt;")
               .replaceAll(">", "&gt;");
-            return /^[A-Z][A-Z /—-]+$/.test(line) ? `\n**${escaped}**\n` : `${escaped}  `;
+            return /^[A-Z][A-Z /’—-]+$/.test(line) ? `\n**${escaped}**\n` : `${escaped}  `;
           })
           .join("\n"),
       ];
@@ -116,7 +116,7 @@
       : "disabled";
     const typo = routing.parser?.allowFuzzy ? "on" : "off";
     const defaultBrightness = routing.parser?.defaultBrightness || 100;
-    const compact = ["RAVELINK LIGHT COMMANDS"];
+    const compact = ["GROBY’S DECK LIGHT COMMANDS"];
     if (staticEnabled && allStaticIds.length) {
       compact.push(
         "Color: <color> [1%-100%]",
@@ -147,7 +147,7 @@
     } else compact.push("", "Dynamic viewer effects are currently off or have no routed fixtures.");
 
     const detailed = [
-      "RAVELINK LIGHT COMMANDS — ACTIVE GUIDE",
+      "GROBY’S DECK LIGHT COMMANDS — ACTIVE GUIDE",
       "",
       "ROUTING RULE",
       "Commands can control only fixtures in the relevant saved route. Available, disabled, or unrouted fixtures remain unchanged.",

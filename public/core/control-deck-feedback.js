@@ -83,6 +83,15 @@ export function deckIndicator({
     ...(button.holdSteps || []),
   ];
   const actions = steps.map((step) => catalog.find((action) => action.id === step.actionId));
+  if (steps.some((step) => step.type)) {
+    if (button.toggleStates && button.alternateSteps?.length) {
+      const selected = button.toggleStates[state?.toggled ? "on" : "off"];
+      return finish(state?.toggled ? "active" : "inactive", selected.label, selected.color);
+    }
+    return recent && age < SUCCESS_MS && state.lastResult?.ok === true
+      ? receipt()
+      : finish("rest", "Ready");
+  }
   const live = actions.map(
     (action) =>
       ownerState(action?.state, now, state?.lastRunAt) ||

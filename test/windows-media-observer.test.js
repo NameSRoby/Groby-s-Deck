@@ -103,7 +103,7 @@ test("Automatic drops stale observations but a paused heartbeat keeps the actual
   assert.equal(queue.playbackStatus().primary, null, "manual source remains locked");
 });
 
-test("Windows media observer preserves Unicode and can switch providers without restarting RaveLink", async () => {
+test("Windows media observer preserves Unicode and can switch providers without restarting Groby’s Deck", async () => {
   const children = [];
   const calls = [];
   const observed = [];

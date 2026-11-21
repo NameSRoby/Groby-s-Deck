@@ -43,24 +43,18 @@ function resultStatus(result) {
   if (result?.ok !== false) return 200;
   if (["mod_not_found", "rollback_unavailable"].includes(result.error)) return 404;
   if (
-    ["active_mod_limit", "mod_must_be_disabled", "permission_approval_required"].includes(
-      result.error,
-    )
+    [
+      "active_mod_limit",
+      "mod_must_be_disabled",
+      "permission_approval_required",
+      "runtime_isolation_unavailable",
+    ].includes(result.error)
   )
     return 409;
   return 400;
 }
 
 module.exports = function registerModPlatformRoutes(app, options = {}) {
-  if (options.bundledOnly)
-    app.use("/api/mod-platform", requireLoopback, (req, res, next) => {
-      if (
-        ["GET", "HEAD"].includes(req.method) ||
-        /^\/ravelink\.(discord-controls|twitch-clips)\/(enable|disable)$/.test(req.path)
-      )
-        return next();
-      return res.status(409).json({ ok: false, error: "community_mod_support_disabled" });
-    });
   const express = options.express;
   const registry = options.registry;
   const packageManager = options.packageManager;

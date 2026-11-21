@@ -15,6 +15,8 @@ module.exports = function actions({
   getMediaController = () => null,
   getMods = () => null,
   getRewards = () => null,
+  getTwitchActions = () => null,
+  getOverlays = () => null,
   desktop,
   obs,
   widgets,
@@ -114,6 +116,21 @@ module.exports = function actions({
         {
           state: playbackState,
         },
+      ),
+      ...[true, false].map((save) =>
+        row(
+          save ? "song.favorite" : "song.unfavorite",
+          save ? "Favorite current song" : "Remove current favorite",
+          "Song Request",
+          save ? "\u2665" : "\u2661",
+          song && ["tidal", "spotify"].includes(playerState["song.player.preferences.v1"]?.player),
+          empty,
+          {},
+          {
+            description:
+              "Changes the exact playing track in your selected TIDAL or Spotify library. Sign in with library access in the player's Setup first.",
+          },
+        ),
       ),
       row(
         "song.volume",
@@ -250,6 +267,7 @@ module.exports = function actions({
         { featureId: "song-request", pageId: "overlay-editor" },
       ],
       ["view.mods", "Mods & custom actions", "✦", { tab: "mods" }],
+      ["view.soundboard", "Soundboard library", "\u266a", { tab: "soundboard" }],
       ["view.rewards", "Reward controls", "◈", { panel: "rewards" }],
       ["view.lights-controls", "Quick light controls", "☼", { panel: "lights" }],
       ["view.windows", "Windows controls", "\u229e", { panel: "windows" }],
@@ -275,6 +293,8 @@ module.exports = function actions({
       ...(desktop?.catalog() || []),
       ...(obs?.catalog() || []),
       ...(widgets?.catalog() || []),
+      ...(getOverlays()?.actionCatalog() || []),
+      ...(getTwitchActions()?.catalog() || []),
     );
     list.push(
       row(
@@ -293,29 +313,54 @@ module.exports = function actions({
         },
       ),
     );
-    for (const mod of [...(getMods()?.list().mods || [])].sort(
+    const mods = getMods()?.list().mods || [],
+      modIds = new Set(
+        mods.flatMap((mod) => (mod.actions || []).map((a) => `mod:${mod.id}:${a.id}`)),
+      ),
+      canonicalId = require("../../shared/fs/migrate-action-references").canonicalId;
+    let modActionCount = 0;
+    for (const mod of [...mods].sort(
       (a, b) => Number(b.lifecycle === "active") - Number(a.lifecycle === "active"),
     ))
       for (const action of mod.actions || []) {
-        if (list.length >= 256) break;
+        const id = `mod:${mod.id}:${action.id}`;
+        if (canonicalId(id) !== id && modIds.has(canonicalId(id))) continue;
+        if (modActionCount >= 256) break;
+        modActionCount++;
+        const state = feedback.get(id) || null,
+          available = mod.lifecycle === "active" && state?.available !== false,
+          unavailableReason = available
+            ? ""
+            : mod.lifecycle === "installed-disabled"
+              ? "enable in Mods"
+              : mod.lifecycle !== "active"
+                ? "check status in Mods"
+                : state?.label || "unavailable";
         list.push({
-          id: `mod:${mod.id}:${action.id}`,
+          id,
           label: action.title,
           description: action.description || mod.name,
           group: `Mod · ${mod.name}`,
           symbol: action.symbol || "✦",
           stateful: Boolean(action.stateMethod),
-          available:
-            mod.lifecycle === "active" &&
-            feedback.get(`mod:${mod.id}:${action.id}`)?.available !== false,
+          available,
+          unavailableReason,
           parameters: action.parameters || empty,
           defaults: action.defaults || {},
-          state: feedback.get(`mod:${mod.id}:${action.id}`) || null,
+          state,
         });
       }
     return list;
   }
   async function execute(id, params, signal) {
+    if (id.startsWith("overlay.game.")) return getOverlays()?.execute(id, params, signal);
+    if (id.startsWith("twitch.action.") || id.startsWith("twitch.automation."))
+      return (
+        getTwitchActions()?.execute(id, params, signal) || {
+          ok: false,
+          error: "twitch_action_unavailable",
+        }
+      );
     if (signal.aborted) throw fault("control_deck_cancelled");
     if (["stream.timestamp", "stream.marker"].includes(id))
       return widgets.execute(id, params, signal);
@@ -376,6 +421,19 @@ module.exports = function actions({
       return core.lightingProfiles.apply(id.slice("lighting.profile:".length));
     if (["song.pause", "song.resume"].includes(id))
       return feature("song.queue.admin.v1", "moderate", { action: id.split(".")[1] });
+    if (["song.favorite", "song.unfavorite"].includes(id)) {
+      const selected = await feature("song.player.preferences.v1", "status", null);
+      const capability = { tidal: "song.tidal.experimental.v1", spotify: "song.spotify.player.v1" }[
+        selected.value?.player
+      ];
+      if (!capability) throw fault("song_favorite_player_unsupported");
+      const state = await feature(capability, "status", null),
+        current = state.value?.current;
+      const trackId = current?.trackId || current?.uri?.replace(/^spotify:track:/, "");
+      if (!state.ok || !trackId) throw fault("song_favorite_current_unavailable");
+      if (signal.aborted) throw fault("control_deck_cancelled");
+      return feature(capability, "favorite", { trackId, save: id === "song.favorite" });
+    }
     if (id === "song.volume") return songVolume.execute(params.level, signal);
     if (["song.playback-pause", "song.playback-resume"].includes(id))
       return feature("song.queue.admin.v1", "moderate", {
@@ -607,11 +665,31 @@ module.exports = function actions({
     refreshLive,
     catalog,
     execute,
+    restorationTarget: (id, params) =>
+      id.startsWith("obs:")
+        ? obs?.restorationTarget?.(id, params)
+        : id.startsWith("native.audio.")
+          ? desktop?.restorationTarget?.(id, params)
+          : null,
+    conditionState: require("./deck-condition-state")({
+      catalog,
+      getMods,
+      rememberFeedback,
+      feedbackEpoch,
+      obs,
+      desktop,
+      fault,
+      refreshSong: async () => {
+        songReadAt = 0;
+        await refreshAll();
+        await pauseActions.refresh(true);
+      },
+    }),
     refresh: refreshAll,
     feedback: () => Object.fromEntries(feedback),
     guidance: () =>
       getMods()
         ? "Install and approve a mod that contributes button actions to add your own functions."
-        : "This Core-only profile does not load mods. Start the normal RaveLink app, drop your package into mods, and confirm Activate to add its actions.",
+        : "This Core-only profile does not load mods. Start the normal Groby’s Deck app, drop your package into mods, and confirm Activate to add its actions.",
   };
 };

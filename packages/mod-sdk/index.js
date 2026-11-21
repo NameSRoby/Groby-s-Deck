@@ -3,7 +3,7 @@
  * Developer context and change constraints:
  * docs/DEVELOPMENT.md#startup-and-shutdown
  */
-// Standalone public mod API. This package must not import RaveLink server modules.
+// Standalone public mod API. This package must not import Groby’s Deck server modules.
 
 const HANDLERS = new Set(["activate", "deactivate", "handleRequest", "handleEvent"]);
 

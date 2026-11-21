@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $taskRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$taskProgram = Join-Path $taskRoot 'runtime\RaveLink-Core-Node.exe'
+$taskProgram = Join-Path $taskRoot 'runtime\Grobys-Deck-Node.exe'
 if ($Action -ne 'Plan' -and !(Test-Path -LiteralPath $taskProgram -PathType Leaf)) { throw 'Bundled RaveLink runtime not found.' }
 $taskHash = [Security.Cryptography.SHA256]::Create()
 try { $taskId = [BitConverter]::ToString($taskHash.ComputeHash([Text.Encoding]::UTF8.GetBytes($taskProgram.ToLowerInvariant()))).Replace('-', '').Substring(0, 16) } finally { $taskHash.Dispose() }
@@ -42,7 +42,7 @@ if ($Action -eq 'Remove') {
 } else {
   $taskRule = Get-NetFirewallRule -Name $taskName -ErrorAction SilentlyContinue
   if (!$taskRule) {
-    New-NetFirewallRule -Name $taskName -DisplayName 'RaveLink Core - local private network' -Group 'RaveLink Core' -Program $taskProgram -Direction Inbound -Action Allow -Profile Private -RemoteAddress LocalSubnet -EdgeTraversalPolicy Block | Out-Null
+    New-NetFirewallRule -Name $taskName -DisplayName 'Groby’s Deck - local private network' -Group 'Groby’s Deck' -Program $taskProgram -Direction Inbound -Action Allow -Profile Private -RemoteAddress LocalSubnet -EdgeTraversalPolicy Block | Out-Null
   } else {
     $taskRule | Set-NetFirewallRule -Enabled True -Direction Inbound -Action Allow -Profile Private -RemoteAddress LocalSubnet -Program $taskProgram -EdgeTraversalPolicy Block
   }

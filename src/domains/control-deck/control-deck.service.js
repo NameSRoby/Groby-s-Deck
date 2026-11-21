@@ -4,8 +4,10 @@ const fs = require("node:fs"),
   crypto = require("node:crypto");
 const { validate, defaults, fault } = require("./control-deck-config");
 const { validateValue } = require("../../shared/contracts/bounded-json-schema");
+const { waitAction } = require("./deck-sequence");
 module.exports = function createControlDeck({ runtimeDir, actions, widgets, now = Date.now }) {
   const file = path.join(runtimeDir, "system", "control-deck.json");
+  const styles = require("./deck-style-profiles")(runtimeDir);
   let config = defaults(),
     revision = 0,
     closed = false,
@@ -15,7 +17,7 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
   const live = require("./control-deck-live")({
     read: () => ({
       snapshot: snapshot(),
-      catalog: { actions: actions.catalog(), modGuidance: actions.guidance?.() || "" },
+      catalog: catalog(),
     }),
     refresh: refreshLive,
     subscribe: actions.subscribe,
@@ -31,7 +33,17 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
   } catch {
     /* A new or corrupt local layout starts with usable controls. */
   }
-  const migrated = require("./retire-discord-controls")(config);
+  let migrated = require("./retire-discord-controls")(config);
+  try {
+    const source = require("../twitch/command-source-fields"),
+      next = source.messages(require("../../shared/fs/migrate-action-references")(migrated));
+    if (JSON.stringify(next) !== JSON.stringify(migrated)) {
+      source.backup(file, { version: 1, revision, audioPageAdded, config });
+      migrated = next;
+    }
+  } catch {
+    // Keep an invalid draft available for correction; it cannot pass Save validation.
+  }
   if (!audioPageAdded) {
     migrated.pages = require("./audio-mixer-page").ensure(migrated.pages);
     audioPageAdded = true;
@@ -45,13 +57,31 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     return {
       revision,
       config: structuredClone(config),
-      running: [...running.values()].map(({ runId, buttonId, step, total, startedAt }) => ({
-        runId,
-        buttonId,
-        step,
-        total,
-        startedAt,
-      })),
+      running: [...running.values()].map(
+        ({
+          runId,
+          buttonId,
+          step,
+          total,
+          startedAt,
+          phase,
+          waitUntil,
+          iteration,
+          repeats,
+          detail,
+        }) => ({
+          runId,
+          buttonId,
+          step,
+          total,
+          startedAt,
+          phase,
+          waitUntil,
+          iteration,
+          repeats,
+          detail,
+        }),
+      ),
       states: Object.fromEntries([...states].map(([id, state]) => [id, { ...state }])),
       actionStates: actions.feedback?.() || {},
       windowsAudio: actions.windowsAudio?.(),
@@ -61,8 +91,14 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
   function save(value, expected) {
     if (closed) throw fault("control_deck_closed");
     if (expected !== revision) throw fault("control_deck_revision_conflict");
-    const next = validate(value);
+    const next = validate(
+      require("../twitch/command-source-fields").messages(
+        require("../../shared/fs/migrate-action-references")(value),
+      ),
+    );
     if (running.size) throw fault("control_deck_busy");
+    if (JSON.stringify(styles.capture(config)) !== JSON.stringify(styles.capture(next)))
+      styles.backup(config);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(
       file + ".tmp",
@@ -74,14 +110,26 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
       config.pages.flatMap((page) =>
         page.buttons.map((button) => [
           button.id,
-          JSON.stringify([button.kind, button.steps, button.alternateSteps, button.holdSteps]),
+          JSON.stringify([
+            button.kind,
+            button.steps,
+            button.alternateSteps,
+            button.holdSteps,
+            button.repeatCount,
+          ]),
         ]),
       ),
     );
     for (const button of next.pages.flatMap((page) => page.buttons))
       if (
         prior.get(button.id) !==
-        JSON.stringify([button.kind, button.steps, button.alternateSteps, button.holdSteps])
+        JSON.stringify([
+          button.kind,
+          button.steps,
+          button.alternateSteps,
+          button.holdSteps,
+          button.repeatCount,
+        ])
       )
         states.delete(button.id);
     config = next;
@@ -108,41 +156,32 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     });
   }
   function describe(steps) {
-    const catalog = new Map(actions.catalog().map((a) => [a.id, a]));
-    return steps.map((step) => {
-      const item = catalog.get(step.actionId);
-      if (!item?.available) throw fault("control_deck_action_unavailable");
-      if (!validateValue(item.parameters || {}, step.params))
-        throw fault("control_deck_parameters_invalid");
-      return item;
-    });
+    const descriptors = new Map(catalog().actions.map((a) => [a.id, a]));
+    return steps
+      .filter((step) => !step.type)
+      .map((step) => {
+        const item = descriptors.get(step.actionId);
+        if (!item?.available) throw fault("control_deck_action_unavailable");
+        if (!validateValue(item.parameters || {}, step.params))
+          throw fault("control_deck_parameters_invalid");
+        return item;
+      });
   }
+  const runFlow = require("./deck-flow-runner")({
+    actions,
+    describe,
+    delay,
+    changed: live.changed,
+    now,
+    isClosed: () => closed,
+    fault,
+  });
   async function perform(run, button, steps) {
     let successful = false,
       code = "completed";
     try {
-      for (const [index, step] of steps.entries()) {
-        if (closed || run.controller.signal.aborted) throw fault("control_deck_cancelled");
-        run.step = index + 1;
-        await delay(step.delayMs, run.controller.signal);
-        describe([step]); // Revoked grants, disabled mods and changed routes stay authoritative.
-        const result = await actions.execute(
-          step.actionId,
-          structuredClone(step.params),
-          run.controller.signal,
-        );
-        if (result?.ok === false || result?.value?.ok === false) {
-          const detail = result.value || result,
-            code = detail.reason || detail.code || detail.error?.code || detail.error;
-          throw fault(
-            typeof code === "string" && /^[a-z][a-z0-9_]{0,79}$/.test(code)
-              ? code
-              : "control_deck_action_failed",
-          );
-        }
-      }
-      successful = !run.controller.signal.aborted;
-      if (!successful) code = "control_deck_cancelled";
+      await runFlow(run, steps);
+      successful = true;
     } catch (error) {
       code = /^[a-z][a-z0-9_]{0,79}$/.test(error?.code || "")
         ? error.code
@@ -160,6 +199,7 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
       running.delete(run.runId);
       live.changed();
     }
+    return { ok: successful, code };
   }
   function execute(buttonId, trigger = "press", value) {
     if (closed) throw fault("control_deck_closed");
@@ -167,8 +207,12 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     const button = config.pages.flatMap((p) => p.buttons).find((b) => b.id === buttonId);
     if (!button || !["macro", "slider"].includes(button.kind))
       throw fault("control_deck_button_invalid");
-    if (running.size >= 8 || [...running.values()].some((r) => r.buttonId === buttonId))
-      throw fault("control_deck_busy");
+    const active = [...running.values()].find((r) => r.buttonId === buttonId);
+    if (active && button.cancelOnPress && trigger === "press") {
+      active.controller.abort();
+      return { runId: active.runId, buttonId, cancelled: true };
+    }
+    if (running.size >= 8 || active) throw fault("control_deck_busy");
     const steps = structuredClone(
       trigger === "hold"
         ? button.holdSteps
@@ -193,6 +237,13 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
         throw fault("control_deck_slider_invalid");
       steps[0].params[control.parameter] = value;
     } else if (value !== undefined) throw fault("control_deck_slider_invalid");
+    return start(button, steps, trigger);
+  }
+  function start(button, steps, trigger, completion = false, guard, context) {
+    const buttonId = button.id;
+    if (closed) throw fault("control_deck_closed");
+    if (running.size >= 8 || [...running.values()].some((run) => run.buttonId === buttonId))
+      throw fault("control_deck_busy");
     if (!steps.length) throw fault("control_deck_trigger_empty");
     const descriptors = describe(steps);
     const run = {
@@ -203,7 +254,13 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
       step: 0,
       total: steps.length,
       startedAt: now(),
+      phase: "action",
+      waitUntil: null,
+      iteration: 1,
+      repeats: button.repeatCount || 1,
       promise: null,
+      guard,
+      context,
     };
     running.set(run.runId, run);
     live.changed();
@@ -213,7 +270,8 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     return {
       runId: run.runId,
       buttonId,
-      ...(steps.length === 1 && descriptors[0].navigation
+      ...(completion ? { completion: run.promise } : {}),
+      ...(steps.length === 1 && descriptors[0]?.navigation
         ? { navigation: descriptors[0].navigation }
         : {}),
     };
@@ -235,15 +293,44 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     cancel();
     await Promise.allSettled([...running.values()].map((r) => r.promise));
   }
+  function catalog() {
+    return { actions: [...actions.catalog(), waitAction], modGuidance: actions.guidance?.() || "" };
+  }
   return Object.freeze({
     snapshot,
     save,
+    styleProfiles: styles.list,
+    saveStyleProfile(input) {
+      if (input.revision !== revision) throw fault("control_deck_revision_conflict");
+      return styles.save(input, config);
+    },
+    restoreStyleProfile(input) {
+      return save(styles.apply(input, config), input.revision);
+    },
+    deleteStyleProfile: styles.remove,
     execute,
+    runAutomation(id, steps, guard, context) {
+      if (
+        typeof id !== "string" ||
+        !/^[a-f0-9]{24}$/.test(id) ||
+        JSON.stringify(steps).length > 120000
+      )
+        throw fault("control_deck_automation_invalid");
+      const normalized = require("./control-deck-config").steps(steps);
+      return start(
+        { id: "twitch:" + id, alternateSteps: [], repeatCount: 1 },
+        normalized,
+        "press",
+        true,
+        guard,
+        context,
+      );
+    },
     cancel,
     refresh: actions.refresh,
     refreshLive,
     live,
-    catalog: () => ({ actions: actions.catalog(), modGuidance: actions.guidance?.() || "" }),
+    catalog,
     shutdown,
   });
 };

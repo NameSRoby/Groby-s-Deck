@@ -21,7 +21,7 @@ async function main() {
     (file) =>
       EXTENSIONS.has(path.extname(file)) &&
       !GENERATED_PAGES.has(file) &&
-      !file.endsWith("/ravelink.feature.json"),
+      !file.endsWith("/groby.feature.json"),
   );
   for (const file of [
     ".prettierrc.json",

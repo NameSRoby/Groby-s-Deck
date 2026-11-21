@@ -21,7 +21,16 @@ for (const page of ["overlay-editor.html", "obs-overlay.html"]) {
           "SONG_DESIGNER",
           [
             ["style", "designer.css"],
-            ["script", ["designer-controls.js", "designer-canvas.js", "designer-editing.js"]],
+            [
+              "script",
+              [
+                "designer-controls.js",
+                "designer-canvas.js",
+                "designer-editing.js",
+                "designer-layer-tools.js",
+                "designer-gestures.js",
+              ],
+            ],
           ],
         ]);
       for (const [group, assets] of groups) {

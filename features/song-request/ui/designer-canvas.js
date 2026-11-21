@@ -3,7 +3,8 @@
  * Embedded after designer-controls.js: both share the editor configuration and
  * selection state. All measurements use overlay pixels, independent of zoom.
  */
-/* exported setupCanvasControls */
+/* exported setupCanvasControls, canvasSnap */
+/* global setupLayerCrop, startCanvasGesture */
 let selectedShapeId = "",
   canvasGesture = null,
   canvasSnap = true,
@@ -135,7 +136,21 @@ function setupCanvasControls() {
     );
     changed(true);
   };
-  const shape = select(["rectangle", "rounded", "ellipse"], "rounded", () => {});
+  const shape = select(
+    [
+      "rectangle",
+      "rounded",
+      "ellipse",
+      "triangle",
+      "diamond",
+      "hexagon",
+      "chevron",
+      "parallelogram",
+      "star",
+    ],
+    "rounded",
+    () => {},
+  );
   shape.id = "new-shape";
   shape.setAttribute("aria-label", "New shape");
   const add = node("button", "", "Add shape");
@@ -202,7 +217,7 @@ function setupCanvasControls() {
   const help = node(
     "p",
     "canvas-help",
-    "Drag to move; corner handles resize. Arrows nudge 1px, Shift moves 10px. Alt bypasses guides; Esc cancels a drag. Ctrl+D duplicates, Ctrl+Z undoes, Ctrl+Shift+Z redoes. Measurements use overlay pixels.",
+    "Drag to move; corners resize freely, side handles resize one axis. Shift keeps proportions. Alt+handle crops; C opens crop controls. Arrows nudge 1px, Shift moves 10px. Alt bypasses guides; Esc cancels a drag. Ctrl+D duplicates, Ctrl+Z undoes, Ctrl+Shift+Z redoes. Measurements use overlay pixels.",
   );
   toolbar.after(help);
   const library = node("section", "canvas-library");
@@ -301,8 +316,8 @@ function updateCanvasInspector() {
     document.body.dataset.canvasEditing = String(config.layoutMode === "canvas");
     const library = $("canvas-library");
     const objectScroll = library.scrollTop;
-    library.replaceChildren(node("h3", "", "Objects"));
-    for (const row of config.segments) {
+    library.replaceChildren(node("h3", "", "Layers - front to back"));
+    for (const row of [...config.segments].reverse()) {
       const selectObject = (text, id) => {
         const button = node("button", "canvas-object", text);
         button.type = "button";
@@ -324,7 +339,7 @@ function updateCanvasInspector() {
       const shapeButton = selectObject(row.name || "Shape");
       shapeButton.dataset.objectShape = row.id;
       library.append(shapeButton);
-      for (const b of row.blocks) {
+      for (const b of [...row.blocks].reverse()) {
         const button = selectObject(NAMES[b.kind], b.id);
         button.dataset.objectPiece = b.id;
         button.classList.add("canvas-object-child");
@@ -380,6 +395,7 @@ function updateCanvasInspector() {
     heading.append(title, done);
     panel.replaceChildren(heading);
     addSelectionTools(panel, row);
+    setupLayerCrop(panel, target);
     if (selectedPreviewPiece) {
       const parent = node("button", "", "Select segment");
       parent.id = "select-parent-segment";
@@ -447,10 +463,24 @@ function updateCanvasInspector() {
     }
     panel.append(locks);
     if (!selectedPreviewPiece) {
-      const shape = select(["rectangle", "rounded", "ellipse"], row.shape || "rectangle", (v) => {
-        row.shape = v;
-        changed();
-      });
+      const shape = select(
+        [
+          "rectangle",
+          "rounded",
+          "ellipse",
+          "triangle",
+          "diamond",
+          "hexagon",
+          "chevron",
+          "parallelogram",
+          "star",
+        ],
+        row.shape || "rectangle",
+        (v) => {
+          row.shape = v;
+          changed();
+        },
+      );
       panel.append(labeled("Shape", shape));
       const tray = formatSegment(row);
       tray.hidden = false;
@@ -556,7 +586,7 @@ function updateCanvasInspector() {
       `${frame.width} × ${frame.height} px · X ${frame.x} · Y ${frame.y}`,
     );
     overlay.append(measurement);
-    for (const corner of target.lockSize ? [] : ["nw", "ne", "sw", "se"]) {
+    for (const corner of target.lockSize ? [] : ["nw", "n", "ne", "e", "se", "s", "sw", "w"]) {
       const handle = node("span", "canvas-handle " + corner);
       handle.dataset.corner = corner;
       overlay.append(handle);
@@ -583,166 +613,6 @@ function updateCanvasInspector() {
   } finally {
     updatingCanvasInspector = false;
     refocus();
-  }
-}
-function startCanvasGesture(event, firstMove = null) {
-  if (event.button !== 0) return;
-  const segmentLabel = event.target.closest("[data-select-segment]");
-  if (segmentLabel) {
-    event.preventDefault();
-    return;
-  }
-  const handle = event.target.closest("[data-corner]"),
-    b = event.target.closest("[data-block-id]"),
-    s = event.target.closest("[data-segment-id]");
-  if (!handle) {
-    selectedPreviewPiece = event.altKey ? "" : b?.dataset.blockId || "";
-    selectedShapeId = s?.dataset.segmentId || "";
-  }
-  if (!handle && !s) return;
-  // A click still opens typography controls without converting a flow preset.
-  // Only an actual drag commits its measured geometry to the canvas model.
-  if (config.layoutMode !== "canvas" && b && !event.altKey) {
-    const clear = () => {
-      window.removeEventListener("pointermove", beginDrag);
-      window.removeEventListener("pointerup", clear);
-      window.removeEventListener("pointercancel", clear);
-    };
-    const beginDrag = (move) => {
-      if (Math.hypot(move.clientX - event.clientX, move.clientY - event.clientY) < 3) return;
-      clear();
-      OverlayDesignerEditing.begin();
-      enableCanvas();
-      startCanvasGesture(event, move);
-    };
-    window.addEventListener("pointermove", beginDrag);
-    window.addEventListener("pointerup", clear);
-    window.addEventListener("pointercancel", clear);
-    return;
-  }
-  OverlayDesignerEditing.begin();
-  enableCanvas();
-  const target = canvasTarget();
-  if (!target?.frame) {
-    OverlayDesignerEditing.finish(true);
-    return;
-  }
-  event.preventDefault();
-  updatePieceInspector();
-  const baseline = structuredClone(target),
-    start = { ...target.frame },
-    stage = $("preview"),
-    ratio = stage.getBoundingClientRect().width / stage.offsetWidth,
-    px = event.clientX,
-    py = event.clientY,
-    corner = handle?.dataset.corner;
-  canvasGesture = true;
-  const move = (e) => {
-    const dx = Math.round((e.clientX - px) / ratio),
-      dy = Math.round((e.clientY - py) / ratio);
-    const f = target.frame;
-    if (!corner) {
-      f.x = bounded(start.x + dx, 0, 960);
-      f.y = bounded(start.y + dy, 0, 600);
-    } else if (!target.lockSize) {
-      const west = corner.includes("w"),
-        north = corner.includes("n");
-      f.width = bounded(start.width + (west ? -dx : dx), 1, 960);
-      f.height = bounded(start.height + (north ? -dy : dy), 1, 600);
-      if (target.lockRatio) {
-        // Use the dominant pointer axis so vertical and horizontal drags both
-        // work. Snapping is skipped for locked resize to preserve the ratio.
-        const factor =
-          Math.abs(dx / start.width) >= Math.abs(dy / start.height)
-            ? f.width / start.width
-            : f.height / start.height;
-        f.width = bounded(start.width * factor, 1, 960);
-        f.height = bounded(start.height * factor, 1, 600);
-      }
-      resizeCanvasTarget(target, { ...f }, baseline);
-      if (west) f.x = bounded(start.x + start.width - f.width, 0, 960);
-      if (north) f.y = bounded(start.y + start.height - f.height, 0, 600);
-    }
-    canvasGuides = [];
-    if (canvasSnap && !e.altKey && !(corner && target.lockRatio))
-      snapCanvasFrame(target, corner, 6 / ratio);
-    if (corner && !target.lockSize && !target.lockRatio)
-      resizeCanvasTarget(target, { ...f }, baseline);
-    config.preset = "custom";
-    renderPreview();
-  };
-  const end = (event) => {
-    canvasGuides = [];
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", end);
-    window.removeEventListener("pointercancel", end);
-    window.removeEventListener("keydown", cancel);
-    OverlayDesignerEditing.finish(event?.type === "pointercancel" || event?.key === "Escape");
-    sync();
-    focusCanvasTarget();
-    setTimeout(() => (canvasGesture = null), 0);
-  };
-  const cancel = (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      end(event);
-    }
-  };
-  window.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", end);
-  window.addEventListener("pointercancel", end);
-  window.addEventListener("keydown", cancel);
-  if (firstMove) move(firstMove);
-}
-function snapCanvasFrame(target, corner, tolerance) {
-  const row = config.segments.find((s) => s.blocks.includes(target)),
-    parent = row?.frame || config;
-  const ox = row?.frame?.x || 0,
-    oy = row?.frame?.y || 0;
-  const siblings = (row ? row.blocks : config.segments).filter(
-    (s) => s !== target && s.enabled !== false && s.frame,
-  );
-  const f = target.frame;
-  for (const axis of ["x", "y"]) {
-    const size = axis === "x" ? "width" : "height",
-      limit = parent[size],
-      origin = axis === "x" ? ox : oy;
-    const lines = [
-      0,
-      limit / 2,
-      limit,
-      ...siblings.flatMap((s) => [
-        s.frame[axis],
-        s.frame[axis] + s.frame[size] / 2,
-        s.frame[axis] + s.frame[size],
-      ]),
-    ];
-    const offsets = corner
-      ? [corner.includes(axis === "x" ? "w" : "n") ? 0 : f[size]]
-      : [0, f[size] / 2, f[size]];
-    let best = null;
-    for (const line of lines)
-      for (const offset of offsets) {
-        const distance = line - (f[axis] + offset);
-        if (
-          Math.abs(distance) <= tolerance &&
-          (!best || Math.abs(distance) < Math.abs(best.distance))
-        )
-          best = { distance, line, offset };
-      }
-    if (!best) continue;
-    if (!corner) f[axis] = bounded(f[axis] + best.distance, 0, axis === "x" ? 960 : 600);
-    else if (best.offset === 0) {
-      const end = f[axis] + f[size];
-      f[axis] = bounded(f[axis] + best.distance, 0, axis === "x" ? 960 : 600);
-      f[size] = Math.max(1, end - f[axis]);
-    } else f[size] = bounded(f[size] + best.distance, 1, axis === "x" ? 960 : 600);
-    canvasGuides.push({
-      axis,
-      value: origin + best.line,
-      start: axis === "x" ? oy : ox,
-      length: axis === "x" ? parent.height : parent.width,
-    });
   }
 }
 function focusCanvasTarget() {

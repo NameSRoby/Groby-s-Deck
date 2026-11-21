@@ -82,6 +82,26 @@ test("installer refuses running clients, foreign loaders, tampered bundles and u
   assert.throws(() => installer.uninstall(f), /modified/);
   assert.ok(fs.existsSync(path.join(f.resources, "ravelink-original.asar")));
 });
+test("moving Core repairs the stale companion pairing path without changing tokens or breaking uninstall", (t) => {
+  const f = fixture(t);
+  installer.install(f);
+  const pairing = fs.readFileSync(f.pairingFile),
+    moved = path.join(f.root, "new-pairing.json");
+  fs.renameSync(f.pairingFile, moved);
+  const configFile = path.join(f.resources, "app", "config.json");
+  assert.deepEqual(installer.repairPairing({ resources: f.resources, pairingFile: moved }), {
+    changed: true,
+    restartRequired: true,
+  });
+  assert.equal(JSON.parse(fs.readFileSync(configFile)).pairingFile, moved);
+  assert.deepEqual(fs.readFileSync(moved), pairing);
+  assert.deepEqual(installer.repairPairing({ resources: f.resources, pairingFile: moved }), {
+    changed: false,
+  });
+  assert.equal(installer.uninstall(f).installed, false);
+  assert.deepEqual(fs.readFileSync(path.join(f.resources, "app.asar")), f.original);
+});
+
 test("interrupted install can be uninstalled and a changed original is never overwritten", (t) => {
   const f = fixture(t);
   installer.install(f);

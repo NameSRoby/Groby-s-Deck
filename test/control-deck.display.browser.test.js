@@ -16,7 +16,8 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta n
 <div class="deckButton" data-deck-button="volume" data-text-mode="alternate" role="group" aria-label="Player volume"><span class="deckButtonSymbol" aria-hidden="true">◕</span><span class="deckButtonTitle">Player volume</span><input class="deckVolumeSlider" type="range" min="0" max="100" value="50" aria-label="Player volume"><output class="deckSliderValue">50%</output><span class="deckButtonState">Confirmed level</span></div>
 </div></main><script type="module">
 import {createDeckDisplay} from '/control-deck-display.js';
-window.display=createDeckDisplay(document.getElementById('fixture'));
+window.feedbackPaints=0;
+window.display=createDeckDisplay(document.getElementById('fixture'),()=>window.feedbackPaints++);
 window.scheduleCalls=0;
 window.pollDisplay=()=>{window.scheduleCalls++;window.display.schedule()};
 document.querySelector('.deckVolumeSlider').addEventListener('input',event=>document.querySelector('.deckSliderValue').textContent=event.target.value+'%');
@@ -26,7 +27,13 @@ window.display.schedule();
 async function fixture(t, options = {}) {
   const app = express();
   app.use(require("./support/fixture-http-limit.cjs")());
-  for (const file of ["core.css", "control-deck.css", "app-polish.css", "control-deck-display.js"])
+  for (const file of [
+    "core.css",
+    "control-deck.css",
+    "app-polish.css",
+    "control-deck-display.js",
+    "control-deck-slider-fit.js",
+  ])
     app.get("/" + file, (_req, res) =>
       res.sendFile(path.resolve(__dirname, "../public/core", file)),
     );
@@ -51,6 +58,21 @@ async function fixture(t, options = {}) {
   );
   return page;
 }
+
+test("deck feedback batches bursts into one frame and cancels pending work on close", async (t) => {
+  const page = await fixture(t);
+  const paint = (close = false) =>
+    page.evaluate(async (close) => {
+      for (let i = 0; i < 100; i++) display.scheduleFeedback();
+      if (close) display.close();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return feedbackPaints;
+    }, close);
+  assert.equal(await paint(), 1);
+  assert.equal(await paint(true), 1);
+  await page.evaluate(() => display.resume());
+  assert.equal(await paint(), 2);
+});
 
 test("deck display fits crowded buttons, honors explicit modes and observes resizing", async (t) => {
   const page = await fixture(t),

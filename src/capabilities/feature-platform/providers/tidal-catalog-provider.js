@@ -249,6 +249,8 @@ module.exports = function createTidalCatalog(options = {}) {
         )
       : operation();
   };
+  let favoriteWork = Promise.resolve(),
+    favoriteQueued = 0;
   const playlists = require("./tidal-playlist-provider")({
     api: playlistApi,
     status,
@@ -259,6 +261,52 @@ module.exports = function createTidalCatalog(options = {}) {
     configure,
     search,
     playlists,
+    async favorite(input = {}) {
+      if (!status().connected || !status().collectionsEnabled)
+        return { ok: false, error: "tidal_favorites_sign_in_required" };
+      if (!/^[1-9][0-9]{0,19}$/.test(input.trackId || "") || typeof input.save !== "boolean")
+        return { ok: false, error: "tidal_track_invalid" };
+      if (favoriteQueued >= 16) return { ok: false, error: "tidal_catalog_busy" };
+      const revision = generation;
+      favoriteQueued++;
+      const work = favoriteWork.then(async () => {
+        if (revision !== generation) return { ok: false, error: "tidal_account_changed" };
+        try {
+          const result = await playlistApi(
+            "userCollectionTracks/me/relationships/items",
+            {},
+            undefined,
+            {
+              method: input.save ? "POST" : "DELETE",
+              key: require("node:crypto").randomUUID(),
+              body: { data: [{ type: "tracks", id: input.trackId }] },
+            },
+          );
+          if (input.save) {
+            const matchesTrack = (row) => row?.type === "tracks" && row.id === input.trackId;
+            const skipped = Array.isArray(result.meta?.skipped)
+              ? result.meta.skipped.find(matchesTrack)
+              : null;
+            if (skipped?.reason === "NOT_FOUND")
+              return { ok: false, error: "tidal_favorite_track_not_found" };
+            if (
+              skipped?.reason !== "ALREADY_PRESENT" &&
+              !(Array.isArray(result.data) && result.data.some(matchesTrack))
+            )
+              return { ok: false, error: "tidal_favorite_unconfirmed" };
+          }
+          return { ok: true, trackId: input.trackId, saved: input.save };
+        } catch (error) {
+          return { ok: false, error: error.message };
+        }
+      });
+      favoriteWork = work.catch(() => {});
+      try {
+        return await work;
+      } finally {
+        favoriteQueued--;
+      }
+    },
     begin: (input) => {
       reset();
       return auth.begin(input);

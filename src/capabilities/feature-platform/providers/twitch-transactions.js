@@ -76,7 +76,11 @@ module.exports = function createTwitchTransactions({
       if (owned)
         journal.reviewExecution(
           identity,
-          result?.body?.settlement?.pending ? "song_waiting_for_playback" : undefined,
+          result?.body?.settlement?.pending
+            ? result.body.settlement.reason === "automation_running"
+              ? "automation_running"
+              : "song_waiting_for_playback"
+            : undefined,
         );
     }
   }

@@ -10,10 +10,10 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   const explain = (code) =>
     ({
       spotify_close_client_required:
-        "Fully quit Spotify, including its tray icon, then try Open Spotify with RaveLink again.",
+        "Fully quit Spotify, including its tray icon, then try Open Spotify with Groby’s Deck again.",
       spotify_local_device_unverified:
         "Start a song on this computer in Spotify. Remote Spotify Connect devices cannot receive requests here.",
-      spotify_companion_unavailable: "Open Setup and launch Spotify with RaveLink.",
+      spotify_companion_unavailable: "Open Setup and launch Spotify with Groby’s Deck.",
       spotify_not_installed: "Install Spotify Desktop, then choose Prepare companion.",
       spotify_setup_required: "Choose Prepare companion first.",
       spotify_desktop_search_rejected:
@@ -53,7 +53,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   setup.className = "tidalStep";
   setup.hidden = true;
   setup.innerHTML =
-    '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with RaveLink, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with RaveLink</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with RaveLink each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
+    '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with Groby’s Deck, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with Groby’s Deck</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with Groby’s Deck each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
   $("songSetupPage").append(setup);
   const playback = document.createElement("section");
   playback.id = "spotifyPlayback";
@@ -63,7 +63,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   const playbackLaunch = document.createElement("button");
   playbackLaunch.id = "spotifyPlaybackLaunch";
   playbackLaunch.className = "primary";
-  playbackLaunch.textContent = "Open Spotify with RaveLink";
+  playbackLaunch.textContent = "Open Spotify with Groby’s Deck";
   playbackLaunch.hidden = true;
   playback.querySelector(".actions").prepend(playbackLaunch);
   document.querySelector(".playerSide").prepend(playback);
@@ -112,7 +112,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       event.currentTarget,
       "setup",
       { action: "prepare", coreUrl: url.origin },
-      "Companion prepared. Fully quit Spotify, then choose Open Spotify with RaveLink.",
+      "Companion prepared. Fully quit Spotify, then choose Open Spotify with Groby’s Deck.",
     );
   };
   $("spotifyLaunch").onclick = playbackLaunch.onclick = (event) =>
@@ -172,7 +172,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
         playbackLaunch.disabled = Boolean(state.launching);
         playbackLaunch.textContent = state.launching
           ? "Opening Spotify..."
-          : "Open Spotify with RaveLink";
+          : "Open Spotify with Groby’s Deck";
         if (state.connected && launchError) {
           launchError = false;
           setNotice("Spotify connected. The previous launch warning is cleared.");
@@ -337,7 +337,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     try {
       const result = await api("submit", {
         query,
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       if (!result.ok) throw new Error(result.reason || result.error || "Song could not be added.");
       $("videoInput").value = "";

@@ -719,10 +719,7 @@ test("native tab browser flow previews and drives simulated lights at desktop an
   assert.equal(e.host.view().design.outputRateMode, "adaptive");
   await openWorkspace("setup");
   await page.locator("#music-outputCeiling").fill("100");
-  await openWorkspace("setup");
-  await page.locator("#music-outputCeiling").dispatchEvent("input");
-  await openWorkspace("setup");
-  await page.locator("#music-outputCeiling").dispatchEvent("change");
+  await page.locator("#music-outputCeiling").press("Tab");
   await page.waitForFunction(
     () => document.getElementById("music-outputCeilingValue").value === "100%",
   );
@@ -730,10 +727,7 @@ test("native tab browser flow previews and drives simulated lights at desktop an
   assert.equal(e.host.view().design.maximumBrightness, 100);
   await openWorkspace("setup");
   await page.locator("#music-outputCeiling").fill(String(previousLimit));
-  await openWorkspace("setup");
-  await page.locator("#music-outputCeiling").dispatchEvent("input");
-  await openWorkspace("setup");
-  await page.locator("#music-outputCeiling").dispatchEvent("change");
+  await page.locator("#music-outputCeiling").press("Tab");
   await page.waitForFunction(() => !document.getElementById("music-applyDesign").disabled);
   await openWorkspace("setup");
   await page.locator("#music-capturePermission").check();

@@ -180,7 +180,7 @@ function addSelectionTools(panel, row) {
 }
 function rememberSelectionFocus() {
   const active = document.activeElement;
-  const key = ["geometry", "constraint", "editName"].find((k) => active?.dataset[k]);
+  const key = ["geometry", "constraint", "editName", "crop"].find((k) => active?.dataset[k]);
   if (canvasGesture || !key || !active.closest("#canvas-inspector")) return () => {};
   const value = active.dataset[key];
   return () => {
@@ -240,6 +240,13 @@ function setupEditingWorkspace() {
       if (key === "d") OverlayDesignerEditing.duplicate();
       else if (key === "y" || event.shiftKey) OverlayDesignerEditing.redo();
       else OverlayDesignerEditing.undo();
+    } else if (key === "c" && !command && canvasTarget()) {
+      event.preventDefault();
+      const crop = document.querySelector(".layer-crop");
+      if (crop) {
+        crop.open = !crop.open;
+        crop.querySelector("summary").focus();
+      }
     } else if (event.key === "Escape") {
       selectedPreviewPiece = "";
       selectedShapeId = "";

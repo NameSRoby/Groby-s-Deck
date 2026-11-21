@@ -15,18 +15,21 @@ const { spawn } = require("node:child_process");
 const { Readable, Transform } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
 
-const REPOSITORY = "NameSRoby/RaveLink-Core";
+const REPOSITORY = "NameSRoby/Groby-s-Deck";
 const RELEASE_API = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
 const MAX_METADATA_BYTES = 1024 * 1024;
 const MAX_CHECKSUM_BYTES = 128 * 1024;
 const MAX_ARCHIVE_BYTES = 750 * 1024 * 1024;
 
 function parseVersion(value) {
-  const match = /^v?(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})([a-z])?$/.exec(
+  const match = /^v?(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})(?:\.(0|[1-9]\d{0,8}))?([a-z])?$/.exec(
     String(value || "").trim(),
   );
   return match
-    ? [...match.slice(1, 4).map(Number), ...(match[4] ? [match[4].charCodeAt(0) - 96] : [])]
+    ? [
+        ...match.slice(1, 4).map((part) => Number(part || 0)),
+        ...(match[4] ? [match[4].charCodeAt(0) - 96] : []),
+      ]
     : null;
 }
 
@@ -201,10 +204,10 @@ function createCoreUpdateService(options = {}) {
       if (body?.draft || body?.prerelease) throw new Error("release_is_not_stable");
       const version = String(body?.tag_name || "").replace(/^v/, "");
       if (!parseVersion(version)) throw new Error("invalid_release_version");
-      const archiveName = `RaveLink-Core-Windows-v${version}-self-contained.zip`;
+      const archiveName = `Grobys-Deck-Windows-v${version}-self-contained.zip`;
       latest = {
         version,
-        name: String(body.name || `RaveLink Core v${version}`).slice(0, 160),
+        name: String(body.name || `Groby’s Deck v${version}`).slice(0, 160),
         publishedAt: String(body.published_at || "").slice(0, 64),
         archive: safeAsset(body, archiveName),
         checksums: safeAsset(body, "SHA256SUMS.txt"),
@@ -275,10 +278,10 @@ function createCoreUpdateService(options = {}) {
       throw new Error("verified_update_required");
     if (action === "Rollback" && !fs.existsSync(availableRollbackPath))
       throw new Error("rollback_unavailable");
-    const source = path.join(rootDir, "scripts", "ravelink-update.ps1");
+    const source = path.join(rootDir, "scripts", "groby-update.ps1");
     if (!fs.existsSync(source)) throw new Error("update_helper_missing");
     fs.mkdirSync(updateDir, { recursive: true });
-    const runner = path.join(updateDir, "ravelink-update-runner.ps1");
+    const runner = path.join(updateDir, "groby-update-runner.ps1");
     fs.copyFileSync(source, runner);
     const hostPid = Number(process.env.RAVELINK_HOST_PID || 0);
     const child = spawn(
@@ -301,7 +304,7 @@ function createCoreUpdateService(options = {}) {
     child.unref();
     setTimeout(() => {
       try {
-        spawn(path.join(rootDir, "RaveLink-Core.exe"), ["--stop"], {
+        spawn(path.join(rootDir, "Groby's Deck.exe"), ["--stop"], {
           detached: true,
           windowsHide: true,
           stdio: "ignore",

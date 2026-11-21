@@ -101,7 +101,7 @@
     <section class="tidalStep"><div class="tidalStepHeading"><span class="tidalStepNumber" aria-hidden="true">2</span><h3>Connect the desktop player</h3><span id="tidalDesktopBadge" class="tidalBadge">Checking</span></div>
     <p id="tidalInstallStatus" role="status"></p>
     <section id="tidalSetup"><h4>Set up desktop connection</h4>
-    <ol class="tidalChecklist"><li>Quit TIDAL completely, including its tray icon.</li><li>Install or update the RaveLink companion below.</li><li>Open TIDAL and play a song, then choose Refresh.</li></ol>
+    <ol class="tidalChecklist"><li>Quit TIDAL completely, including its tray icon.</li><li>Install or update the Groby’s Deck companion below.</li><li>Open TIDAL and play a song, then choose Refresh.</li></ol>
     <div class="actions"><button id="installTidalCompanion" class="primary">Install companion</button><button id="updateTidalCompanion" class="primary" hidden>Update companion</button></div>
     <p class="tidalFinePrint">Requires the regular Windows desktop app. The Microsoft Store app is not supported.</p></section>
     <section id="tidalConnectionOptions"><h4>Connection options</h4><div class="actions"><button id="monitorTidal">Use TIDAL for now playing</button><button id="uninstallTidalCompanion">Remove companion</button></div><p class="tidalFinePrint">Close TIDAL before removal or updates. Removing the companion restores the original app files.</p></section></section>
@@ -133,6 +133,42 @@
   document.querySelector("main").append(workspace);
   workspace.append(setupPage, moderationPage);
   setupPage.append(panel, $("catalogSettings"));
+  const intakePanel = document.createElement("section");
+  intakePanel.className = "playerSetupCard";
+  intakePanel.innerHTML =
+    '<h3>Viewer song requests</h3><label>Request method<select id="songRequestIntakeChoice"><option value="false">Channel Points</option><option value="true">Chat commands: !sr / !songrequest</option></select></label><button type="button">Save request method</button><p role="status">Loading request settings...</p>';
+  setupPage.append(intakePanel);
+  const intakeChoice = intakePanel.querySelector("select"),
+    intakeSave = intakePanel.querySelector("button"),
+    intakeNotice = intakePanel.querySelector("[role=status]");
+  async function refreshIntake() {
+    try {
+      const state = await call("song.chat.commands.v1", "status", null);
+      intakeChoice.disabled = intakeSave.disabled = !state.twitchAvailable;
+      intakeChoice.value = String(state.songRequestChatEnabled === true);
+      intakeNotice.textContent =
+        state.twitchAvailable === undefined
+          ? "Restart Core to load request intake settings."
+          : state.twitchAvailable
+            ? "Rewards use the source selected in Widget."
+            : "Widget fallback is active. Enable Twitch Integration to use chat requests.";
+    } catch (error) {
+      intakeNotice.textContent = error.message;
+      intakeSave.disabled = true;
+    }
+  }
+  intakeSave.onclick = async () => {
+    try {
+      await call("song.chat.commands.v1", "configure", {
+        songRequestChatEnabled: intakeChoice.value === "true",
+      });
+      intakeNotice.textContent = "Request method saved.";
+    } catch (error) {
+      intakeNotice.textContent = error.message;
+    }
+  };
+  void refreshIntake();
+
   $("catalogSettings").open = true;
   const searchFilters = document.createElement("section");
   searchFilters.id = "songSearchFilters";
@@ -540,7 +576,7 @@
           : companionInstall.foreignLoader
             ? "Another desktop integration is installed. Remove it before connecting RaveLink."
             : companionInstall.available
-              ? "One-time setup connects RaveLink to your desktop player."
+              ? "One-time setup connects Groby’s Deck to your desktop player."
               : "Install TIDAL Desktop first, then choose Refresh.";
     $("tidalDesktopBadge").textContent = needsUpdate
       ? "Update needed"
@@ -597,7 +633,7 @@
     try {
       const result = await call("song.tidal.experimental.v1", "submit", {
         query,
-        requestId: globalThis.RaveLinkRandomId(),
+        requestId: globalThis.GrobyRandomId(),
       });
       $("videoInput").value = "";
       setRequestNotice(
@@ -785,6 +821,8 @@
       $("songPlayerProvider").disabled = false;
     }
   })();
+  const favorites = installPlayerFavorites({ selected });
+  void playerRestored.then(() => favorites.sync());
   let libraryStarting = false;
   window.addEventListener("message", async (event) => {
     if (

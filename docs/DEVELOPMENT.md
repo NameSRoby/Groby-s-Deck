@@ -1,4 +1,4 @@
-# RaveLink Core developer guide
+# Groby’s Deck developer guide
 
 This guide describes the running application and the constraints a change must
 preserve. Start with the relevant flow below, then read the module notes beside
@@ -286,11 +286,33 @@ Feature and mod adapters supply their own manifest validation and permissions.
 Do not merge their trust policies merely because they share process mechanics.
 
 RSS budgets cover the whole Node worker, including runtime and IPC allocations.
-Song Request declares 256 MiB active RSS and Twitch Integration declares 192 MiB:
+Song Request declares 384 MiB active RSS and Twitch Integration declares 256 MiB:
 the former 64 MiB budgets caused sustained watchdog stops during normal use on
 Windows. Keep enforcement enabled and measure full-process memory when tuning
 these budgets. An otherwise valid IPC request that expires in transit must return
 a retryable timeout on either side of the broker without disconnecting its worker.
+
+First-party feature activation has a six-second default allowance for cold startup.
+Song Request and Twitch declare 0.75% idle CPU per worker; the optional example clip mod
+declares 0.1% and 128 MiB active RSS. These are monitored allowances, not CPU
+reservations or browser frame-rate limits. Deck feedback coalesces into animation
+frames; auto-fit reads and writes layout in batches, and unchanged slider values
+do not repaint their labels. Device writes remain serialized and coalesced.
+
+Deck scheduling stays in `control-deck.service.js`, independent of browser lifetime.
+`deck-sequence.js` describes the internal wait step; never forward it to a device
+owner. Ordinary actions retain schema validation and per-step permission checks.
+Each wait is bounded to 24 hours; repeat counts are 1–1,000. The existing overall
+configuration size bounds chains instead of an arbitrary sixteen-step cutoff.
+Long immediate chains yield periodically so cancellation and other Core work can
+run. Stop cancels future steps, not completed external actions. Shutdown cancels
+all waits, and saved sequences do not restart automatically.
+
+Button atmospheres use `control-deck-backgrounds.js` and static CSS gradients,
+animating transforms/opacity. Keep labels and status above them. Respect reduced
+motion, pause hidden/offscreen layers, and release observations of removed tiles.
+The fader face itself is the input; avoid a tiny rail inside a large decorative
+card. Tests use synthetic channel/action owners and private captures only.
 
 IPC envelopes and data contracts are validated separately. The envelope bounds
 the transport, deadline, identity, and message shape. A capability contract bounds
@@ -645,4 +667,27 @@ Reward subscriptions and delivery remain exclusive to the chosen reward intake
 transport. This separation prevents changing reward transport from silently
 turning off moderator commands or delivering a redemption twice.
 
+Queue admission also counts managed native requests that have left the local
+queue. Keep chat aliases and Channel Points on this shared moderation path.
+`pending-requests.js` deduplicates local entries and native receipts by entry ID;
+`native-admission.js` pauses delivery while reading receipts and applying the
+configured viewer/VIP limits. Pending, appended and uncertain receipts occupy
+slots until playback or removal is confirmed. Personal player tracks do not.
+If native counts cannot be verified, reject intake with a retryable explanation.
+The admission regressions cover all player routes and concurrent delivery.
+
 Chat information queries use song.chat.commands.v1/query. The router binds !queue to the authenticated chatter ID and owns the single explicit reply; automatic outcome toggles do not silence requested information. The worker reads the selected provider and merges confirmed native queueOrder entry IDs with locally waiting requests, deduplicating occurrence IDs and excluding the current item. Native ordering comes from observed queue UIDs (or official Spotify queue occurrences), not handoff insertion order. Unconfirmed deliveries prevent exact-position claims. Public messages contain only bounded song metadata and positions; never serialize provider state, account details, requester hashes or IDs into chat. Query handlers must remain read-only.
+
+## Runtime history storage
+
+Watchtime migrates from community JSON into an indexed SQLite sidecar. Keep the
+JSON owner for quotes, imports and mode settings; never evict those to free space.
+The default 8 GiB budget includes the sidecar and protected community metadata.
+It is a disk allowance, not a Node heap increase. Last-activity indexing selects
+oldest users across accounts only under pressure; there is no calendar expiry or
+25,000-user database limit. Imports remain bounded batches. The cache holds 512
+read records and SQLite uses a 2 MiB page cache with memory mapping disabled.
+Migration commits the sidecar before removing legacy JSON rows. Backups, tokens,
+installed binaries, mods and user media are outside automatic user-record eviction.
+Use the bundled Node 24 runtime, which supplies node:sqlite; no database service
+or additional dependency is needed.

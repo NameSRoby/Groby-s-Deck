@@ -186,7 +186,7 @@ module.exports = function createCoreServer(options = {}) {
     type: "socket",
     stop: () => obsControl.close(),
   });
-  let controlDeckActions;
+  let controlDeckActions, streamOverlays;
   const deckWidgets = require("../../domains/control-deck/deck-widgets.service")({
     runtimeDir,
     getMedia: () => controlDeckActions?.mediaSnapshot(),
@@ -202,6 +202,8 @@ module.exports = function createCoreServer(options = {}) {
     stop: () => deckWidgets.close(),
   });
   controlDeckActions = require("../../domains/control-deck/control-deck-actions")({
+    getOverlays: () => streamOverlays,
+    getTwitchActions: () => extension?.twitchFlowActions || extension?.features?.twitchFlowActions,
     core,
     music: musicToLight,
     desktop: desktopActions,
@@ -334,6 +336,29 @@ module.exports = function createCoreServer(options = {}) {
     music: musicToLight,
     getRegistry: () => extension?.registry || extension?.features?.registry,
   });
+  streamOverlays = require("../../domains/overlays/stream-overlays.service")({
+    runtimeDir,
+    getProvider: () => (extension?.twitchDashboard || extension?.features?.twitchDashboard)?.(),
+    getRegistry: () => extension?.registry || extension?.features?.registry,
+    getRecords: (widgets) =>
+      (extension?.overlayRecords || extension?.features?.overlayRecords)?.(widgets) || {},
+    getSoundboard: async () => {
+      if (!desktopActions.soundboard.library.list().length) return [];
+      await desktopActions.soundboard.refresh();
+      return desktopActions.soundboard.presentation();
+    },
+  });
+  lifecycle.register({
+    owner: "core",
+    id: "overlay-previews",
+    type: "work",
+    stop: () => streamOverlays.close(),
+  });
+  require("./register-stream-overlays.routes")(app, {
+    service: streamOverlays,
+    runtimeDir,
+    express,
+  });
   // Prevent stale widgets from posting an HTML 404 into chat. This compatibility
   // sink stays behind normal write security and never invokes retired behavior.
   app.post("/mods/music-request-engine/now_playing_announce", (_req, res) => {
@@ -377,6 +402,8 @@ module.exports = function createCoreServer(options = {}) {
           lightingCore: core,
           desktopActions,
           controlDeckActions,
+          controlDeck,
+          streamOverlays,
           getTwitchClips: () => extension?.twitchClips || extension?.features?.twitchClips,
         })
       : null;

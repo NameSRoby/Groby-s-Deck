@@ -154,7 +154,7 @@ test("ZIP extraction is not installation and invalid package integrity leaves no
   await fs.promises.writeFile(
     paths.archive,
     createZip([
-      { name: "ravelink.mod.json", data: "{}" },
+      { name: "groby.mod.json", data: "{}" },
       { name: "dist/main.js", data: "tampered" },
     ]),
   );

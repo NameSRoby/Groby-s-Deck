@@ -24,7 +24,7 @@
       "Verify the entered widget token with a harmless request that cannot change lights.",
     copyWidget: "Copy the generated widget code to the clipboard.",
     themeButton: "Open HUD color and Developer Mode settings.",
-    resetTheme: "Restore the default RaveLink HUD colors.",
+    resetTheme: "Restore the default Groby’s Deck HUD colors.",
   };
   const tooltip = document.createElement("div");
   tooltip.className = "hudTooltip";

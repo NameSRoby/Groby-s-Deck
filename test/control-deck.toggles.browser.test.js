@@ -59,13 +59,14 @@ test("custom toggles build both presses, preview each face and synchronize succe
   await page.getByRole("button", { name: "Create a toggle", exact: true }).click();
   await page.locator("#deckButtonName").fill("My toggle");
   await page
-    .getByRole("textbox", { name: "Keyboard trigger (RaveLink focused)", exact: true })
+    .getByRole("textbox", { name: "Keyboard trigger (Groby’s Deck focused)", exact: true })
     .focus();
   await page.keyboard.press("Control+Shift+k");
   await page.locator('[data-deck-action="native.hotkey"]').click();
   await page.locator("#deckToggleActionTarget").selectOption("second");
   await page.locator('[data-deck-action="native.hotkey"]').click();
   await page.locator('[data-deck-parameter="shortcut"]').nth(1).fill("F14");
+  await page.getByRole("tab", { name: "Appearance", exact: true }).click();
   await page.locator("#deckToggleoffLabel").fill("Quiet");
   await page.locator("#deckToggleonLabel").fill("Broadcast");
   await page.locator("#deckToggleonSymbol").fill("B");

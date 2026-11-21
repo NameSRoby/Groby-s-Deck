@@ -220,9 +220,39 @@ test("overlay canvas dragging, snapping, resizing and persistence work through t
   await editor.locator("#edit-canvas").filter({ hasText: "Canvas editing active" }).waitFor();
   assert.equal(await editor.locator("#canvas-height").inputValue(), "100");
   assert.equal(await editor.locator("#preview .shape-ellipse").count(), 1);
+
+  await editor.locator(`[data-object-shape="${initial.segments[0].id}"]`).click();
+  assert.equal(await editor.locator(".canvas-handle").count(), 8);
+  const beforeSide = await editor
+    .locator("#preview")
+    .evaluate(() => structuredClone(config.segments[0].frame));
+  const side = await editor.locator(".canvas-handle.e").boundingBox();
+  await page.mouse.move(side.x + side.width / 2, side.y + side.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(side.x + side.width / 2 + 20, side.y + side.height / 2 + 15);
+  await page.mouse.up();
+  const afterSide = await editor.locator("#preview").evaluate(() => config.segments[0].frame);
+  assert.equal(afterSide.height, beforeSide.height, "side handle only changes width");
+  await editor.locator(".layer-crop summary").click();
+  await editor.locator('[data-crop="left"]').fill("5");
+  await editor.locator('[data-crop="left"]').dispatchEvent("change");
+  await editor.locator("#save").click();
+  await editor.locator("#status").filter({ hasText: "Overlay saved" }).waitFor();
+  assert.equal(
+    (await call("status", null, "song.overlay.read.v1")).config.segments[0].crop.left,
+    5,
+  );
+  await page.reload();
+  await editor.locator("#edit-canvas").filter({ hasText: "Canvas editing active" }).waitFor();
+  assert.match(
+    await editor
+      .locator(`#preview [data-segment-id="${initial.segments[0].id}"]`)
+      .evaluate((el) => el.style.clip),
+    /5px/,
+  );
   // The object list is available in the same workspace as the canvas.
   assert.equal(await editor.locator("#canvas-library").isVisible(), true);
-  await editor.locator("[data-object-shape]").first().click();
+  await editor.locator(`[data-object-shape="${initial.segments[0].id}"]`).click();
   await editor.locator('[data-edit-name="shape"]').fill("Main card");
   await editor.locator('[data-edit-name="shape"]').dispatchEvent("change");
   await editor.locator("#canvas-duplicate").click();

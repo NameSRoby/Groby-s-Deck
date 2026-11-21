@@ -1,0 +1,89 @@
+.overlayCanvas {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.overlayLayer {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.overlayLayer .widgetBody {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  white-space: pre-wrap;
+  overflow: hidden;
+}
+.overlayLayer strong,
+.overlayLayer small {
+  display: block;
+}
+.overlayLayer small {
+  font-size: 0.65em;
+}
+.overlayLayer img,
+.overlayLayer video,
+.overlayLayer iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.overlayLayer progress {
+  display: block;
+  width: 100%;
+  height: 18px;
+  accent-color: currentColor;
+}
+.overlayLayer:has(img) .widgetBody,
+.overlayLayer:has(video) .widgetBody,
+.overlayLayer:has(iframe) > div {
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.overlayLayer .extraWidget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.overlayLayer .extraWidget .overlayItem {
+  padding: var(--item-padding, 8px);
+}
+.overlayLayer .extra-wheel svg {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+}
+.overlayLayer .bingoGrid {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+.overlayLayer .bingoCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  padding: 3px;
+  overflow: hidden;
+  text-align: center;
+  font-size: 0.55em;
+  overflow-wrap: anywhere;
+}
+.overlayLayer .bingoCell.marked {
+  background: var(--cell-accent);
+  box-shadow: inset 0 0 0 3px currentColor;
+}
+.overlayLayer img.chatEmote {
+  display: inline-block;
+  width: auto;
+  height: 1.2em;
+  vertical-align: middle;
+  object-fit: contain;
+}

@@ -8,6 +8,7 @@ const TWITCH_HELIX = "https://api.twitch.tv/helix";
 const DEFAULT_SCOPES = Object.freeze([
   "channel:manage:redemptions",
   "channel:read:vips",
+  "moderator:read:chatters",
   "moderation:read",
   "user:read:chat",
   "user:write:chat",
@@ -18,6 +19,15 @@ const ALLOWED_SCOPES = new Set([
   "moderator:read:followers",
   "channel:read:subscriptions",
   "channel:manage:broadcast",
+  "channel:edit:commercial",
+  "channel:manage:ads",
+  "channel:read:ads",
+  "moderator:manage:announcements",
+  "bits:read",
+  "moderator:manage:shoutouts",
+  "channel:read:hype_train",
+  "channel:read:polls",
+  "channel:read:predictions",
 ]);
 
 function text(value, maximum = 512) {
@@ -404,6 +414,12 @@ function createTwitchApiClient(options = {}) {
       return { ok: false, error: "twitch_reward_create_invalid" };
     }
     const query = new URLSearchParams({ broadcaster_id: broadcasterId });
+    let fields;
+    try {
+      fields = require("./twitch-reward-fields")({ ...input, title, cost, prompt }, true);
+    } catch {
+      return { ok: false, error: "twitch_reward_fields_invalid" };
+    }
     const result = await request(`${TWITCH_HELIX}/channel_points/custom_rewards?${query}`, {
       method: "POST",
       headers: {
@@ -411,14 +427,7 @@ function createTwitchApiClient(options = {}) {
         "Client-Id": clientId,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        title,
-        cost,
-        prompt,
-        is_enabled: input.enabled !== false,
-        is_user_input_required: true,
-        should_redemptions_skip_request_queue: false,
-      }),
+      body: JSON.stringify(fields),
     });
     if (!result.ok) {
       const error =
@@ -499,6 +508,16 @@ function createTwitchApiClient(options = {}) {
         enabled: row?.is_enabled !== false,
         paused: row?.is_paused === true,
         userInputRequired: row?.is_user_input_required === true,
+        backgroundColor: row?.background_color || "#9146ff",
+        maxPerStream: row?.max_per_stream_setting?.is_enabled
+          ? row.max_per_stream_setting.max_per_stream
+          : 0,
+        maxPerUser: row?.max_per_user_per_stream_setting?.is_enabled
+          ? row.max_per_user_per_stream_setting.max_per_user_per_stream
+          : 0,
+        cooldownSeconds: row?.global_cooldown_setting?.is_enabled
+          ? row.global_cooldown_setting.global_cooldown_seconds
+          : 0,
         manageable: manageableIds.has(text(row?.id, 160)),
       }))
       .filter((row) => row.id && row.title);
@@ -700,8 +719,12 @@ function createTwitchApiClient(options = {}) {
   }
 
   return Object.freeze({
+    ...require("./twitch-overlay-api")({ request, text, base: TWITCH_HELIX }),
     ...require("./twitch-dashboard-api")({ request, text, base: TWITCH_HELIX }),
     ...require("./twitch-clips-api")({ request, text, base: TWITCH_HELIX }),
+    ...require("./twitch-extended-api")({ request, text, base: TWITCH_HELIX }),
+    ...require("./twitch-community-api")({ request, base: TWITCH_HELIX }),
+    ...require("./twitch-template-api")({ request, text, base: TWITCH_HELIX }),
     beginDeviceAuthorization,
     pollDeviceAuthorization,
     refreshUserAccessToken,

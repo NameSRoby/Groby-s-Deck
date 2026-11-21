@@ -260,7 +260,7 @@ export async function initFeaturePlatform() {
     if (
       install.dataset.featureDownload === "1" &&
       !confirm(
-        `Download and install ${install.dataset.featureInstall} from the official RaveLink GitHub repository? The package will be verified before it is activated.`,
+        `Download and install ${install.dataset.featureInstall} from the official Groby’s Deck GitHub repository? The package will be verified before it is activated.`,
       )
     )
       return;

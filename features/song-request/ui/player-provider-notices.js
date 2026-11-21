@@ -14,12 +14,12 @@ function installProviderNotices() {
   const text = document.createElement("p");
   const report = document.createElement("a");
   report.textContent = "Report a bug on GitHub";
-  report.href = "https://github.com/NameSRoby/RaveLink-Core/issues/new?template=bug_report.yml";
+  report.href = "https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml";
   report.target = "_blank";
   report.rel = "noopener noreferrer";
   const privacy = document.createElement("p");
   privacy.textContent =
-    "Include your RaveLink version and steps to reproduce. Remove tokens, credentials and private account details before sharing logs or screenshots.";
+    "Include your Groby’s Deck version and steps to reproduce. Remove tokens, credentials and private account details before sharing logs or screenshots.";
   details.append(summary, text, report, privacy);
   document.querySelector(".playerSide").prepend(details);
   const style = document.createElement("style");
@@ -30,7 +30,7 @@ function installProviderNotices() {
     spotify:
       "Spotify updates can require preparing and reopening the companion. Free-account ads and playback restrictions still apply. Unconfirmed queue or community-playlist writes need review before retrying. The official Premium API cannot remove individual queued songs; the companion can remove entries it delivered. Live Premium and community-playlist testing remains limited.",
     soundcloud:
-      "Public search can be affected by SoundCloud site changes or rate limits. Some tracks are private, unavailable, limited to previews or blocked from embedded playback. Keep the RaveLink player open for playback. Availability and ads are controlled by SoundCloud. Direct account-library writes are not supported.",
+      "Public search can be affected by SoundCloud site changes or rate limits. Some tracks are private, unavailable, limited to previews or blocked from embedded playback. Keep the Groby’s Deck player open for playback. Availability and ads are controlled by SoundCloud. Direct account-library writes are not supported.",
   };
   let provider = "";
   return {

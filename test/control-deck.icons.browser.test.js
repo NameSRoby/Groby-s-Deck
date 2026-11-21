@@ -64,6 +64,7 @@ test("LAN icon library is lazy, searchable, keyboard accessible and saves tinted
   await page.getByLabel("Rare keyboard key", { exact: true }).selectOption("F24");
   assert.equal(await page.locator('[data-deck-parameter="shortcut"]').inputValue(), "F24");
   assert.equal(requests.filter((r) => r.path === "/button-icons/catalog.json").length, 0);
+  await page.getByRole("tab", { name: "Appearance", exact: true }).click();
   await page.getByRole("button", { name: "Choose from icon library", exact: true }).click();
   const picker = page.locator("#deckIconPicker");
   await picker.waitFor();
@@ -124,6 +125,7 @@ test("LAN icon library is lazy, searchable, keyboard accessible and saves tinted
   await mic.waitFor();
   await page.locator("#deckEdit").click();
   await mic.click();
+  await page.getByRole("tab", { name: "Appearance", exact: true }).click();
   assert(
     (await page.locator(".deckAppearancePreview img").getAttribute("src")).endsWith(
       saved.appearance.imageId,

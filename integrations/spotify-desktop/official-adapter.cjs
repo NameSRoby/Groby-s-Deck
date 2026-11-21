@@ -62,7 +62,8 @@ module.exports = function createSpotifyOfficialAdapter(options = {}) {
           status: response.status,
           retrySafe: method === "GET",
         };
-      if (response.status === 204) return { ok: true, accepted: true };
+      if (response.status === 204 || (route.startsWith("/me/library?") && method !== "GET"))
+        return { ok: true, accepted: true };
       return {
         ok: true,
         value: await require("./oauth.cjs").boundedJSON(response),
@@ -89,6 +90,25 @@ module.exports = function createSpotifyOfficialAdapter(options = {}) {
       if (!path) return { ok: false, error: "spotify_search_query_invalid" };
       const result = await request(path);
       return result.ok ? searchResult(result.value) : result;
+    },
+    async favorite(trackId, save) {
+      const uri = trackUri(trackId);
+      if (!uri || typeof save !== "boolean") return { ok: false, error: "spotify_track_invalid" };
+      const result = await request(
+        "/me/library?" + new URLSearchParams({ uris: uri }),
+        save ? "PUT" : "DELETE",
+      );
+      return result.ok ? { ok: true, trackId: uri.slice(14), saved: save } : result;
+    },
+    async saved(trackId) {
+      const uri = trackUri(trackId);
+      if (!uri) return { ok: false, error: "spotify_track_invalid" };
+      const result = await request("/me/library/contains?" + new URLSearchParams({ uris: uri }));
+      return result.ok && typeof result.value?.[0] === "boolean"
+        ? { ok: true, saved: result.value[0] }
+        : result.ok
+          ? { ok: false, error: "spotify_api_rejected" }
+          : result;
     },
     async queue() {
       return request("/me/player/queue");

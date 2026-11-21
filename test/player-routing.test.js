@@ -85,6 +85,7 @@ test("selected player exclusively owns shared intake and inactive player endpoin
       enabled: true,
       ready: false,
       capacity: { available: 0 },
+      handoffs: [],
     });
     providers[cap + "/manage-companion"] = () => ({ installed: false });
   }

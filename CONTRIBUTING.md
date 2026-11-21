@@ -1,4 +1,4 @@
-# Contributing to RaveLink Core
+# Contributing to Groby’s Deck
 
 Thanks for helping improve RaveLink. Useful contributions include reproducible
 bug reports, clearer setup instructions, fixture compatibility reports and

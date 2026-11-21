@@ -19,6 +19,8 @@ function temporaryRoot() {
 
 test("strict semantic release versions compare without prerelease ambiguity", () => {
   assert.deepEqual(parseVersion("v0.6.2"), [0, 6, 2]);
+  assert.deepEqual(parseVersion("v0.8"), [0, 8, 0]);
+  assert.equal(compareVersions("0.7.6b", "0.8"), -1);
   assert.equal(parseVersion("0.6.2-beta"), null);
   assert.equal(compareVersions("0.6.1", "0.6.2"), -1);
   assert.equal(compareVersions("1.0.0", "0.9.99"), 1);
@@ -33,7 +35,7 @@ test("release checks remain opt-in and expose only bounded public status", async
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   let requests = 0;
   const archive = Buffer.from("controlled release archive");
-  const archiveName = "RaveLink-Core-Windows-v0.6.2-self-contained.zip";
+  const archiveName = "Grobys-Deck-Windows-v0.6.2-self-contained.zip";
   const checksum = crypto.createHash("sha256").update(archive).digest("hex");
   const fakeFetch = async (url) => {
     requests++;
@@ -41,7 +43,7 @@ test("release checks remain opt-in and expose only bounded public status", async
       return new Response(
         JSON.stringify({
           tag_name: "v0.6.2",
-          name: "RaveLink Core v0.6.2",
+          name: "Groby’s Deck v0.6.2",
           draft: false,
           prerelease: false,
           published_at: "2026-09-12T00:00:00Z",
@@ -49,13 +51,13 @@ test("release checks remain opt-in and expose only bounded public status", async
             {
               name: archiveName,
               size: archive.length,
-              browser_download_url: `https://github.com/NameSRoby/RaveLink-Core/releases/download/v0.6.2/${archiveName}`,
+              browser_download_url: `https://github.com/NameSRoby/Groby-s-Deck/releases/download/v0.6.2/${archiveName}`,
             },
             {
               name: "SHA256SUMS.txt",
               size: 100,
               browser_download_url:
-                "https://github.com/NameSRoby/RaveLink-Core/releases/download/v0.6.2/SHA256SUMS.txt",
+                "https://github.com/NameSRoby/Groby-s-Deck/releases/download/v0.6.2/SHA256SUMS.txt",
             },
           ],
         }),
@@ -105,7 +107,7 @@ test("release metadata rejects assets outside the fixed GitHub repository", asyn
           prerelease: false,
           assets: [
             {
-              name: "RaveLink-Core-Windows-v0.6.2-self-contained.zip",
+              name: "Grobys-Deck-Windows-v0.6.2-self-contained.zip",
               browser_download_url: "https://example.com/update.zip",
             },
             {
