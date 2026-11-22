@@ -240,6 +240,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
   focus.type = "button";
   focus.setAttribute("aria-pressed", "false");
   const fullscreen = createDeckFullscreen({
+    widgetToggle: widgets.fullscreenToggle,
     host,
     button: focus,
     onEnter: () => {

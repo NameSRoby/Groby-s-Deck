@@ -1,6 +1,6 @@
 import { createDeckAwake } from "./control-deck-awake.js";
 /** A user gesture enters native fullscreen; unsupported clients retain a grid view. */
-export function createDeckFullscreen({ host, button, onEnter }) {
+export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
   let active = false,
     native = false,
     generation = 0;
@@ -72,7 +72,7 @@ export function createDeckFullscreen({ host, button, onEnter }) {
     if (active) return leave();
     const ticket = ++generation;
     active = true;
-    chrome.append(awakeButton, exit);
+    chrome.append(awakeButton, widgetToggle, exit);
     chrome.hidden = false;
     awake.enter();
     onEnter();

@@ -131,9 +131,7 @@ test("Syntax page searches functions and previews messages, random choices and c
       .querySelector("iframe")
       .contentWindow.postMessage({ channel: "groby-feature-ui-v1", type: "theme" }, "*"),
   );
-  await panel
-    .locator("#template")
-    .fill("${sender}: ${count[deaths]} / ${target.game} / ${target.link}");
+  await panel.locator("#template").fill("${sender}: ${countdeaths} / ${game user} / ${link user}");
   await panel.locator("#preview").click();
   await panel
     .locator("#result")
@@ -141,10 +139,10 @@ test("Syntax page searches functions and previews messages, random choices and c
     .waitFor();
   assert.equal(fs.existsSync(f.file.replace(".json", ".counters.json")), false);
   assert.equal(f.calls.length, 0);
-  await panel.locator("#template").fill("${chance[100|Guaranteed|No]}");
+  await panel.locator("#template").fill('${chance 100 "Guaranteed" "No"}');
   await panel.locator("#preview").click();
   await panel.locator("#result").filter({ hasText: "Guaranteed" }).waitFor();
-  await panel.locator("#template").fill("${chance[999|a|b]}");
+  await panel.locator("#template").fill('${chance 999 "a" "b"}');
   await panel.locator("#preview").click();
   await panel.locator("#result").filter({ hasText: "Chance must be" }).waitFor();
   await f.page.setViewportSize({ width: 390, height: 844 });
@@ -159,7 +157,7 @@ test("Syntax page searches functions and previews messages, random choices and c
   assert.equal(await panel.locator("#variablesTab").getAttribute("aria-selected"), "true");
   assert.equal(await panel.locator("#examplesPanel").isVisible(), false);
   await panel.locator("#variablesTab").press("End");
-  assert.equal(await panel.locator("#template").inputValue(), "${chance[999|a|b]}");
+  assert.equal(await panel.locator("#template").inputValue(), '${chance 999 "a" "b"}');
 });
 
 test("the language manual explains operators, fits a phone and previews both sides of a worked condition", async (t) => {

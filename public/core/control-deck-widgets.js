@@ -24,7 +24,6 @@ export function createDeckWidgets({
   minimize.setAttribute("aria-expanded", "true");
   minimize.title = "Collapse status widgets";
   minimize.hidden = true;
-  host.querySelector(".deckTools").append(minimize);
   minimize.onclick = () => {
     const collapsed = region.dataset.collapsed !== "true";
     region.dataset.collapsed = String(collapsed);
@@ -272,6 +271,7 @@ export function createDeckWidgets({
   observer.observe(region);
   document.addEventListener("visibilitychange", sync);
   return {
+    fullscreenToggle: minimize,
     update(next, isEditing, isConnected = true) {
       if (!next.config.widgets) {
         region.hidden = true;

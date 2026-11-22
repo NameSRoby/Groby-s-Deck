@@ -12,9 +12,9 @@ const event = (rewardId = "reward-one") => ({
 });
 
 test("renamed mod actions upgrade saved Twitch flows without changing access, cooldowns or activation", async (t) => {
-  const f = fixture(t),
-    old = "mod:groby.twitch-clips:create",
-    current = "mod:groby.twitch-clips:create";
+  const f = fixture(t);
+  const { actionIds } = require("../src/shared/fs/upgrade-identifiers.json");
+  const [[old, current]] = Object.entries(actionIds);
   const row = flow("c".repeat(24), { type: "command", command: "!cliptest" });
   row.enabled = false;
   row.role = "moderator";
@@ -43,7 +43,7 @@ test("subscriber/broadcaster gates and user cooldowns apply before counters, and
   row.role = "subscriber";
   row.cooldownSeconds = 0;
   row.userCooldownSeconds = 30;
-  row.steps = [{ actionId: "twitch.action.chat", params: { message: "Deaths: ${count[deaths]}" } }];
+  row.steps = [{ actionId: "twitch.action.chat", params: { message: "Deaths: ${countdeaths}" } }];
   await f.automations.save({ revision: 0, automation: row });
   const chat = {
     broadcaster_user_id: "123",
@@ -61,11 +61,11 @@ test("subscriber/broadcaster gates and user cooldowns apply before counters, and
   assert.equal(f.calls.find((call) => call.twitch).twitch.params.message, "Deaths: 1");
   chat.message_id = "cooldown";
   assert.equal((await f.automations.chat(chat)).code, "twitch_automation_user_cooldown");
-  const preview = await f.automations.preview({ template: "${count[deaths]}" });
+  const preview = await f.automations.preview({ template: "${countdeaths}" });
   assert.equal(preview.text, "2");
   const counterFile = f.file.replace(".json", ".counters.json");
   assert.equal(JSON.parse(savedCounters(counterFile)).values["123:deaths"], 1);
-  const bad = await f.automations.preview({ template: "${count[deaths]} ${missing}" });
+  const bad = await f.automations.preview({ template: "${countdeaths} ${missing}" });
   assert.match(bad.validationError, /Unknown/);
   assert.equal(JSON.parse(savedCounters(counterFile)).values["123:deaths"], 1);
   row.role = "broadcaster";
