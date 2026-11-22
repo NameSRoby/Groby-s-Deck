@@ -608,7 +608,11 @@ test("supervisor resolves shutdown after forcibly terminating a hung child", asy
   fs.rmSync(fixture.root, { recursive: true, force: true });
 });
 
-test("supervisor runs a real child only with explicit unsafe override on this runtime", async () => {
+test("real child uses available isolation and receives no ambient secrets", async (t) => {
+  const {
+    detectPermissionSupport,
+  } = require("../src/capabilities/mod-platform/host/mod-process-permissions");
+  const networkIsolation = detectPermissionSupport().network;
   const fixture = createFixture({
     source: [
       "module.exports = {",
@@ -623,16 +627,20 @@ test("supervisor runs a real child only with explicit unsafe override on this ru
   const supervisor = createModProcessSupervisor({
     manifest: fixture.manifest,
     modRoot: fixture.root,
-    allowUnsafeRuntime: true,
+    allowUnsafeRuntime: !networkIsolation,
     environment: {
       TEMP: os.tmpdir(),
       RAVELINK_TEST_SECRET: "must-not-cross-boundary",
     },
     startupTimeoutMs: 5000,
   });
+  t.after(async () => {
+    await supervisor.stop();
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  });
   const started = await supervisor.start();
   assert.equal(started.lifecycle, "active", started.lastError);
-  assert.equal(started.unsafeRuntime, true);
+  assert.equal(started.unsafeRuntime, !networkIsolation);
   const result = await supervisor.request("test.echo.v1", "echo", {
     real: true,
   });
@@ -642,7 +650,6 @@ test("supervisor runs a real child only with explicit unsafe override on this ru
   });
   const stopped = await supervisor.stop();
   assert.equal(stopped.lifecycle, "installed-disabled");
-  fs.rmSync(fixture.root, { recursive: true, force: true });
 });
 
 test("cancelling an outer worker call aborts its queued host action without later side effects", async (t) => {
