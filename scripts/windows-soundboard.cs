@@ -1,4 +1,4 @@
-// Disk-streamed, per-endpoint playback. No capture or system volume changes.
+// Disk-streamed playback to speakers, headphones and the playback side of virtual inputs.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,15 +32,28 @@ namespace Groby.Soundboard {
         if (voice.Output.PlaybackState == PlaybackState.Stopped) { voices.Remove(voice); voice.Dispose(); }
       }
     }
+    static List<object> Endpoints(MMDeviceEnumerator enumerator, DataFlow direction) {
+      var devices = new List<object>();
+      foreach (var device in enumerator.EnumerateAudioEndPoints(direction, DeviceState.Active).Take(64)) {
+        using (device) devices.Add(new {
+          key = Key(device.ID),
+          name = device.FriendlyName,
+          adapter = device.DeviceFriendlyName
+        });
+      }
+      return devices;
+    }
     public static object Status() {
       Sweep();
-      var devices = new List<object>();
       using (var enumerator = new MMDeviceEnumerator()) {
-        foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)) {
-          using (device) devices.Add(new { key = Key(device.ID), name = device.FriendlyName });
-        }
+        return new {
+          available = true,
+          outputs = Endpoints(enumerator, DataFlow.Render),
+          inputs = Endpoints(enumerator, DataFlow.Capture),
+          playing = voices.Select(v => v.Clip).ToArray(),
+          error = lastError
+        };
       }
-      return new { available = true, outputs = devices, playing = voices.Select(v => v.Clip).ToArray(), error = lastError };
     }
     public static object Stop(string clip) {
       foreach (var voice in voices.Where(v => clip == "" || v.Clip == clip).ToArray()) { voices.Remove(voice); voice.Dispose(); }

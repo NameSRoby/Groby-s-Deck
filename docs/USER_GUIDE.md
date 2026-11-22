@@ -459,7 +459,7 @@ packages remain opt-in under **Packages**; their verified downloads are wired
 into Core. Supported systems are Windows 10/11 x64; this is not a macOS/Linux
 distribution.
 
-**Development:** install Node 24 LTS and run `npm ci`, then `npm start`. Use
+**Development:** install Node 26 LTS and run `npm ci`, then `npm start`. Use
 `npm run setup:windows` to prepare the bundled runtime and launcher without
 starting Core. This checks the pinned release against your lockfile; after
 changing production dependencies, use `npm ci` and build audio from source with

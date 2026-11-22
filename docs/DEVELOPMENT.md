@@ -14,7 +14,7 @@ internal implementation helpers.
 
 ## Getting started
 
-Use a supported Windows x64 machine and Node 24 for development. Run
+Use a supported Windows x64 machine and Node 26 LTS for development. Run
 `npm.cmd ci` in the checkout, then `npm.cmd run verify:health`. Start the app with
 `npm.cmd start`; it loads the feature manager and mod discovery together. Installed
 features still need their own activation and account sign-in. Use a separate
@@ -541,7 +541,7 @@ automatically. Keep queue admission, moderation and reward settlement with their
 existing owners. Tests use synthetic players; they do not certify provider accounts
 or future client behavior. See [player setup](USER_GUIDE.md#youtube-playback).
 
-Use Node 24 for the maintained checks. Install development dependencies with
+Use Node 26 LTS for the maintained checks. Install development dependencies with
 `npm ci`; runtime-only installs can omit them. Browser tests need Playwright's
 Chromium and Firefox (`npx playwright install chromium firefox`) and should use
 temporary state. Start with [CONTRIBUTING.md](../CONTRIBUTING.md) for local setup
@@ -689,5 +689,5 @@ oldest users across accounts only under pressure; there is no calendar expiry or
 read records and SQLite uses a 2 MiB page cache with memory mapping disabled.
 Migration commits the sidecar before removing legacy JSON rows. Backups, tokens,
 installed binaries, mods and user media are outside automatic user-record eviction.
-Use the bundled Node 24 runtime, which supplies node:sqlite; no database service
+Use the bundled Node 26 runtime, which supplies node:sqlite; no database service
 or additional dependency is needed.

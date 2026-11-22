@@ -94,6 +94,10 @@ button editor. OBS 28+ includes the required WebSocket server.
 
 </details>
 
+### Send soundboard audio to a microphone input
+
+Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter. [VB-CABLE setup](https://voicemeter.org/Cable/index.htm) · [Voicemeeter setup](https://voicemeeter.com/setup-voicemeeter-for-skype-zoom-or-discord/)
+
 ## Make your lights follow music
 
 1. Open **Audio & lights** and choose your audio source and lights.

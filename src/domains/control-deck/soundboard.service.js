@@ -1,6 +1,25 @@
 /** Shared action owner for buttons, timed flows and Twitch automations. */
 const path = require("node:path");
 const { fault } = require("./control-deck-config");
+
+function cableRole(endpoint, role) {
+  const name = endpoint?.name || "";
+  const adapter = String(endpoint?.adapter || name);
+  if (!/\bvb-audio\b.*\bcable\b/i.test(adapter)) return "";
+  const cable = name.match(/\b((?:hi-fi )?cable(?:-[a-d])?) (input|output)\b/i);
+  return cable?.[2].toLowerCase() === role ? cable[1].toLowerCase() : "";
+}
+
+function selectableOutputs(outputs, inputs) {
+  return outputs.map((output) => {
+    const cable = cableRole(output, "input");
+    const matches = cable ? inputs.filter((input) => cableRole(input, "output") === cable) : [];
+    // Two installed cables can expose the same name. Leave those as playback choices.
+    const name = matches.length === 1 ? "Virtual mic: " + matches[0].name : output.name;
+    return { key: output.key, name: name.slice(0, 128) };
+  });
+}
+
 module.exports = function soundboard({
   rootDir,
   runtimeDir = path.join(rootDir, "runtime"),
@@ -34,10 +53,11 @@ module.exports = function soundboard({
             )
           )
             throw fault("soundboard_state_invalid");
-          state = {
-            ...next,
-            outputs: next.outputs.map((row) => ({ key: row.key, name: row.name.slice(0, 128) })),
-          };
+          const { inputs, ...status } = next;
+          const recording = Array.isArray(inputs)
+            ? inputs.slice(0, 64).filter((row) => typeof row?.name === "string")
+            : [];
+          state = { ...status, outputs: selectableOutputs(next.outputs, recording) };
           readAt = Date.now();
           return state;
         })
@@ -73,7 +93,7 @@ module.exports = function soundboard({
       symbol: "♪",
       available: platform === "win32",
       description:
-        "Choose an audio file and the PC output to play it through. Plays when triggered; saving never plays audio.",
+        "Choose an audio file and play it through speakers, headphones or an available virtual microphone feed.",
       parameters: { type: "object", additionalProperties: false, properties, required },
       defaults,
     });
@@ -85,7 +105,7 @@ module.exports = function soundboard({
           clip,
           outputs: {
             type: "array",
-            title: "Outputs",
+            title: "Audio destinations",
             format: "soundboard-outputs",
             minItems: 1,
             maxItems: 8,

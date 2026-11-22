@@ -29,6 +29,8 @@ function verify(source, runtime) {
 module.exports = { verify };
 if (require.main === module) {
   try {
+    if (!process.allowedNodeEnvironmentFlags.has("--allow-net"))
+      throw Error("The runtime cannot enforce package network isolation.");
     verify(...process.argv.slice(2));
   } catch (error) {
     console.error(`[SETUP] ${error.message}`);

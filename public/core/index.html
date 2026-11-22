@@ -2472,8 +2472,21 @@
               multiple
           /></label>
           <div class="deckField">
-            <span>Outputs</span><input id="soundboardOutput" type="hidden" value='["default"]' />
+            <span>Audio destinations</span
+            ><input id="soundboardOutput" type="hidden" value='["default"]' />
             <div id="soundboardOutputChoices" class="deckSoundOutputs"></div>
+            <details>
+              <summary>Send sounds to a microphone input</summary>
+              <p>
+                Choose a virtual mic above and select the matching recording device in your other
+                app. Select headphones too if you want to hear the clip.
+              </p>
+              <p>
+                Install a compatible virtual audio cable if you don't see a virtual mic. To mix your
+                physical mic with the soundboard, send both through your audio mixer and select its
+                virtual output in the other app.
+              </p>
+            </details>
           </div>
           <label
             >Sound volume (%)<input
@@ -2497,8 +2510,8 @@
           >
         </div>
         <p>
-          Choose settings above, then add a deck button. Each button keeps its own output, volume
-          and repeat behavior; edit it in the deck to add waits, conditions or more actions.
+          Choose settings above, then add a deck button. Each button keeps its own destinations,
+          volume and repeat behavior; edit it in the deck to add waits, conditions or more actions.
         </p>
         <div class="actions">
           <button id="soundboardStop" type="button">Stop all sounds</button

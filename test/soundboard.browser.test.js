@@ -21,8 +21,9 @@ test("soundboard uploads and creates editable deck macros without playing on sav
             available: true,
             outputs: [
               { key: "device:" + "a".repeat(64), name: "Headphones" },
-              { key: "device:" + "b".repeat(64), name: "Virtual cable" },
+              { key: "device:" + "b".repeat(64), name: "CABLE Input (VB-Audio Virtual Cable)" },
             ],
+            inputs: [{ name: "CABLE Output (VB-Audio Virtual Cable)" }],
             playing: [],
           };
         return { available: false, devices: [], apps: [] };
@@ -65,7 +66,9 @@ test("soundboard uploads and creates editable deck macros without playing on sav
   await page.locator(".deckSoundFile [role=status]").filter({ hasText: "Ready" }).waitFor();
   const outputs = page.locator("#deckEditor .deckSoundOutputs");
   await outputs.getByLabel("Headphones", { exact: true }).check();
-  await outputs.getByLabel("Virtual cable", { exact: true }).check();
+  await outputs
+    .getByLabel("Virtual mic: CABLE Output (VB-Audio Virtual Cable)", { exact: true })
+    .check();
   await outputs.getByLabel("Windows default output", { exact: true }).uncheck();
   await page.locator("#deckSaveButton").click();
   await page.locator("#deckEditor").waitFor({ state: "hidden" });
@@ -109,6 +112,10 @@ test("soundboard uploads and creates editable deck macros without playing on sav
     throw Error((await page.locator("#soundboardNotice").textContent()) + " / " + error.message);
   }
   await page.locator("#soundboardOutputChoices").getByLabel("Headphones").check();
+  await page
+    .locator("#soundboardOutputChoices")
+    .getByLabel("Virtual mic: CABLE Output (VB-Audio Virtual Cable)", { exact: true })
+    .check();
   await page.locator("#soundboardOutputChoices").getByLabel("Windows default output").uncheck();
   await page.locator("#soundboardVolume").fill("35");
   await page.locator("#soundboardMode").selectOption("toggle");
@@ -117,6 +124,10 @@ test("soundboard uploads and creates editable deck macros without playing on sav
   const deck = (await (await fetch(base + "/api/control-deck")).json()).value.config;
   const button = deck.pages.find((p) => p.name === "Soundboard").buttons[0];
   assert.equal(button.steps[0].actionId, "native.soundboard.play");
+  assert.deepEqual(button.steps[0].params.outputs, [
+    "device:" + "a".repeat(64),
+    "device:" + "b".repeat(64),
+  ]);
   assert.equal(button.steps[0].params.volume, 35);
   assert.equal(button.steps[0].params.mode, "toggle");
   assert.equal(

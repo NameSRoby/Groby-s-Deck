@@ -19,9 +19,9 @@ function checkInstallation({ root = path.resolve(__dirname, ".."), music = true 
     if (
       process.platform !== "win32" ||
       process.arch !== "x64" ||
-      Number(process.versions.node.split(".")[0]) < 24
+      !process.allowedNodeEnvironmentFlags.has("--allow-net")
     )
-      throw Error("Use the bundled Windows x64 Node 24 runtime.");
+      throw Error("Use the bundled Windows x64 runtime with package isolation support.");
   });
   check("Production dependencies", () => {
     const packages = JSON.parse(

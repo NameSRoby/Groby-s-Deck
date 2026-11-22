@@ -115,6 +115,54 @@ test("shared sound actions retain explicit outputs and reject invalid audio cont
   await service.execute("native.soundboard.stop", {});
   assert.equal(calls.at(-1).op, "soundboard.stop");
 });
+test("paired virtual cable inputs and headphones can be routed by the same sound action", async (t) => {
+  const root = fixture(t);
+  const speaker = "device:" + "a".repeat(64);
+  const cableA = "device:" + "b".repeat(64);
+  const cableB = "device:" + "c".repeat(64);
+  const calls = [];
+  let capture = [
+    { name: "CABLE-A Output (VB-Audio Cable A)", adapter: "VB-Audio Cable A" },
+    { name: "CABLE-B Output (Unrelated device)", adapter: "USB recording device" },
+    { name: "Microphone (USB recording device)", adapter: "USB recording device" },
+  ];
+  const soundboard = require("../src/domains/control-deck/soundboard.service")({
+    rootDir: root,
+    platform: "win32",
+    request: async (op, payload) => {
+      if (op !== "soundboard.status") {
+        calls.push(payload.outputs);
+        return { ok: true };
+      }
+      return {
+        available: true,
+        playing: [],
+        inputs: capture,
+        outputs: [
+          { key: speaker, name: "Speakers" },
+          { key: cableA, name: "CABLE-A Input (VB-Audio Cable A)", adapter: "VB-Audio Cable A" },
+          { key: cableB, name: "CABLE-B Input (VB-Audio Cable B)", adapter: "VB-Audio Cable B" },
+        ],
+      };
+    },
+  });
+  const state = await soundboard.refresh(true);
+  assert.deepEqual(
+    state.outputs.map((output) => output.name),
+    [
+      "Speakers",
+      "Virtual mic: CABLE-A Output (VB-Audio Cable A)",
+      "CABLE-B Input (VB-Audio Cable B)",
+    ],
+  );
+  assert.equal("inputs" in state, false);
+  const clip = await soundboard.library.upload(Readable.from([wav()]), "Sound");
+  await soundboard.execute("native.soundboard.play", { clip: clip.id, outputs: [speaker, cableA] });
+  assert.deepEqual(calls, [[speaker, cableA]]);
+  capture = [];
+  const disconnected = await soundboard.refresh(true);
+  assert.equal(disconnected.outputs[1].name, "CABLE-A Input (VB-Audio Cable A)");
+});
 test(
   "real Windows helper enumerates outputs and streams an inaudible test without changing mixer volume",
   { skip: process.platform !== "win32" },
@@ -130,6 +178,8 @@ test(
     t.after(() => bridge.shutdown());
     const state = await bridge.request("soundboard.status", {});
     assert.ok(Array.isArray(state.outputs));
+    assert.ok(Array.isArray(state.inputs));
+    assert.ok(state.inputs.every((row) => /^device:[a-f0-9]{64}$/.test(row.key)));
     if (!state.outputs.length) return t.skip("No active Windows outputs");
     const clip = "a".repeat(64) + ".wav";
     const result = await bridge.request("soundboard.play", {
