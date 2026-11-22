@@ -643,6 +643,19 @@ test("automation list searches and filters compact rows, expands inline, and pre
       return [`${root.scrollWidth}px of content in ${innerWidth}px`, ...overflowing];
     });
     assert.deepEqual(overflow, [], "fits width " + width);
+    assert.equal(
+      await panel.locator(".commandCodeHighlight").evaluate((highlight) => {
+        const width = highlight.style.width;
+        highlight.style.width = "2000px";
+        try {
+          return highlight.offsetWidth <= highlight.parentElement.clientWidth;
+        } finally {
+          highlight.style.width = width;
+        }
+      }),
+      true,
+      "the highlight fits before ResizeObserver updates its measured width",
+    );
   }
   assert.equal(f.calls.length, 0);
 });

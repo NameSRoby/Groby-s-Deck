@@ -3,7 +3,7 @@
   "id": "twitch-integration",
   "name": "Twitch Integration",
   "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
-  "version": "0.12.58",
+  "version": "0.12.59",
   "publisher": "grobys-deck",
   "entry": "dist/main.js",
   "engine": {
@@ -142,10 +142,11 @@
       "dist/variable-arguments.js": "49aa60905b66a85b1c533b7f618c7331c784fbf56470d753dbecd288420a14b9",
       "dist/variable-recipe-storage.js": "667e8e7749ebfde1ab443c96e33ec5d2e79e243be6d2cb35f907fb12f0c40c53",
       "dist/variable-recipe.js": "6b3930e4e3353b811fbc44d127b9dde47e5027db7fe565f1610167ce2bc50ae3",
+      "README.md": "bd3878e1f43eaad2ba6a62eb78667284bc07523d2cb863954257af69630a38d5",
       "ui/automations-controller.js": "5f52e959a11d0448c13fc794e1df1147717530d6c6e0944f41155bfc93de61ff",
       "ui/automations-layout.css": "fe063fccc9c0d14d975409bb04b4321ec15881136c10444590b25109165dca48",
       "ui/automations-list.js": "aba990a8d3504cf3513b7cc7a5c5530b789402517dde769aa103220b0ef03d52",
-      "ui/automations.html": "d1f71b31730851f2c104f2b0932567e30966833aaa8384d505953779dcb45719",
+      "ui/automations.html": "67a51676730e955ea7151fd418ce45c8accd10efdad533ec4fc87fc984aac4bf",
       "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
       "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
       "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",
@@ -157,7 +158,7 @@
       "ui/duration-input.js": "d37303482538b419af104e660f99ffd2a89df0565f17b780a8ff6ed7979943a4",
       "ui/quotes-manager.js": "165025d9ce7c3ef7231a24a14164b085a529bf09254b56f0fcef58ed6a55041b",
       "ui/quotes.html": "f59980ea8b0e646809e88ba5cb7fac192476c2308546c197fd7f64937e9c69be",
-      "ui/syntax.html": "bf3eed96b952be34d8c2da4cdf9991b917d26106521ed7c4871ca93f719d6552",
+      "ui/syntax.html": "43b38a7c7c2740189e37bd3af5feb3da8026cb96f26e01eaf057a10edf65a0fb",
       "ui/watchtime.html": "0f794b81622df7eebd719ddf2cecbe4503cfcdca4d6e200388d63d72c8bb537c"
     }
   }

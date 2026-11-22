@@ -3720,6 +3720,8 @@ dialog.visibleDialog > .toolbar button {
 .commandCodeHighlight {
   position: absolute;
   inset: 0 auto auto 0;
+  /* The measured width lags behind the textarea until ResizeObserver runs. */
+  max-width: 100%;
   margin: 0;
   border: solid transparent;
   border-radius: inherit;
@@ -4429,7 +4431,7 @@ dialog::backdrop {
 </div>
       </div>
       <dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmText"><div class="visibleDialogContent"><h2 id="confirmTitle"></h2><p id="confirmText"></p></div><div class="toolbar"><button id="confirmCancel" autofocus>Cancel</button><button id="confirmProceed" class="danger">Delete</button></div></dialog>
-<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.58</span></p>
+<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.59</span></p>
     </main>
     
 <!-- TWITCH_FLOW_SCRIPT_START -->

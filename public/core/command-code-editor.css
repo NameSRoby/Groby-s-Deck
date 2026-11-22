@@ -57,6 +57,8 @@
 .commandCodeHighlight {
   position: absolute;
   inset: 0 auto auto 0;
+  /* The measured width lags behind the textarea until ResizeObserver runs. */
+  max-width: 100%;
   margin: 0;
   border: solid transparent;
   border-radius: inherit;
