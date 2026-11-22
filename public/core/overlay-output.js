@@ -1,5 +1,5 @@
 /** Saved output only. The editor's sample events and unsaved draft never reach OBS. */
-/* global OverlayRenderer */
+/* global OverlayRenderer, createOverlayChatFeed */
 (() => {
   const id = new URLSearchParams(location.search).get("id"),
     host = document.getElementById("output");
@@ -8,8 +8,9 @@
     stopped = false,
     timer,
     revision = -1;
+  const chat = createOverlayChatFeed(draw);
   function draw() {
-    if (doc) OverlayRenderer.render(host, doc, data);
+    if (doc) OverlayRenderer.render(host, doc, chat.merge(data));
   }
   async function poll() {
     try {
@@ -23,6 +24,7 @@
         revision = library.revision;
         if (!library.notModified) doc = library.document || null;
         if (!doc) host.replaceChildren();
+        chat.sync(Boolean(doc?.widgets.some((widget) => widget.visible && widget.type === "chat")));
       }
       data = live.ok ? live : {};
       draw();
@@ -33,9 +35,7 @@
     if (!stopped)
       timer = setTimeout(
         poll,
-        doc?.widgets.some((w) => w.visible && ["chat", "alerts", "credits"].includes(w.type))
-          ? 500
-          : 2000,
+        doc?.widgets.some((w) => w.visible && ["alerts", "credits"].includes(w.type)) ? 500 : 2000,
       );
   }
   const tick = setInterval(draw, 1000);
@@ -44,6 +44,7 @@
     "pagehide",
     () => {
       stopped = true;
+      chat.stop();
       clearTimeout(timer);
       clearInterval(tick);
     },

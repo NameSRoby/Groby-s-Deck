@@ -45,6 +45,22 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       };
       sync();
       host.append(note);
+      const appearance = document.createElement("fieldset");
+      appearance.className = "chatDisplayOptions";
+      const heading = document.createElement("legend");
+      heading.textContent = "Show in chat";
+      appearance.append(heading);
+      for (const [label, field] of [
+        ["Twitch username colors", "showChatColors"],
+        ["Twitch chat badges", "showChatBadges"],
+        ["Twitch emotes", "showTwitchEmotes"],
+        ["7TV emotes", "showSevenTvEmotes"],
+        ["BetterTTV emotes", "showBetterTtvEmotes"],
+        ["FrankerFaceZ emotes", "showFrankerFaceZEmotes"],
+      ]) {
+        appearance.append(check(label, field).parentElement);
+      }
+      host.append(appearance);
       check("Hide app-sent bot messages", "hideBotMessages");
       const label = document.createElement("label"),
         input = document.createElement("input");

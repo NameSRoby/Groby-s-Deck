@@ -5,12 +5,13 @@ const test = require("node:test"),
   path = require("node:path"),
   express = require("express");
 const { chromium } = require("playwright");
-async function setup(t, provider = null) {
+async function setup(t, provider = null, fetchChatCatalog) {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-ui-"));
   const app = express(),
     service = require("../src/domains/overlays/stream-overlays.service")({
       runtimeDir,
       getProvider: () => provider,
+      ...(fetchChatCatalog ? { fetchChatCatalog } : {}),
     });
   app.use(express.json({ limit: "256kb" }));
   require("../src/app/core/register-stream-overlays.routes")(app, { service, runtimeDir, express });
@@ -19,7 +20,8 @@ async function setup(t, provider = null) {
       const s = app.listen(0, "127.0.0.1", () => resolve(s));
     }),
     browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1426, height: 1000 } }),
+  const context = await browser.newContext({ viewport: { width: 1426, height: 1000 } });
+  const page = await context.newPage(),
     base = "http://127.0.0.1:" + server.address().port,
     errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -39,6 +41,139 @@ async function setup(t, provider = null) {
   };
   return { page, base, service, browser, add };
 }
+
+test("editor and OBS mirror moderated chat and apply each cosmetic toggle independently", async (t) => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const channel = "123";
+  const badge = "https://static-cdn.jtvnw.net/badges/v1/fixture-badge/2";
+  const sevenTv = "01FCY771D800007PQ2DF3GDTN6";
+  const bttv = "54fa8f1401e468494b85b537";
+  const calls = [];
+  const fetchCatalog = async (url, init) => {
+    assert.equal(init.headers, undefined);
+    calls.push(url);
+    if (url.endsWith("/" + channel)) {
+      if (url.includes("7tv.io")) {
+        return Response.json({ emote_set: { emotes: [{ id: sevenTv, name: "Seven" }] } });
+      }
+      if (url.includes("betterttv.net")) {
+        return Response.json({ sharedEmotes: [{ id: bttv, code: "Better" }] });
+      }
+      return Response.json({
+        room: { set: 42 },
+        sets: {
+          42: { emoticons: [{ name: "Franker", urls: { 2: "//cdn.frankerfacez.com/emote/7/2" } }] },
+        },
+      });
+    }
+    if (url.includes("7tv.io")) return Response.json({ emotes: [] });
+    if (url.includes("betterttv.net")) return Response.json([]);
+    return Response.json({ default_sets: [] });
+  };
+  const provider = {
+    status: () => ({ connected: true, userId: channel, scopes: ["user:read:chat"] }),
+    refreshSubscriptions() {},
+    overlayChatBadges: async () => ({
+      ok: true,
+      badges: [{ key: "moderator:1", title: "Moderator", url: badge }],
+    }),
+  };
+  const { page, add, service, base } = await setup(t, provider, fetchCatalog);
+  const editor = page.locator("#canvas");
+  await page
+    .context()
+    .route(
+      /^https:\/\/(?:static-cdn\.jtvnw\.net|cdn\.7tv\.app|cdn\.betterttv\.net|cdn\.frankerfacez\.com)\//,
+      (route) => route.fulfill({ contentType: "image/png", body: png }),
+    );
+  await add("Twitch chat");
+  const send = (id, userId, text, extra = {}) =>
+    service.receive("channel.chat.message", {
+      message_id: id,
+      chatter_user_id: userId,
+      chatter_user_name: "Chatter",
+      message: { text },
+      ...extra,
+    });
+  send("emotes", "viewer", "Kappa Seven Better Franker", {
+    badges: [{ set_id: "moderator", id: "1" }],
+    color: "#ff9900",
+    message: {
+      text: "Kappa Seven Better Franker",
+      fragments: [
+        { type: "emote", text: "Kappa", emote: { id: "25" } },
+        { type: "text", text: " Seven Better Franker" },
+      ],
+    },
+  });
+  await editor.getByRole("img", { name: "Moderator" }).waitFor();
+  await editor.getByRole("img", { name: "Kappa" }).waitFor();
+  assert.equal(
+    await editor.locator(".chatUsername").evaluate((el) => el.style.color),
+    "rgb(255, 153, 0)",
+  );
+  assert.deepEqual(calls, []);
+  for (const [label, image] of [
+    ["7TV emotes", "Seven"],
+    ["BetterTTV emotes", "Better"],
+    ["FrankerFaceZ emotes", "Franker"],
+  ]) {
+    await page.getByLabel(label, { exact: true }).check();
+    await editor.getByRole("img", { name: image }).waitFor();
+  }
+  await page.getByLabel("7TV emotes", { exact: true }).uncheck();
+  await page.getByLabel("Twitch emotes", { exact: true }).uncheck();
+  await page.getByLabel("Twitch chat badges", { exact: true }).uncheck();
+  await page.getByLabel("Twitch username colors", { exact: true }).uncheck();
+  assert.equal(await editor.getByRole("img").count(), 2);
+  assert.equal(await editor.locator(".chatUsername").evaluate((el) => el.style.color), "");
+  assert.match(await editor.textContent(), /Kappa Seven/);
+  assert.equal(calls.length, 6);
+
+  await page.getByText("Animation", { exact: true }).click();
+  await page.getByLabel("Fade outgoing messages").check();
+  await page.locator("#save").click();
+  await page.locator("#notice").filter({ hasText: "Overlay saved" }).waitFor();
+  const doc = service.store.snapshot().documents[0];
+  const output = await page.context().newPage();
+  let requested = false;
+  await output.route("**/api/stream-overlays/data?fast=1", (route) => {
+    if (requested) return route.abort();
+    requested = true;
+    return route.continue();
+  });
+  const feed = output.waitForRequest("**/api/stream-overlays/chat-feed");
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  await feed;
+  assert.equal(doc.widgets[0].exitAnimation, true);
+  await page.route("**/api/stream-overlays/preview-data", (route) => route.abort());
+
+  send("delete", "viewer", "Single message");
+  send("ban1", "banned", "First banned message");
+  send("ban2", "banned", "Second banned message");
+  send("stay", "another", "Unrelated message");
+  for (const view of [editor, output.locator("#output")]) {
+    await view.getByText("Chatter: Single message", { exact: true }).waitFor();
+    await view.getByText("Chatter: Second banned message", { exact: true }).waitFor();
+  }
+  service.receive("channel.chat.message_delete", { message_id: "delete" });
+  service.receive("channel.chat.clear_user_messages", { target_user_id: "banned" });
+  for (const view of [editor, output.locator("#output")]) {
+    await view.getByText("Chatter: Single message", { exact: true }).waitFor({ state: "detached" });
+    assert.doesNotMatch(await view.textContent(), /banned message/);
+    assert.match(await view.textContent(), /Unrelated message/);
+    assert.equal(await view.locator("[data-leaving]").count(), 0);
+  }
+  service.receive("channel.chat.clear");
+  for (const view of [editor, output.locator("#output")]) {
+    await view
+      .getByText("Chatter: Unrelated message", { exact: true })
+      .waitFor({ state: "detached" });
+  }
+});
 
 test("live draft chat does not wait on subscriber data; credits roll on arrival and chat filters work", async (t) => {
   let finishSupporters;

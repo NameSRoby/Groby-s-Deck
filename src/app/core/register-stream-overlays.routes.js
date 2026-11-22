@@ -33,6 +33,9 @@ module.exports = function registerOverlays(app, { service, runtimeDir, express }
     "/api/stream-overlays/data",
     route((req) => service.data({ fast: req.query.fast === "1" })),
   );
+  app.get("/api/stream-overlays/chat-feed", (_req, res) => {
+    if (!service.subscribeChat(res)) res.sendStatus(503);
+  });
   const previews = rateLimit({
     windowMs: 60000,
     limit: 1200,

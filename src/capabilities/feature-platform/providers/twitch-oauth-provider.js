@@ -954,6 +954,9 @@ module.exports = function createTwitchOAuthProvider(options = {}) {
         ? receiveRedemption(event)
         : undefined,
     onChat: chat.receive,
+    onChatOverflow: (event, order) => chat.receive(event, order, true),
+    onChatModeration: (type, event, metadata) =>
+      canReceive(type, "1") && options.onChatModeration?.(type, event, metadata),
     onEvent: (type, event, metadata) => {
       const version = require("./twitch-automation-events").EVENTS.find(
         (row) => row[0] === type,

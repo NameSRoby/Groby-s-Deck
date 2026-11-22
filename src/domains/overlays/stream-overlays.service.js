@@ -22,6 +22,7 @@ module.exports = function streamOverlays({
   getRecords = () => ({}),
   getSoundboard = async () => ({ playing: [] }),
   now = Date.now,
+  fetchChatCatalog = globalThis.fetch,
 }) {
   const store = require("./overlay-store")(runtimeDir),
     activity = require("./overlay-events")(now),
@@ -36,7 +37,7 @@ module.exports = function streamOverlays({
       now,
       changed: () => {
         after = twitchAfter = 0;
-        getProvider()?.refreshSubscriptions?.();
+        refreshSubscriptions();
       },
     });
   let session = randomUUID(),
@@ -47,7 +48,16 @@ module.exports = function streamOverlays({
     twitch = {},
     song = null,
     records = {},
-    soundboard = [];
+    soundboard = [],
+    subscriptions = "";
+  const chatAssets = require("./overlay-chat-assets")({
+    now,
+    fetch: fetchChatCatalog,
+    changed: () => chatFeed.changed(),
+  });
+  const chatFeed = require("./overlay-chat-feed")({
+    snapshot: () => ({ session, rows: activity.chatRows().map(chatAssets.decorate) }),
+  });
   const widgets = () => [...store.widgets(), ...previews.widgets()];
   const active = (id) =>
     getRegistry()
@@ -63,6 +73,8 @@ module.exports = function streamOverlays({
       after = twitchAfter = 0;
       twitch = {};
       activity.reset(key);
+      chatAssets.reset(status.userId || "");
+      chatFeed.changed();
       credits.reset(status.userId || "");
       redemptions.reset(status.userId || "");
       records = {};
@@ -107,6 +119,12 @@ module.exports = function streamOverlays({
         );
     }
     return [...wanted];
+  }
+  function refreshSubscriptions() {
+    const wanted = events().sort().join(",");
+    if (wanted === subscriptions) return;
+    subscriptions = wanted;
+    getProvider()?.refreshSubscriptions?.();
   }
   function catalog() {
     const status = auth(),
@@ -153,6 +171,7 @@ module.exports = function streamOverlays({
     if (flight) return flight;
     if (now() < after) return;
     after = now() + 2000;
+    chatAssets.refresh(status, widgets());
     flight = (async () => {
       const generation = key,
         wanted = types(),
@@ -259,17 +278,23 @@ module.exports = function streamOverlays({
     events,
     receive(type, event, metadata) {
       if (auth().connected) {
-        activity.receive(type, event, metadata);
+        if (activity.receive(type, event, metadata)) chatFeed.changed();
         credits.receive(type, event);
         redemptions.receive(type, event);
         if (type === "channel.chat.message")
           games.receive(event, metadata, getProvider().status().userId);
       }
     },
+    subscribeChat(client) {
+      auth();
+      return chatFeed.subscribe(client);
+    },
     async data({ fast = false } = {}) {
       if (fast) void refresh().catch(() => {});
       else await refresh();
       const status = auth();
+      const activitySnapshot = activity.snapshot();
+      const chat = chatFeed.frame();
       return {
         connected: status.connected,
         ...(fast
@@ -289,22 +314,23 @@ module.exports = function streamOverlays({
         games: games.snapshot(getProvider()?.status()?.userId || ""),
         redemptions: status.connected ? redemptions.snapshot() : { entries: [] },
         twitch: structuredClone(twitch),
-        ...activity.snapshot(),
+        ...activitySnapshot,
+        events: [...activitySnapshot.events, ...chat.rows].sort((a, b) => a.at - b.at),
+        chatVersion: chat.version,
         at: now(),
       };
     },
     save(input) {
-      const previousEvents = JSON.stringify(events());
       const result = store.save(input);
       games.reconcile();
       after = twitchAfter = 0;
-      if (JSON.stringify(events()) !== previousEvents) getProvider()?.refreshSubscriptions?.();
+      refreshSubscriptions();
       return result;
     },
     remove(input) {
       const result = store.remove(input);
       games.reconcile();
-      getProvider()?.refreshSubscriptions?.();
+      refreshSubscriptions();
       return result;
     },
     gameControl(input = {}) {
@@ -381,6 +407,8 @@ module.exports = function streamOverlays({
     },
     close() {
       previews.close();
+      chatFeed.close();
+      chatAssets.reset("");
       games.close();
     },
   };

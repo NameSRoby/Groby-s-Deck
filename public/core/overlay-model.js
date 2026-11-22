@@ -106,6 +106,12 @@
       align: ["left", "center", "right"].includes(raw.align) ? raw.align : "left",
       bold: raw.bold === true,
       chatMode: raw.chatMode === "scroll" ? "scroll" : "expire",
+      showChatColors: raw.showChatColors !== false,
+      showChatBadges: raw.showChatBadges !== false,
+      showTwitchEmotes: raw.showTwitchEmotes !== false,
+      showSevenTvEmotes: raw.showSevenTvEmotes === true,
+      showBetterTtvEmotes: raw.showBetterTtvEmotes === true,
+      showFrankerFaceZEmotes: raw.showFrankerFaceZEmotes === true,
       hideBotMessages: raw.hideBotMessages === true,
       hiddenAccounts: [
         ...new Set(
@@ -289,6 +295,14 @@
     counterName: w.counterName,
     items: w.type === "player-card" ? w.items : undefined,
     entrySource: w.entrySource,
+    ...(w.type === "chat"
+      ? {
+          showChatBadges: w.showChatBadges,
+          showSevenTvEmotes: w.showSevenTvEmotes,
+          showBetterTtvEmotes: w.showBetterTtvEmotes,
+          showFrankerFaceZEmotes: w.showFrankerFaceZEmotes,
+        }
+      : {}),
   });
   return { presets, definitions, widget, document, mediaUrl, recordKey, interest };
 });

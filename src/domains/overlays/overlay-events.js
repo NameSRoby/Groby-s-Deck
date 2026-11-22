@@ -10,6 +10,7 @@ const ALERTS = [
 const text = (v, n = 500) =>
   typeof v === "string" ? v.replace(/[\x00-\x1f]/g, " ").slice(0, n) : "";
 module.exports = function overlayEvents(now = Date.now) {
+  const chat = require("./overlay-chat-history")(now);
   let account = "",
     rows = [],
     sequence = 0,
@@ -21,10 +22,12 @@ module.exports = function overlayEvents(now = Date.now) {
       if (key !== account) {
         account = key;
         rows = [];
+        chat.reset();
         poll = hype = prediction = null;
       }
     },
     receive(type, event = {}, metadata = {}) {
+      if (type.startsWith("channel.chat.")) return chat.receive(type, event, metadata);
       const id = text(metadata.message_id || event.message_id, 100);
       if (type.startsWith("channel.prediction.")) {
         prediction = {
@@ -68,26 +71,10 @@ module.exports = function overlayEvents(now = Date.now) {
         };
         return;
       }
-      if (type === "channel.chat.clear") {
-        rows = rows.filter((row) => row.type !== "channel.chat.message");
-        return;
-      }
-      if (type === "channel.chat.clear_user_messages") {
-        rows = rows.filter((row) => row.userId !== event.target_user_id);
-        return;
-      }
-      if (type === "channel.chat.message_delete") {
-        rows = rows.filter((row) => row.id !== event.message_id);
-        return;
-      }
       if (id && rows.some((row) => row.id === id)) return;
-      if (!ALERTS.includes(type) && type !== "channel.chat.message") return;
+      if (!ALERTS.includes(type)) return;
       const name = text(
-        event.chatter_user_name ||
-          event.user_name ||
-          event.from_broadcaster_user_name ||
-          event.user_login ||
-          "Anonymous",
+        event.user_name || event.from_broadcaster_user_name || event.user_login || "Anonymous",
         80,
       );
       const amount = Math.max(
@@ -95,17 +82,15 @@ module.exports = function overlayEvents(now = Date.now) {
         Number(event.bits || event.total || event.viewers || event.cumulative_months) || 0,
       );
       const message =
-        type === "channel.chat.message"
-          ? text(event.message?.text)
-          : type === "channel.follow"
-            ? "followed"
-            : type === "channel.raid"
-              ? "raided with " + amount + " viewers"
-              : type === "channel.cheer"
-                ? "cheered " + amount + " Bits"
-                : type === "channel.subscription.gift"
-                  ? "gifted " + amount + " subscriptions"
-                  : "subscribed";
+        type === "channel.follow"
+          ? "followed"
+          : type === "channel.raid"
+            ? "raided with " + amount + " viewers"
+            : type === "channel.cheer"
+              ? "cheered " + amount + " Bits"
+              : type === "channel.subscription.gift"
+                ? "gifted " + amount + " subscriptions"
+                : "subscribed";
       rows.push({
         id: id || "overlay-" + ++sequence,
         sequence: ++sequence,
@@ -113,23 +98,11 @@ module.exports = function overlayEvents(now = Date.now) {
         name,
         amount,
         message,
-        ...(type === "channel.chat.message" && Array.isArray(event.message?.fragments)
-          ? {
-              fragments: event.message.fragments.slice(0, 32).map((part) => ({
-                text: text(part?.text),
-                ...(part?.type === "emote" && /^[a-z0-9_]{1,100}$/i.test(part.emote?.id || "")
-                  ? { emote: part.emote.id }
-                  : {}),
-              })),
-            }
-          : {}),
-        userId: text(event.chatter_user_id, 80),
-        login: text(event.chatter_user_login, 25).toLowerCase(),
-        isAppMessage: metadata.isAppMessage === true,
         at: now(),
       });
       rows = rows.slice(-100);
     },
+    chatRows: chat.rows,
     snapshot() {
       return structuredClone({
         events: rows.filter((row) => now() - row.at < 3600000),

@@ -52,6 +52,7 @@
         id: "sample-chat-1",
         sequence: 2,
         name: "DemoChatter",
+        color: "#c9a8ff",
         message: "Hello! Love this song.",
         type: "channel.chat.message",
         at: Date.now(),
@@ -183,28 +184,10 @@
             ? w.text.replace(/\$\{(name|message|amount)\}/g, (_match, key) =>
                 String(row[key] ?? ""),
               )
-            : row.name + (w.type === "chat" ? ": " : " ") + row.message;
+            : row.name + " " + row.message;
         const item = el("div");
-        const inlineEmotes =
-          w.type === "chat" &&
-          row.fragments?.some((part) => part.emote) &&
-          row.fragments.map((part) => part.text).join("") === row.message;
-        const words = el("span", inlineEmotes ? row.name + ": " : text);
-        if (inlineEmotes)
-          for (const part of row.fragments) {
-            if (!/^[a-z0-9_]{1,100}$/i.test(part.emote || "")) {
-              words.append(part.text);
-              continue;
-            }
-            const emote = el("img");
-            emote.className = "chatEmote";
-            emote.alt = part.text;
-            emote.referrerPolicy = "no-referrer";
-            emote.src =
-              "https://static-cdn.jtvnw.net/emoticons/v2/" + part.emote + "/default/dark/2.0";
-            emote.addEventListener("error", () => emote.replaceWith(part.text), { once: true });
-            words.append(emote);
-          }
+        const words = el("span", w.type === "chat" ? undefined : text);
+        if (w.type === "chat") root.renderOverlayChat(words, row, w);
         words.className = "itemText";
         item.append(words);
         item.className = "overlayItem";
@@ -355,7 +338,20 @@
       const hasContent = Boolean(
         next.textContent.trim() || next.querySelector("img,video,iframe,canvas,svg"),
       );
+      const chatIds =
+        w.type === "chat"
+          ? new Set(
+              (view.events || [])
+                .filter((row) => row.type === "channel.chat.message")
+                .map((row) => row.id),
+            )
+          : null;
       const signature = next.innerHTML;
+      // Expiring messages can fade. Moderated messages and messages from a closed session disappear.
+      if (chatIds)
+        for (const row of [...body.children]) {
+          if (!chatIds.has(row.dataset.itemKey)) row.remove();
+        }
       if (node.contentSignature !== signature) {
         if (["chat", "activity", "queue"].includes(w.type) && root.OverlayMotion)
           root.OverlayMotion.reconcile(body, next, w);

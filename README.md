@@ -134,7 +134,7 @@ Desktop companions may need updating after player changes.
 <details>
 <summary>See the overlay designer</summary>
 
-Select an object, adjust its layout and choose **Save overlay** to apply changes to OBS.
+Select an object, adjust its layout and choose **Save overlay** to apply changes to OBS. The Twitch chat widget mirrors message deletions, bans, timeouts and chat clears in both the editor and OBS. Open the widget's **Content** settings to control username colors, Twitch badges and emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ.
 
 [<img src="assets/screenshots/overlay-designer.png" alt="Overlay designer canvas and controls" width="920">](assets/screenshots/overlay-designer.png)
 

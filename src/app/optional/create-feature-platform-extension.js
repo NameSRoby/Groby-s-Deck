@@ -89,6 +89,7 @@ function createFeaturePlatformExtension(options = {}) {
             const result = await automations.redemption(event, managed);
             return result.handled ? result : legacyRedemption(event, managed);
           },
+          onChatModeration: (...args) => context.streamOverlays?.receive(...args),
           onChatPresentation: (event, metadata) =>
             context.streamOverlays?.receive("channel.chat.message", event, metadata),
           onChat: async (event, monitorConfig) => {

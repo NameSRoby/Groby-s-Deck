@@ -9,6 +9,7 @@ const EVENTSUB_URL = "wss://eventsub.wss.twitch.tv/ws";
 const MAX_SEEN_MESSAGES = 512;
 const SEEN_MESSAGE_TTL_MS = 10 * 60 * 1000;
 const MAX_IN_FLIGHT = 4;
+const MAX_CHAT_OVERFLOW = 100;
 
 function createTwitchEventSubMonitor(options = {}) {
   const WebSocketImpl = options.WebSocket || globalThis.WebSocket;
@@ -18,6 +19,8 @@ function createTwitchEventSubMonitor(options = {}) {
   const onSessionActivity = options.onSessionActivity || (() => {});
   const onRedemption = options.onRedemption || (async () => {});
   const onChat = options.onChat || (async () => {});
+  const onChatOverflow = options.onChatOverflow;
+  const onChatModeration = options.onChatModeration;
   const onEvent = options.onEvent || (async () => {});
   const now = options.now || Date.now;
   const random = options.random || Math.random;
@@ -34,6 +37,8 @@ function createTwitchEventSubMonitor(options = {}) {
   let sessionId = "";
   let subscriptions = [];
   let inFlight = 0;
+  let chatOverflow = 0;
+  let chatOrder = 0;
   const seen = new Map();
   const revoked = new Map();
   const counters = {
@@ -205,8 +210,25 @@ function createTwitchEventSubMonitor(options = {}) {
       counters.dropped += 1;
       return;
     }
+    const order = ++chatOrder;
+    const chatMetadata = type.startsWith("channel.chat.")
+      ? { ...metadata, chatOrder: order }
+      : metadata;
     if (inFlight >= MAX_IN_FLIGHT) {
       counters.dropped += 1;
+      if (type === "channel.chat.message" && onChatOverflow && chatOverflow < MAX_CHAT_OVERFLOW) {
+        chatOverflow++;
+        void handle(
+          () => onChatOverflow(event, order),
+          () => chatOverflow--,
+        );
+      } else if (
+        type.startsWith("channel.chat.") &&
+        type !== "channel.chat.message" &&
+        onChatModeration
+      ) {
+        void handle(() => onChatModeration(type, event, chatMetadata));
+      }
       return;
     }
     inFlight += 1;
@@ -217,19 +239,22 @@ function createTwitchEventSubMonitor(options = {}) {
       type === "channel.channel_points_custom_reward_redemption.add"
         ? () => onRedemption(event)
         : type === "channel.chat.message"
-          ? () => onChat(event)
-          : () => onEvent(type, event, metadata);
-    Promise.resolve(handler())
-      .catch((error) => {
-        counters.handlerFailures += 1;
-        lastError = String(error?.code || error?.message || "twitch_event_handler_failed").slice(
-          0,
-          120,
-        );
-      })
-      .finally(() => {
-        inFlight -= 1;
-      });
+          ? () => onChat(event, order)
+          : () => onEvent(type, event, chatMetadata);
+    void handle(handler, () => inFlight--);
+  }
+  async function handle(handler, finished) {
+    try {
+      await handler();
+    } catch (error) {
+      counters.handlerFailures += 1;
+      lastError = String(error?.code || error?.message || "twitch_event_handler_failed").slice(
+        0,
+        120,
+      );
+    } finally {
+      finished?.();
+    }
   }
   function connect(rawUrl, myGeneration, replacement = false) {
     const url = safeUrl(rawUrl);

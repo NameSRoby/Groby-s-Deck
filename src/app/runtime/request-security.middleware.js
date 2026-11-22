@@ -232,8 +232,10 @@ function installRequestSecurityMiddleware(app, options = {}) {
           "media-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
       );
     } else {
-      const twitchEmotes = ["/overlay-designer.html", "/stream-overlay.html"].includes(req.path)
-        ? " https://static-cdn.jtvnw.net/emoticons/v2/"
+      const overlayChatImages = ["/overlay-designer.html", "/stream-overlay.html"].includes(
+        req.path,
+      )
+        ? " https://static-cdn.jtvnw.net/emoticons/v2/ https://static-cdn.jtvnw.net/badges/v1/ https://cdn.7tv.app/emote/ https://cdn.betterttv.net/emote/ https://cdn.frankerfacez.com/emote/"
         : "";
       res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
       res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
@@ -241,7 +243,7 @@ function installRequestSecurityMiddleware(app, options = {}) {
         "Content-Security-Policy",
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
           "img-src 'self' data:" +
-          twitchEmotes +
+          overlayChatImages +
           "; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
       );
     }

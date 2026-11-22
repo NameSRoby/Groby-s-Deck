@@ -22,12 +22,12 @@ module.exports = ({
         ["user:write:chat"],
       );
     },
-    async receive(event) {
+    async receive(event, chatOrder, presentationOnly = false) {
       if (!canReceive()) return;
       const isAppMessage = await outgoing.owns(event);
       if (!canReceive()) return;
-      await options.onChatPresentation?.(event, { isAppMessage });
-      if (!isAppMessage) return options.onChat?.(event, monitorConfig());
+      await options.onChatPresentation?.(event, { isAppMessage, chatOrder });
+      if (!presentationOnly && !isAppMessage) return options.onChat?.(event, monitorConfig());
     },
     track: outgoing.send,
     close: outgoing.close,

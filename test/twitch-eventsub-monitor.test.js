@@ -171,6 +171,54 @@ test("a rejected grant during the final subscription cannot restore connected st
   assert.equal(monitor.status().connected, false);
 });
 
+test("busy automation handlers leave chat presentation and moderation responsive", async (t) => {
+  const seen = [];
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  const monitor = createMonitor({
+    WebSocket: FakeSocket,
+    getCredentials: () => ({ userId: "owner" }),
+    getSubscriptionConfig: () => ({
+      redemptions: false,
+      chat: true,
+      events: [{ type: "channel.chat.message_delete", version: "1", condition: {} }],
+    }),
+    createSubscription: async () => ({ ok: true }),
+    onChat: () => pending,
+    onChatOverflow: (event, order) => seen.push([event.message_id, order]),
+    onChatModeration: (_type, event, metadata) => seen.push([event.message_id, metadata.chatOrder]),
+  });
+  t.after(() => {
+    release();
+    monitor.stop();
+  });
+  monitor.start();
+  const socket = FakeSocket.instances.at(-1);
+  socket.emit({
+    metadata: { message_id: "welcome", message_type: "session_welcome" },
+    payload: { session: { id: "session-1" } },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  for (let index = 1; index <= 6; index++) {
+    socket.emit({
+      metadata: { message_id: "event-" + index, message_type: "notification" },
+      payload: {
+        subscription: {
+          type: index === 6 ? "channel.chat.message_delete" : "channel.chat.message",
+        },
+        event: { message_id: "row-" + index },
+      },
+    });
+  }
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(seen, [
+    ["row-5", 5],
+    ["row-6", 6],
+  ]);
+});
+
 test("EventSub monitor subscribes, deduplicates notifications, and stops cleanly", async () => {
   FakeSocket.instances.length = 0;
   const subscriptions = [];

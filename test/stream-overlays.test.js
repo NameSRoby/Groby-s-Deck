@@ -252,6 +252,38 @@ test("events are bounded, deduplicated, moderated and reset when the connected b
   f.account("456");
   assert.equal((await f.service.data()).events.length, 0);
 });
+test("moderation wins against delayed echoes without suppressing later messages", (t) => {
+  const f = fixture(t);
+  const send = (id, user, chatOrder) =>
+    f.service.receive(
+      "channel.chat.message",
+      {
+        message_id: id,
+        chatter_user_id: user,
+        message: { text: id },
+      },
+      { chatOrder },
+    );
+  f.service.receive("channel.chat.message_delete", { message_id: "deleted" }, { chatOrder: 3 });
+  send("deleted", "sender", 2);
+  f.service.receive(
+    "channel.chat.clear_user_messages",
+    { target_user_id: "sender" },
+    { chatOrder: 5 },
+  );
+  send("late from sender", "sender", 4);
+  send("other chatter", "other", 4);
+  send("later from sender", "sender", 6);
+  f.service.receive("channel.chat.clear", {}, { chatOrder: 7 });
+  send("late from room", "other", 6);
+  send("new message", "sender", 8);
+  return f.service.data().then(({ events }) =>
+    assert.deepEqual(
+      events.map((row) => row.id),
+      ["new message"],
+    ),
+  );
+});
 test("media uploads enforce format, size and path boundaries", (t) => {
   const f = fixture(t),
     media = require("../src/domains/overlays/overlay-media")(f.runtimeDir);

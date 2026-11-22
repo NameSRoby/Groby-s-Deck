@@ -1,16 +1,44 @@
 /** Read-only widget queries. Never return tokens, user input, bettors or their IDs. */
 module.exports = ({ request, text, base }) => {
-  async function read(input, route, query) {
+  async function read(input, route, query, forChannel = true) {
     const c = input.credentials || {};
     if (!/^\d{1,80}$/.test(c.userId || "") || !c.clientId || !c.accessToken) return { ok: false };
-    return request(
-      base + route + "?" + new URLSearchParams({ broadcaster_id: c.userId, ...query }),
-      {
-        headers: { Authorization: "Bearer " + c.accessToken, "Client-Id": c.clientId },
-      },
-    );
+    const params = new URLSearchParams({
+      ...(forChannel ? { broadcaster_id: c.userId } : {}),
+      ...query,
+    });
+    return request(base + route + (params.size ? "?" + params : ""), {
+      headers: { Authorization: "Bearer " + c.accessToken, "Client-Id": c.clientId },
+    });
   }
   return {
+    async overlayChatBadges(input = {}) {
+      const [global, channel] = await Promise.all([
+        read(input, "/chat/badges/global", {}, false),
+        read(input, "/chat/badges"),
+      ]);
+      if (!global.ok && !channel.ok) return { ok: false };
+      const badges = [];
+      for (const result of [global, channel]) {
+        if (!result.ok) continue;
+        for (const set of (result.body.data || []).slice(0, 500)) {
+          for (const version of (set.versions || []).slice(0, 100)) {
+            if (
+              !/^https:\/\/static-cdn\.jtvnw\.net\/badges\/v1\/[a-z0-9-]+\/[123]$/i.test(
+                version.image_url_2x || "",
+              )
+            )
+              continue;
+            badges.push({
+              key: text(set.set_id, 100) + ":" + text(version.id, 100),
+              title: text(version.title, 80) || text(set.set_id, 80),
+              url: version.image_url_2x,
+            });
+          }
+        }
+      }
+      return { ok: true, badges };
+    },
     async overlayPrediction(input = {}) {
       const r = await read(input, "/predictions", { first: "1" });
       if (!r.ok) return { ok: false };

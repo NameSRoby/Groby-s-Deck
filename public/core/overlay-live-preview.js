@@ -1,5 +1,5 @@
 /** Live editing uses expiring interests; sample events stay in this browser only. */
-/* global OverlayRenderer, OverlayGameRules, OverlayModel */
+/* global OverlayRenderer, OverlayGameRules, OverlayModel, createOverlayChatFeed */
 globalThis.setupOverlayLivePreview = (a) => {
   let live = {},
     sample = OverlayRenderer.samples(),
@@ -10,22 +10,24 @@ globalThis.setupOverlayLivePreview = (a) => {
     session,
     clock;
   const $ = a.$;
+  const chat = createOverlayChatFeed(() => a.renderContent());
   const sampleMode = () => $("previewSource").value === "sample";
   const visible = () => pageActive && studioVisible && !document.hidden;
   const currentInterests = () =>
     JSON.stringify(a.doc.widgets.filter((w) => w.visible).map(OverlayModel.interest));
   function interestChanged() {
+    syncChat();
     if (!session || session.pending || currentInterests() === session.interests) return;
     clearTimeout(session.timer);
     session.timer = setTimeout(poll, 80);
   }
   function data() {
     events = events.filter((row) => Date.now() - row.at < 300000);
-    const source = sampleMode() ? sample : live;
+    const source = sampleMode() ? sample : chat.merge(live);
     return {
       ...source,
       ...(source === sample ? { games } : {}),
-      events: [...(source.events || []), ...events].slice(-100),
+      events: [...(source.events || []), ...events],
     };
   }
   function release(client) {
@@ -62,9 +64,8 @@ globalThis.setupOverlayLivePreview = (a) => {
       void release(client);
       return;
     }
-    const fast = a.doc.widgets.some(
-      (w) => w.visible && ["chat", "alerts", "credits"].includes(w.type),
-    );
+    const fast = a.doc.widgets.some((w) => w.visible && ["alerts", "credits"].includes(w.type));
+    syncChat();
     client.timer = setTimeout(
       poll,
       currentInterests() !== client.interests ? 80 : fast ? 500 : 2000,
@@ -76,7 +77,13 @@ globalThis.setupOverlayLivePreview = (a) => {
     if (a.doc.widgets.some((widget) => widget.visible)) a.renderContent();
     clock = setTimeout(tick, 1000);
   }
+  function syncChat() {
+    chat.sync(
+      visible() && !sampleMode() && a.doc.widgets.some((w) => w.visible && w.type === "chat"),
+    );
+  }
   function sync() {
+    syncChat();
     const shown = visible();
     if (shown && !sampleMode()) {
       if (!session) {
@@ -116,6 +123,7 @@ globalThis.setupOverlayLivePreview = (a) => {
   $("emulate").onclick = () => {
     const type = $("sampleEvent").value,
       now = Date.now();
+    if (events.length >= 100) events.shift();
     events.push({
       id: globalThis.GrobyRandomId(),
       sequence: now,
@@ -123,6 +131,7 @@ globalThis.setupOverlayLivePreview = (a) => {
       name: $("sampleName").value.trim() || "DemoViewer",
       login: ($("sampleName").value.trim() || "DemoViewer").toLowerCase(),
       isAppMessage: $("sampleBot").checked,
+      color: "#c9a8ff",
       amount: type === "channel.raid" ? 25 : 100,
       message:
         type === "channel.chat.message"

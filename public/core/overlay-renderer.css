@@ -80,10 +80,15 @@
   background: var(--cell-accent);
   box-shadow: inset 0 0 0 3px currentColor;
 }
+.overlayLayer img.chatBadge,
 .overlayLayer img.chatEmote {
   display: inline-block;
   width: auto;
   height: 1.2em;
   vertical-align: middle;
   object-fit: contain;
+}
+.overlayLayer img.chatBadge {
+  height: 0.9em;
+  margin-inline-end: 0.22em;
 }
