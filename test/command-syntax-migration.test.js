@@ -23,26 +23,27 @@ function counters() {
 }
 test("all counter operations migrate to readable calls using the same persisted names and totals", async () => {
   const cases = [
-    ["${count[adddeath]}", "${countadddeath}"],
-    ["${count death total -1}", "${countdeath total -1}"],
-    ["${getcount[adddeath]}", "${readcountadddeath}"],
-    ["${setcount[adddeath|0]}", "${resetcountadddeath}"],
-    ["${setcount[adddeath|10]}", "${setcount adddeath 10}"],
-    ["${addcount[adddeath|-1]}", "${addcount adddeath -1}"],
-    ["${addcount[death total|2]}", '${addcount "death total" 2}'],
+    ["${count[adddeath]}", "${countadddeath}", "9", 9],
+    ["${count death total}", "${countdeath total}", "13", 13, "death total"],
+    ["${getcount[adddeath]}", "${readcountadddeath}", "8", 8],
+    ["${setcount[adddeath|0]}", "${resetcountadddeath}", "0", 0],
+    ["${setcount[adddeath|10]}", "${setcount adddeath 10}", "10", 10],
+    ["${addcount[adddeath|-1]}", "${addcount adddeath -1}", "7", 7],
+    ["${addcount[death total|2]}", '${addcount "death total" 2}', "14", 14, "death total"],
     [
       "${addcount[adddeath|-1]} / ${addcount[adddeath|-1]}",
       "${addcount adddeath -1} / ${addcount adddeath -1}",
+      "7 / 6",
+      6,
     ],
   ];
-  for (const [old, modern] of cases) {
-    assert.equal(source.canonical(old), modern);
+  for (const [old, modern, expectedReply, expectedTotal, name = "adddeath"] of cases) {
+    const migrated = source.canonical(old);
+    assert.equal(migrated, modern);
     assert.equal(source.canonical(modern), modern);
-    const before = counters(),
-      after = counters();
-    assert.equal(await render(old, before), await render(modern, after));
-    assert.deepEqual(after.values, before.values);
-    assert.deepEqual(after.writes, before.writes);
+    const store = counters();
+    assert.equal(await render(migrated, store), expectedReply);
+    assert.equal(store.values.get(name), expectedTotal);
   }
 });
 test("nested choices and conditions retain lazy side effects; templates never evaluate inserted viewer text", async () => {
@@ -50,16 +51,20 @@ test("nested choices and conditions retain lazy side effects; templates never ev
       "${set[roll|${random[1|20]}]}${if[${calc[${get[roll]}>=16]}|${pick[Win ${addcount[adddeath|-1]}|Hooray ${get[roll]}]}|Lost ${setcount[adddeath|0]}]} ${args[2]}",
     modern = source.canonical(old);
   assert.doesNotMatch(modern, /\$\{[a-z]+\[/i);
-  for (const n of [0, 0.8, 0.99]) {
-    const before = counters(),
-      after = counters(),
-      context = { argv: ["friend", "${countinjected}"] };
+  const scenarios = [
+    [0, "Lost 0", [["adddeath", "set", 0]]],
+    [0.25, "Lost 0", [["adddeath", "set", 0]]],
+    [0.99, "Hooray 20", []],
+  ];
+  for (const [draw, reply, writes] of scenarios) {
+    const store = counters();
+    const context = { argv: ["friend", "${countinjected}"] };
     assert.equal(
-      await render(old, { ...before, context, random: () => n }),
-      await render(modern, { ...after, context, random: () => n }),
+      await render(modern, { ...store, context, random: () => draw }),
+      reply + " ${countinjected}",
     );
-    assert.deepEqual(after.writes, before.writes);
-    assert.equal(after.values.has("injected"), false);
+    assert.deepEqual(store.writes, writes);
+    assert.equal(store.values.has("injected"), false);
   }
   assert.equal(
     source.canonical("Literal \\${addcount[adddeath|-1]}"),

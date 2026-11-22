@@ -221,7 +221,6 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       "55",
   );
   assert.equal(player.volume, 55);
-  await page.screenshot({ path: path.resolve("runtime/mixer-acrylic-076-private.png") });
   await page.getByRole("button", { name: "Quick Access", exact: true }).click();
   await page.locator("#deckEdit").click();
   assert.equal(await page.locator("#deckSliderRack .deckVolumeSlider").count(), 1);
@@ -273,7 +272,14 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     widgets = await page.locator(".deckWidgetRegion").boundingBox();
   assert(awake.y + awake.height <= widgets.y + 1);
   assert.equal(await page.getByRole("switch", { name: "Keep screen awake" }).isChecked(), true);
-  await page.screenshot({ path: path.resolve("runtime/deck-tablet-awake-076-private.png") });
+  const widgetToggle = page.getByRole("button", { name: "Widgets", exact: true });
+  const widgetRegion = page.getByRole("region", { name: "Status widgets", includeHidden: true });
+  await widgetToggle.click();
+  await widgetRegion.waitFor({ state: "hidden" });
+  assert.equal(await widgetToggle.getAttribute("aria-expanded"), "false");
+  await widgetToggle.click();
+  await widgetRegion.waitFor({ state: "visible" });
+  assert.equal(await widgetToggle.getAttribute("aria-expanded"), "true");
   for (let count = 0; count < 10 && !(await mixer.isVisible()); count++)
     await page.getByRole("button", { name: "Next screen", exact: true }).click();
   await mixer.waitFor({ state: "visible" });
@@ -420,13 +426,11 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       () => document.querySelector("#controlDeck").dataset.focus === "true",
     );
     await page.waitForTimeout(300);
-    await page.screenshot({ path: path.resolve("runtime/touch-phone-fullscreen.png") });
     await page.locator("#deckExitFullscreen").click();
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.waitForTimeout(200);
     await page.locator("#deckEdit").click();
     await page.locator("#deckHapticsEnabled").waitFor({ state: "visible" });
-    await page.screenshot({ path: path.resolve("runtime/touch-phone-edit.png"), fullPage: true });
     await page.locator("#deckEdit").click();
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.getByRole("button", { name: "Fullscreen", exact: true }).click();
@@ -434,7 +438,6 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       () => document.querySelector("#controlDeck").dataset.focus === "true",
     );
     await page.waitForTimeout(300);
-    await page.screenshot({ path: path.resolve("runtime/touch-tablet-fullscreen.png") });
     await page.locator("#deckExitFullscreen").click();
   }
   assert.deepEqual(errors, []);

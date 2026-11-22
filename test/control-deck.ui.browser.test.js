@@ -60,7 +60,9 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-clip-editor-"));
   const config = require("../src/domains/control-deck/control-deck-config").defaults();
   const clip = config.pages.flatMap((p) => p.buttons).find((b) => b.id === "twitch-clip");
-  clip.steps[0].actionId = "mod:groby.twitch-clips:create";
+  const { actionIds } = require("../src/shared/fs/upgrade-identifiers.json");
+  const [retiredClip] = Object.keys(actionIds);
+  clip.steps[0].actionId = retiredClip;
   fs.mkdirSync(path.join(runtimeDir, "system"), { recursive: true });
   fs.writeFileSync(
     path.join(runtimeDir, "system", "control-deck.json"),
@@ -78,12 +80,6 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
           id: manifest.id,
           name: manifest.name,
           lifecycle: enabled ? "active" : "installed-disabled",
-          actions: manifest.contributes.actions,
-        },
-        {
-          id: "groby.twitch-clips",
-          name: manifest.name,
-          lifecycle: "installed-disabled",
           actions: manifest.contributes.actions,
         },
       ],
@@ -133,10 +129,7 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
   await page.locator("#deckEditor").waitFor();
   const duration = page.locator('#deckEditor [data-deck-parameter="duration"]');
   assert.equal(await duration.inputValue(), "30");
-  assert.equal(
-    await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').count(),
-    0,
-  );
+  assert.equal(await page.locator(`#deckEditor option[value="${retiredClip}"]`).count(), 0);
   assert.equal(
     await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').count(),
     1,

@@ -48,7 +48,7 @@ test("Command storage keeps only readable source and decodes old envelopes once"
   const syntax = require("../features/twitch-integration/dist/counter-syntax");
   assert.equal(syntax.display(syntax.display(arena.message)), arena.message);
   const simple =
-    "${set roll random.1-20}${if roll >= 16}${sender} wins with ${roll}!${else}Try again!${end}";
+    "${set roll random 1 20}${if roll >= 16}${sender} wins with ${roll}!${else}Try again!${end}";
   assert.equal(
     await render(variables.canonical(simple), { context: { sender: "hero" }, random: () => 0.99 }),
     "hero wins with 20!",
@@ -160,9 +160,9 @@ test("arena narration covers every scene, keeps one die roll and fits Twitch cha
   assert.equal(selfScenes.size, 10);
 });
 
-test("quoted choices, inline conditions and legacy templates stay lazy and compatible", async () => {
+test("quoted choices and conditions evaluate only the chosen branch", async () => {
   assert.equal(
-    await render('${set roll random.1-20}${if roll >= 16 "${sender} wins" "Try again"}', {
+    await render("${set roll random 1 20}${if roll >= 16}${sender} wins${else}Try again${end}", {
       context: { sender: "hero" },
       random: () => 0.99,
     }),
@@ -176,7 +176,7 @@ test("quoted choices, inline conditions and legacy templates stay lazy and compa
     "Hello hero",
   );
   assert.equal(await render('${chance 100 "Yes" "${countunused}"}', { random: () => 0 }), "Yes");
-  assert.equal(await render("${if[1|You aren't late!|Oops]}"), "You aren't late!");
+  assert.equal(await render("${if 1}You aren't late!${else}Oops${end}"), "You aren't late!");
   assert.equal(await render("Literal: \\${random.1-20}"), "Literal: ${random.1-20}");
 });
 
