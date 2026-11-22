@@ -11,7 +11,7 @@ const GITHUB_RAW_ROOT = `https://raw.githubusercontent.com/NameSRoby/Groby-s-Dec
 const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   Object.freeze({
     id: "song-request",
-    minimumVersion: "0.45.10",
+    minimumVersion: "0.45.23",
     name: "Song Request",
     description:
       "YouTube, Spotify, TIDAL and SoundCloud requests, community playlists, reviewed transfers, moderation and OBS overlays.",
@@ -20,7 +20,7 @@ const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   }),
   Object.freeze({
     id: "twitch-integration",
-    minimumVersion: "0.12.8",
+    minimumVersion: "0.12.60",
     name: "Twitch Integration",
     description:
       "Twitch OAuth, EventSub, Channel Points rewards, chat responses, and redemption settlement.",

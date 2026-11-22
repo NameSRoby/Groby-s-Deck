@@ -10,13 +10,13 @@ if (typeof importScripts === "function") importScripts("native-service.js");
     generation = 0;
   let configuration = Promise.resolve();
   async function nativeCall(sender, command) {
-    if (!api.scripting?.executeScript || typeof globalThis.RaveLinkYouTubeNative !== "function")
+    if (!api.scripting?.executeScript || typeof globalThis.GrobyDeckYouTubeNative !== "function")
       return null;
     try {
       const results = await api.scripting.executeScript({
         target: { tabId: sender.tab.id, frameIds: [0] },
         world: "MAIN",
-        func: globalThis.RaveLinkYouTubeNative,
+        func: globalThis.GrobyDeckYouTubeNative,
         args: [command],
       });
       return results[0]?.result || null;
@@ -53,7 +53,7 @@ if (typeof importScripts === "function") importScripts("native-service.js");
         };
       const state = await response.json();
       if (state.prototype !== true || state.protocolVersion !== 1)
-        return { error: "Update the companion and reconnect from RaveLink." };
+        return { error: "Update the companion and reconnect from Groby’s Deck." };
       if (state.paired)
         return {
           error:

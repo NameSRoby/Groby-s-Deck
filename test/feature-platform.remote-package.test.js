@@ -30,7 +30,7 @@ function repositoryFetch({ tamper = "", oversized = false } = {}) {
 }
 
 test("filtered feature discovery does not request unrelated remote feature manifests", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-feature-catalog-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-feature-catalog-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const requested = [];
   const local = repositoryFetch();
@@ -57,7 +57,7 @@ test("filtered feature discovery does not request unrelated remote feature manif
 });
 
 test("every official optional feature is advertised from GitHub and installs only after download", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-remote-feature-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-remote-feature-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const manager = createFeaturePackageManager({
     installedRoot: path.join(root, "installed"),
@@ -85,7 +85,7 @@ test("every official optional feature is advertised from GitHub and installs onl
 });
 
 test("remote install rejects a hash mismatch and leaves no partial package", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-remote-tamper-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-remote-tamper-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const manager = createFeaturePackageManager({
     installedRoot: path.join(root, "installed"),
@@ -101,7 +101,7 @@ test("remote install rejects a hash mismatch and leaves no partial package", asy
 });
 
 test("remote install enforces declared response size before buffering", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-remote-size-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-remote-size-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const manager = createFeaturePackageManager({
     installedRoot: path.join(root, "installed"),
@@ -116,7 +116,7 @@ test("remote install enforces declared response size before buffering", async (t
 });
 
 test("catalog retirement preserves installed package files and retained data", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-retired-package-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-retired-package-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const installed = path.join(root, "installed", "clip-studio");
   const retained = path.join(root, "runtime", "clip-studio");

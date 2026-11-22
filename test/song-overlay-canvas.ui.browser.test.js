@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("overlay canvas dragging, snapping, resizing and persistence work through the supervised bridge", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-profiles-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-overlay-profiles-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

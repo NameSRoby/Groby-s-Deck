@@ -1051,7 +1051,7 @@ const createFacade = require("./native-facade.cjs");
 const createAdapter = require("./desktop-adapter.cjs");
 const createConnection = require("./connection-worker.cjs");
 module.exports = function installSpotifyRuntime(root, options = {}) {
-  if (Object.hasOwn(root, "__ravelinkSpotify")) throw Error("spotify_runtime_already_installed");
+  if (Object.hasOwn(root, "__grobySpotify")) throw Error("spotify_runtime_already_installed");
   let captured = false,
     client = null,
     connection = null,
@@ -1111,7 +1111,7 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
       };
     },
   });
-  Object.defineProperty(root, "__ravelinkSpotify", {
+  Object.defineProperty(root, "__grobySpotify", {
     value: Object.freeze(bridge),
     configurable: false,
     enumerable: false,
@@ -1124,7 +1124,7 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
     },
     { once: true },
   );
-  return root.__ravelinkSpotify;
+  return root.__grobySpotify;
 };
 
-}},cache={};function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw Error("spotify_bundle_module_missing");const module={exports:{}};cache[id]=module;modules[id](load,module,module.exports);return module.exports;}const config=globalThis.__ravelinkSpotifyConfig;delete globalThis.__ravelinkSpotifyConfig;load("./renderer-bootstrap.cjs")(globalThis,config?{connection:config}:{});})();
+}},cache={};function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw Error("spotify_bundle_module_missing");const module={exports:{}};cache[id]=module;modules[id](load,module,module.exports);return module.exports;}const config=globalThis.__grobySpotifyConfig;delete globalThis.__grobySpotifyConfig;load("./renderer-bootstrap.cjs")(globalThis,config?{connection:config}:{});})();

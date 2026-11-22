@@ -194,7 +194,7 @@ async function authorizeRave(e) {
   e.client.configure({
     ...e.client.exportDesign(),
     raveEnabled: true,
-    scenarioWeights: { wash: 0, pulse: 1, bands: 0, wave: 0 },
+    scenarioWeights: { pulse: 1, wave: 0 },
   });
 }
 test("only manual Rave can retain an untimed lease and restore its fixture state", async (t) => {
@@ -438,7 +438,7 @@ test("blocking all scenarios prevents capture and blocking the active scenario r
   await e.pump();
   e.client.configure({
     ...e.client.exportDesign(),
-    scenarioWeights: { wash: 0, pulse: 0, bands: 0, wave: 0 },
+    scenarioWeights: { pulse: 0, wave: 0 },
   });
   await flush();
   await flush();
@@ -1029,7 +1029,7 @@ test("channel-points Rave dims its operator scene companion and an unchanged rou
   const fs = require("node:fs"),
     os = require("node:os"),
     path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-scene-reward-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-scene-reward-"));
   const e = environment(t, { sceneFixture: true });
   await sceneRave(e, false);
   const effects = require("../../../src/domains/twitch/twitch-light-effects.service")({

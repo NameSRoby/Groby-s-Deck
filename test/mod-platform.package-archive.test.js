@@ -14,7 +14,7 @@ const { createPackage } = require("./helpers/mod-package-fixture");
 const { createZip } = require("./helpers/zip-fixture");
 
 async function fixture(t) {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-archive-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-archive-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   return { root, archive: path.join(root, "package.zip") };
 }

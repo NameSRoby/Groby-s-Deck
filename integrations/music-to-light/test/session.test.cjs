@@ -635,7 +635,7 @@ test("feel profiles never change the four-Hz output cap or hardware brightness b
 });
 
 test("Pulse and migrated responses do not add a second native fade after their audio envelope", async (t) => {
-  for (const preset of ["ambient", "pulse", "bands"]) {
+  for (const preset of ["pulse"]) {
     const e = environment(t, { settings: { preset, interpretation: "musical" } });
     e.session.start(e.probe);
     await e.pump(600);

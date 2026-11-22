@@ -227,7 +227,7 @@ globalThis.setupOverlayInspector = function (a) {
       field(codeTab.toUpperCase(), codeTab, "textarea", { code: true });
       const help = document.createElement("p");
       help.textContent =
-        "Custom code runs in an isolated frame. Use RaveLinkOverlay.fields and the overlay-data event for read-only data. Network requests and Core controls are unavailable.";
+        "Custom code runs in an isolated frame. Use GrobyDeckOverlay.fields and the overlay-data event for read-only data. Network requests and Core controls are unavailable.";
       host.append(help);
     }
     const info = a.catalog.find((row) => row.type === w.type);

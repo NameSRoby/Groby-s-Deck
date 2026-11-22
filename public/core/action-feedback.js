@@ -30,7 +30,7 @@ function installActionFeedback() {
     if (parent !== window)
       parent.postMessage(
         {
-          channel: "ravelink-feature-ui-v1",
+          channel: "groby-feature-ui-v1",
           type: "action-feedback",
           message: notice.textContent,
           state,
@@ -85,7 +85,7 @@ function installActionFeedback() {
       if (parent !== window)
         parent.postMessage(
           {
-            channel: "ravelink-feature-ui-v1",
+            channel: "groby-feature-ui-v1",
             type: "action-feedback",
             message: "",
             state: "success",
@@ -211,7 +211,7 @@ function installActionFeedback() {
       return;
     const data = event.data;
     if (
-      data?.channel === "ravelink-feature-ui-v1" &&
+      data?.channel === "groby-feature-ui-v1" &&
       data.type === "action-feedback" &&
       ["working", "success", "error"].includes(data.state) &&
       typeof data.message === "string"

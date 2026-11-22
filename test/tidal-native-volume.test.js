@@ -8,7 +8,7 @@ const createBridge = require("../src/capabilities/feature-platform/providers/exp
 const { createAdapter } = require("../integrations/tidal-desktop/adapter.cjs");
 
 test("one bounded long poll wakes on volume input and releases on cancellation or shutdown", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-volume-wake-")),
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-volume-wake-")),
     bridge = createBridge({ runtimeDir: root }),
     input = { companionId: "volume-fixture", ready: true, volumeReady: true, waitMs: 1500 };
   t.after(() => {
@@ -50,7 +50,7 @@ test("one bounded long poll wakes on volume input and releases on cancellation o
 });
 
 test("native volume is a bounded confirmed command and never changes the native queue", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-volume-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-volume-"));
   const bridge = createBridge({ runtimeDir: root });
   t.after(() => {
     bridge.shutdown();
@@ -137,7 +137,7 @@ test("the renderer changes only local volume through the allowlisted action and 
     ),
     sandbox,
   );
-  const hooks = sandbox.__ravelinkTidal;
+  const hooks = sandbox.__grobyTidal;
   const creator = hooks.wrapAction((type) => (payload) => ({ type, payload }))(
     "playbackControls/SET_VOLUME",
   );

@@ -14,7 +14,25 @@ export function createDeckWidgets({
 }) {
   const region = document.createElement("section");
   region.className = "deckWidgetRegion";
+  region.id = "deckStatusWidgets";
   region.setAttribute("aria-label", "Status widgets");
+  const minimize = document.createElement("button");
+  minimize.type = "button";
+  minimize.className = "deckWidgetCollapse";
+  minimize.textContent = "Widgets";
+  minimize.setAttribute("aria-controls", region.id);
+  minimize.setAttribute("aria-expanded", "true");
+  minimize.title = "Collapse status widgets";
+  minimize.hidden = true;
+  host.querySelector(".deckTools").append(minimize);
+  minimize.onclick = () => {
+    const collapsed = region.dataset.collapsed !== "true";
+    region.dataset.collapsed = String(collapsed);
+    minimize.setAttribute("aria-expanded", String(!collapsed));
+    minimize.title = collapsed ? "Restore status widgets" : "Collapse status widgets";
+    sync();
+    if (!collapsed) paint();
+  };
   const tools = document.createElement("div");
   tools.className = "deckWidgetTools";
   const grid = document.createElement("div");
@@ -106,7 +124,7 @@ export function createDeckWidgets({
     const url = URL.createObjectURL(new Blob([body], { type: "text/plain;charset=utf-8" })),
       a = document.createElement("a");
     a.href = url;
-    a.download = "RaveLink-stream-timestamps.txt";
+    a.download = "GrobyDeck-stream-timestamps.txt";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -218,6 +236,7 @@ export function createDeckWidgets({
     }
     region.hidden = !(editing || (config.enabled && config.items.length));
     region.dataset.fullscreen = String(config.fullscreen);
+    minimize.hidden = editing || !config.enabled || !config.fullscreen || !config.items.length;
     resize();
   }
   function resize() {
@@ -231,7 +250,7 @@ export function createDeckWidgets({
         cards.get(row.id).root.style.gridColumn = "span " + Math.min(columns, row.span);
   }
   function paint() {
-    if (!snapshot) return;
+    if (!snapshot || (host.dataset.focus === "true" && region.dataset.collapsed === "true")) return;
     for (const card of cards.values())
       card.update(snapshot.widgetData || {}, Date.now(), connected);
   }
@@ -256,6 +275,7 @@ export function createDeckWidgets({
     update(next, isEditing, isConnected = true) {
       if (!next.config.widgets) {
         region.hidden = true;
+        minimize.hidden = true;
         return;
       }
       snapshot = next;

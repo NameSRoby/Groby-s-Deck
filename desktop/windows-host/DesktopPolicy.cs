@@ -39,7 +39,31 @@ namespace Groby.Deck.WindowsHost
             string identity = Path.GetFullPath(root).TrimEnd('\\').ToUpperInvariant() + ":" + port;
             using (var hash = SHA256.Create()) {
                 string id = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(identity))).Replace("-", "").Substring(0, 24);
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RaveLink", "Core", "WebView2", id);
+                string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string profile = Path.Combine(local, "GrobysDeck", "WebView2", id);
+                if (!Directory.Exists(profile))
+                {
+                    try
+                    {
+                        string file = Path.Combine(root, "src", "shared", "fs", "upgrade-identifiers.json");
+                        var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(file));
+                        var parts = data["webViewProfile"] as System.Collections.IList;
+                        if (parts != null && parts.Count == 3)
+                        {
+                            string previous = Path.Combine(local, (string)parts[0], (string)parts[1], (string)parts[2], id);
+                            if (Directory.Exists(previous) && (File.GetAttributes(previous) & FileAttributes.ReparsePoint) == 0)
+                            {
+                                Directory.CreateDirectory(Path.GetDirectoryName(profile));
+                                Directory.Move(previous, profile);
+                            }
+                        }
+                    }
+                    catch (Exception error)
+                    {
+                        HostLog.Write(root, "Browser profile upgrade unavailable: " + error.GetType().Name);
+                    }
+                }
+                return profile;
             }
         }
 
@@ -49,7 +73,7 @@ namespace Groby.Deck.WindowsHost
             if (String.IsNullOrEmpty(json) || json.Length > 512) return false;
             try {
                 var value = new JavaScriptSerializer { MaxJsonLength = 512 }.DeserializeObject(json) as Dictionary<string, object>;
-                if (value == null || value.Count != 4 || !value.ContainsKey("type") || !Object.Equals(value["type"], "ravelink-theme")) return false;
+                if (value == null || value.Count != 4 || !value.ContainsKey("type") || !Object.Equals(value["type"], "groby-theme")) return false;
                 Color[] colors = new Color[3]; int i = 0;
                 foreach (string key in new[] { "background", "accent", "text" }) {
                     object item;
@@ -69,7 +93,7 @@ if (window.top !== window || location.origin !== " + origin + @") return;
 const send = () => {
   const css = getComputedStyle(document.documentElement);
   const hex = (key, fallback) => /^#[0-9a-f]{6}$/i.test(css.getPropertyValue(key).trim()) ? css.getPropertyValue(key).trim() : fallback;
-  window.chrome.webview.postMessage({ type: 'ravelink-theme', background: hex('--bg','#050507'), accent: hex('--accent','#8b001f'), text: hex('--text','#eaeaea') });
+  window.chrome.webview.postMessage({ type: 'groby-theme', background: hex('--bg','#050507'), accent: hex('--accent','#8b001f'), text: hex('--text','#eaeaea') });
 };
 addEventListener('DOMContentLoaded', () => {
   send(); new MutationObserver(send).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });

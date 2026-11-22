@@ -28,7 +28,7 @@ function loadWidget(payload, fetchImpl) {
     },
   };
   vm.runInNewContext(result.script, context, { timeout: 1000 });
-  return { result, runtime: context.window.RaveLinkWidgetRuntime, listeners };
+  return { result, runtime: context.window.GrobyDeckWidgetRuntime, listeners };
 }
 
 function redemption(id = "event-1", rewardId = "reward-color") {
@@ -129,7 +129,7 @@ test("widget reports an authenticated deployment heartbeat without forwarding lo
   });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].eventEnvelope.detail.listener, "ravelink-widget-ready");
+  assert.equal(calls[0].eventEnvelope.detail.listener, "groby-widget-ready");
   assert.equal(JSON.stringify(calls[0]).includes("must-not-forward"), false);
 });
 

@@ -13,7 +13,7 @@ const json = (value, init = {}) =>
   });
 
 test("playlist Transfers UI imports/exports CSV and completes a reviewed TIDAL account transfer without touching playback", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-transfer-browser-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-transfer-browser-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

@@ -198,7 +198,7 @@ function createFeaturePlatformExtension(options = {}) {
             current
               ? {
                   provider: "spotify",
-                  sourceId: "ravelink-companion",
+                  sourceId: "groby-companion",
                   available: true,
                   title: current.title || "Spotify",
                   artists: current.artists,
@@ -211,7 +211,7 @@ function createFeaturePlatformExtension(options = {}) {
                 }
               : {
                   provider: "spotify",
-                  sourceId: "ravelink-companion",
+                  sourceId: "groby-companion",
                   available: false,
                 },
             { timeoutMs: 1000 },
@@ -264,6 +264,11 @@ function createFeaturePlatformExtension(options = {}) {
       ],
       remoteSources:
         options.remoteSources || (options.packageRoots ? [] : OFFICIAL_FEATURE_SOURCES),
+      minimumVersions: options.packageRoots
+        ? {}
+        : Object.fromEntries(
+            OFFICIAL_FEATURE_SOURCES.map(({ id, minimumVersion }) => [id, minimumVersion]),
+          ),
       fetchImpl: options.featureFetch,
       runtimeRoot: featureRuntimeRoot,
       providers: {
@@ -466,7 +471,7 @@ function createFeaturePlatformExtension(options = {}) {
       tidalChoice = readJsonFile(tidalChoicePath, null),
       tidalEnabled =
         options.experimentalTidal === true ||
-        process.env.RAVELINK_EXPERIMENTAL_TIDAL === "1" ||
+        process.env.GROBYS_DECK_EXPERIMENTAL_TIDAL === "1" ||
         (tidalChoice?.version === 1 && tidalChoice.enabled === true);
     let tidalBridge;
     const manageTidalCompanion =

@@ -122,8 +122,6 @@ test("weighted shuffle visits allowed choices once per bag and resets when a cho
   const weights = scenarios.weights({
     pulse: 1,
     wave: 1,
-    wash: 0,
-    bands: 0,
     bounce: 0,
     handoff: 0,
   });

@@ -6,12 +6,12 @@
  * must not schedule a new timer after an awaited operation settles.
  */
 (function startCompanion() {
-  if (globalThis.__ravelinkTidalPolling || !globalThis.__ravelinkTidalBridge) return;
-  globalThis.__ravelinkTidalPolling = true;
+  if (globalThis.__grobyTidalPolling || !globalThis.__grobyTidalBridge) return;
+  globalThis.__grobyTidalPolling = true;
   const unloads = new Set();
   let stopped = false,
     timer;
-  const adapter = createAdapter(globalThis.__ravelinkTidal.redux, unloads, {
+  const adapter = createAdapter(globalThis.__grobyTidal.redux, unloads, {
     isStopped: () => stopped,
   });
   const companionId = crypto.randomUUID();
@@ -24,10 +24,10 @@
   async function tick() {
     let delay = 2000;
     try {
-      const reply = await globalThis.__ravelinkTidalBridge.call("next", {
+      const reply = await globalThis.__grobyTidalBridge.call("next", {
         companionId,
         waitMs: 1500,
-        ready: globalThis.__ravelinkTidal.ready(),
+        ready: globalThis.__grobyTidal.ready(),
         queueReady: adapter.ready(),
         moderationReady: adapter.canRemove(),
         volumeReady: adapter.canSetVolume(),
@@ -70,7 +70,7 @@
           if (typeof error.writeAttempted === "boolean")
             result.writeAttempted = error.writeAttempted;
         }
-        if (!stopped) await globalThis.__ravelinkTidalBridge.call("result", result);
+        if (!stopped) await globalThis.__grobyTidalBridge.call("result", result);
       }
     } catch {
       /* Core offline or unpaired: stay isolated from TIDAL playback. */

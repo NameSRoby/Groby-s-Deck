@@ -13,7 +13,7 @@ const listen = (app) =>
     const server = app.listen(0, "127.0.0.1", () => resolve(server));
   });
 test("Windows controls work over LAN with live audio, safe pinning, media and phone layouts", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-windows-audio-ui-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-windows-audio-ui-"));
   const output = {
     key: "device:" + "a".repeat(64),
     name: "Demo speakers",

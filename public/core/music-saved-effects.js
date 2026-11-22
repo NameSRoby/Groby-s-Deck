@@ -1,5 +1,5 @@
 /** Saved combinations are local operator choices; playback policy changes next Start. */
-window.RaveLinkSavedEffects = {
+window.GrobyDeckSavedEffects = {
   errors: {
     hue_entertainment_start_timeout:
       "The Hue stream handshake timed out. Check the bridge connection and try starting lights again.",

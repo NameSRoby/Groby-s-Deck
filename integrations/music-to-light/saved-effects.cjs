@@ -66,11 +66,7 @@ module.exports = function createSavedEffects({ storePath, random = Math.random }
         Object.keys(p.artistic).some((k) => !artisticKeys.includes(k))
       )
         throw fault("invalid_music_effect_profile");
-      p.assignments?.forEach((a) => {
-        if (a.assignedEffect)
-          a.assignedEffect = require("./legacy-response.cjs").effect(a.assignedEffect);
-        require("./fixture-behavior.cjs").validate(a);
-      });
+      p.assignments?.forEach(require("./fixture-behavior.cjs").validate);
       ids.add(p.id);
       p.artistic = pickArt(settings(p.artistic));
       if (
@@ -110,7 +106,19 @@ module.exports = function createSavedEffects({ storePath, random = Math.random }
     try {
       const stat = fs.lstatSync(storePath);
       if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 524288) throw Error();
-      state = validate(JSON.parse(fs.readFileSync(storePath, "utf8")));
+      const stored = JSON.parse(fs.readFileSync(storePath, "utf8"));
+      const prior = JSON.stringify(stored);
+      const upgrade = require("./upgrade-design.cjs");
+      if (Array.isArray(stored?.profiles)) {
+        for (const profile of stored.profiles) {
+          profile.artistic = upgrade.design(profile.artistic);
+          if (Array.isArray(profile.assignments))
+            profile.assignments = profile.assignments.map(upgrade.assignment);
+        }
+      }
+      const changed = prior !== JSON.stringify(stored);
+      state = validate(stored);
+      if (changed) commit(state);
     } catch {
       recovered = true;
     }

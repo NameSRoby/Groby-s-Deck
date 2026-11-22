@@ -4,7 +4,7 @@
  * docs/DEVELOPMENT.md#lighting-and-dynamic-effects
  */
 export function initLightingLayout() {
-  const ui = window.RaveLinkCoreUi;
+  const ui = window.GrobyDeckCoreUi;
   if (!ui) return null;
   const element = (id) => document.getElementById(id);
   let state = null,

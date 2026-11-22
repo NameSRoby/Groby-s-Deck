@@ -10,7 +10,7 @@ const createModDropInbox = require("../src/capabilities/mod-platform/packages/mo
 const { createPackage } = require("./helpers/mod-package-fixture");
 
 test("drop inbox discovers verified folders without executing their entry", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-drop-inbox-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-drop-inbox-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const inboxRoot = path.join(root, "mod");
   const runtimeRoot = path.join(root, "runtime");
@@ -39,7 +39,7 @@ test("drop inbox discovers verified folders without executing their entry", asyn
 });
 
 test("drop inbox watcher emits a verified candidate after a package is copied", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-drop-watch-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-drop-watch-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const inboxRoot = path.join(root, "mod");
   const runtimeRoot = path.join(root, "runtime");
@@ -70,8 +70,8 @@ test("drop inbox watcher emits a verified candidate after a package is copied", 
   assert.equal(snapshot.total, 1);
 });
 
-test("mods is canonical while legacy drops remain distinct and are never executed", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mods-legacy-"));
+test("only the current mod inbox is scanned", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mods-legacy-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const runtimeRoot = path.join(root, "runtime");
   const packageManager = createModPackageManager({
@@ -80,15 +80,14 @@ test("mods is canonical while legacy drops remain distinct and are never execute
   });
   const inbox = createModDropInbox({
     inboxRoot: path.join(root, "mods"),
-    legacyInboxRoot: path.join(root, "mod"),
     packageManager,
   });
   t.after(() => inbox.shutdown());
   for (const name of ["mods", "mod"]) await createPackage(path.join(root, name, "same-name"));
   const result = await inbox.scan();
   assert.equal(result.inbox, "mods");
-  assert.equal(result.total, 2);
-  assert.equal(new Set(result.candidates.map((c) => c.candidateId)).size, 2);
+  assert.equal(result.total, 1);
+  assert.equal(result.candidates[0].sourceName, "same-name");
   assert(result.candidates.every((c) => c.valid));
   assert(!fs.existsSync(path.join(runtimeRoot, "installed")));
 });

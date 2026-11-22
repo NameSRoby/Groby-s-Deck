@@ -33,11 +33,11 @@ module.exports = function createCoreServer(options = {}) {
   const rootDir = path.resolve(options.rootDir || path.join(__dirname, "../../.."));
   const runtimeDir = path.resolve(options.runtimeDir || path.join(rootDir, "runtime"));
   const widgetIntakeToken = String(
-    options.widgetIntakeToken ?? process.env.RAVELINK_WIDGET_INTAKE_TOKEN ?? "",
+    options.widgetIntakeToken ?? process.env.GROBYS_DECK_WIDGET_INTAKE_TOKEN ?? "",
   ).trim();
   const widgetOrigins = Array.isArray(options.widgetOrigins)
     ? options.widgetOrigins
-    : String(process.env.RAVELINK_WIDGET_ALLOWED_ORIGINS || "https://streamelements.com").split(
+    : String(process.env.GROBYS_DECK_WIDGET_ALLOWED_ORIGINS || "https://streamelements.com").split(
         ",",
       );
   const egressGovernor = createEgressGovernor(options.egressGovernorOptions);

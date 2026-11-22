@@ -8,7 +8,7 @@ const createCoreServer = require("../src/app/core/create-core-server");
 const createFeaturePlatformExtension = require("../src/app/optional/create-feature-platform-extension");
 
 test("Twitch Client ID administration is write-only and gated by HUD Developer Mode", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-twitch-ui-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-twitch-ui-"));
   const installed = path.join(root, "installed", "twitch-integration");
   fs.cpSync(path.join(__dirname, "..", "features", "twitch-integration"), installed, {
     recursive: true,
@@ -282,7 +282,7 @@ test("Twitch permission choices stay distinct from actual grants and identity-on
     window.selected=groups.map(g=>g.id);window.granted=['user:read:chat'];
     function status(){return {ok:true,configured:true,connected,authorizationPending:pending,userCode:pending?'TEST-CODE':'',verificationUri:pending?'https://www.twitch.tv/activate?device-code=TEST-CODE':'',login:'fixture',grantedScopes:[...granted],selectedPermissionGroups:[...selected],requestedScopes:groups.filter(g=>selected.includes(g.id)).flatMap(g=>g.scopes),permissionGroups:groups.map(g=>({...g,selected:selected.includes(g.id),granted:g.scopes.every(s=>granted.includes(s)),available:connected&&g.scopes.every(s=>granted.includes(s)),missingScopes:g.scopes.filter(s=>!granted.includes(s))})),managedRewards:[],monitorConfig:{intakeMode:'native',songRequestChatEnabled:false}};}
     addEventListener('message',event=>{
-      if(event.source!==document.querySelector('#ui').contentWindow||event.data?.channel!=='ravelink-feature-ui-v1')return;
+      if(event.source!==document.querySelector('#ui').contentWindow||event.data?.channel!=='groby-feature-ui-v1')return;
       const m=event.data;
       if(m.type==='feature-height'){document.querySelector('#ui').style.height=m.height+'px';return;}
       if(m.type!=='call')return;calls.push({capability:m.capability,method:m.method,payload:m.payload});

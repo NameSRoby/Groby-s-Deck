@@ -24,7 +24,7 @@ function createCapabilityClient(context) {
     typeof context.callCapability !== "function" ||
     typeof context.publishEvent !== "function"
   ) {
-    throw new TypeError("ravelink_context_invalid");
+    throw new TypeError("groby_context_invalid");
   }
   return Object.freeze({
     call(capability, method, payload = null, options = {}) {

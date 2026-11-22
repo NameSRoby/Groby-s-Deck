@@ -23,7 +23,7 @@ test("capability resolver reports every stable disposition", () => {
     resolveCapabilityDisposition("chat.send.v1", [
       {
         capability: "chat.send.v1",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: false,
         healthy: false,
       },
@@ -34,7 +34,7 @@ test("capability resolver reports every stable disposition", () => {
     resolveCapabilityDisposition("chat.send.v1", [
       {
         capability: "chat.send.v2",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: true,
         healthy: true,
       },
@@ -45,7 +45,7 @@ test("capability resolver reports every stable disposition", () => {
     resolveCapabilityDisposition("chat.send.v1", [
       {
         capability: "chat.send.v1",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: true,
         healthy: false,
       },
@@ -81,7 +81,7 @@ test("optional unavailable dependencies do not block activation", () => {
     [
       {
         capability: "song.queue.v1",
-        providerId: "ravelink.song",
+        providerId: "groby.song",
         enabled: true,
         healthy: true,
       },
@@ -97,7 +97,7 @@ test("required disabled, unhealthy, incompatible, or ambiguous dependencies bloc
     [
       {
         capability: "chat.send.v1",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: false,
         healthy: false,
       },
@@ -105,7 +105,7 @@ test("required disabled, unhealthy, incompatible, or ambiguous dependencies bloc
     [
       {
         capability: "chat.send.v1",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: true,
         healthy: false,
       },
@@ -113,7 +113,7 @@ test("required disabled, unhealthy, incompatible, or ambiguous dependencies bloc
     [
       {
         capability: "chat.send.v2",
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         enabled: true,
         healthy: true,
       },

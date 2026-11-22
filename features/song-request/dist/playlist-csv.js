@@ -16,7 +16,7 @@ const COLUMNS = [
   "source_url",
   "version",
   "genres",
-  "ravelink_csv_version",
+  "groby_csv_version",
 ];
 const MAX_BYTES = 8388608;
 function parseCells(input, delimiter = ",") {
@@ -79,7 +79,7 @@ function parseCsv(input, { delimiter = ",", mapping = {} } = {}) {
   return rows
     .filter((row) => row.some(Boolean))
     .map((row, index) => {
-      const own = row[headers.indexOf("ravelink_csv_version")] === "1";
+      const own = row[headers.indexOf("groby_csv_version")] === "1";
       const get = (name) => {
         const value = row[at(name)] || "";
         return own && value.startsWith("'") ? value.slice(1) : value;

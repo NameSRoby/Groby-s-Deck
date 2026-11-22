@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "protocol": "ravelink.core.client",
+  "protocol": "groby.core.client",
   "apiVersion": {
     "major": 1,
     "minor": 0
@@ -1672,7 +1672,7 @@
             "type": "boolean"
           },
           "protocol": {
-            "const": "ravelink.core.client"
+            "const": "groby.core.client"
           },
           "apiVersion": {
             "type": "object",
@@ -1846,7 +1846,7 @@
             "type": "boolean"
           },
           "protocol": {
-            "const": "ravelink.core.client"
+            "const": "groby.core.client"
           },
           "apiVersion": {
             "type": "object",

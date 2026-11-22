@@ -75,7 +75,7 @@ internal static class DesktopHarness
         uint process = browser.CoreWebView2.BrowserProcessId;
         await browser.ExecuteScriptAsync("localStorage.setItem('desktop-test','retained');document.getElementById('themeBg').value='#101219';document.getElementById('themeAccent').value='#2474bf';document.getElementById('themeText').value='#eef2ff';document.getElementById('themeBg').dispatchEvent(new Event('input',{bubbles:true}));");
         await Until(delegate { return Task.FromResult(window.BackColor == ColorTranslator.FromHtml("#101219")); });
-        await browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", new JavaScriptSerializer().Serialize(new { expression = "window.desktopPopup=window.open('about:blank','ravelink-desktop-test'); Boolean(window.desktopPopup)", userGesture = true, returnByValue = true }));
+        await browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", new JavaScriptSerializer().Serialize(new { expression = "window.desktopPopup=window.open('about:blank','groby-desktop-test'); Boolean(window.desktopPopup)", userGesture = true, returnByValue = true }));
         await Until(async delegate { return await browser.ExecuteScriptAsync("Boolean(window.desktopPopup && !window.desktopPopup.closed)") == "true"; });
         await browser.ExecuteScriptAsync("window.desktopPopup.close()");
         await Until(async delegate { return await browser.ExecuteScriptAsync("window.desktopPopup.closed") == "true"; });
@@ -125,7 +125,7 @@ internal static class DesktopHarness
     private static void Policy()
     {
         Color background, accent, text;
-        string good = "{\"type\":\"ravelink-theme\",\"background\":\"#050507\",\"accent\":\"#8b001f\",\"text\":\"#eaeaea\"}";
+        string good = "{\"type\":\"groby-theme\",\"background\":\"#050507\",\"accent\":\"#8b001f\",\"text\":\"#eaeaea\"}";
         var denied = new[] { "https://127.0.0.1:5050/", "http://127.0.0.1:5051/", "http://127.0.0.1.evil.example:5050/", "file:///C:/Windows/win.ini", "http://evil@127.0.0.1:5050/" };
         bool blocked = true; foreach (string value in denied) blocked &= !DesktopPolicy.IsWorkspace(value, 5050);
         Console.WriteLine(new JavaScriptSerializer().Serialize(new {
@@ -133,7 +133,7 @@ internal static class DesktopHarness
             external = DesktopPolicy.IsExternalWeb("https://login.tidal.com/authorize"),
             schemes = !DesktopPolicy.IsExternalWeb("powershell:evil") && !DesktopPolicy.IsExternalWeb("file:///C:/Windows/win.ini"),
             theme = DesktopPolicy.ReadTheme(good, out background, out accent, out text),
-            extraDenied = !DesktopPolicy.ReadTheme(good.Replace("\"ravelink-theme\"", "\"ravelink-theme\",\"command\":\"exit\""), out background, out accent, out text),
+            extraDenied = !DesktopPolicy.ReadTheme(good.Replace("\"groby-theme\"", "\"groby-theme\",\"command\":\"exit\""), out background, out accent, out text),
             valueDenied = !DesktopPolicy.ReadTheme(good.Replace("#050507", "javascript:evil"), out background, out accent, out text),
             bounded = !DesktopPolicy.ReadTheme(new string('x', 513), out background, out accent, out text),
             profiles = DesktopPolicy.ProfilePath("C:\\Example",5050) != DesktopPolicy.ProfilePath("C:\\Example",5051)

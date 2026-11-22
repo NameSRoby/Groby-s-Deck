@@ -16,7 +16,7 @@ test("embedded assets require unique ordered boundaries and preserve surrounding
 });
 
 test("embedded check mode detects drift without touching the file and rebuilds idempotently", (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-embedded-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "groby-embedded-"));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, "page.html");
   const transform = (text) => replaceBlock(text, "<start>", "<end>", "\nnew\n");

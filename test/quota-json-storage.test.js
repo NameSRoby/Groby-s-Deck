@@ -6,7 +6,7 @@ const path = require("node:path");
 const createStorage = require("../src/shared/storage/quota-json-storage");
 
 test("first-party storage can exceed the mod key ceiling while retaining byte and path limits", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-storage-pages-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-storage-pages-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const manifest = {
     id: "song-request",
@@ -37,7 +37,7 @@ test("first-party storage can exceed the mod key ceiling while retaining byte an
 });
 
 test("the host key ceiling is bounded and cannot be raised through a workload manifest", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-storage-policy-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-storage-policy-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const manifest = {
     id: "example.test",

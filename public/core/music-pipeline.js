@@ -196,5 +196,5 @@
     }
   }
 
-  globalThis.RaveLinkMusicPipeline = Object.freeze({ render });
+  globalThis.GrobyDeckMusicPipeline = Object.freeze({ render });
 })();

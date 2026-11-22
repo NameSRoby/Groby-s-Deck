@@ -230,9 +230,9 @@
       w.css +
       "</style>" +
       w.html +
-      "<script>window.RaveLinkOverlay={fields:" +
+      "<script>window.GrobyDeckOverlay={fields:" +
       json +
-      ',data:{}};addEventListener("message",e=>{if(e.source!==parent||e.data?.type!=="ravelink-overlay-data")return;RaveLinkOverlay.data=e.data.value;dispatchEvent(new CustomEvent("overlay-data",{detail:e.data.value}));});<\/script><script>' +
+      ',data:{}};addEventListener("message",e=>{if(e.source!==parent||e.data?.type!=="groby-overlay-data")return;GrobyDeckOverlay.data=e.data.value;dispatchEvent(new CustomEvent("overlay-data",{detail:e.data.value}));});<\/script><script>' +
       w.js.replace(/<\/script/gi, "<\\/script") +
       "<\/script>";
     return frame;
@@ -311,8 +311,8 @@
         }
         const frame = body.firstElementChild;
         frame.onload = () =>
-          frame.contentWindow?.postMessage({ type: "ravelink-overlay-data", value: data }, "*");
-        frame.contentWindow?.postMessage({ type: "ravelink-overlay-data", value: data }, "*");
+          frame.contentWindow?.postMessage({ type: "groby-overlay-data", value: data }, "*");
+        frame.contentWindow?.postMessage({ type: "groby-overlay-data", value: data }, "*");
         return;
       }
       let view = { ...data, game: data.games?.[doc.id]?.[w.id] };

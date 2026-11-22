@@ -362,7 +362,7 @@ else globalThis.GrobyRandomId = browserRandomId;
   </head>
   <body>
     <header>
-      <h1>RAVELINK // SONG REQUEST</h1>
+      <h1>GROBYS_DECK // SONG REQUEST</h1>
       <span id="connection" class="status">CONNECTING</span>
     </header>
     <main>
@@ -483,7 +483,7 @@ else globalThis.GrobyRandomId = browserRandomId;
     </main>
     <script>
       const DRIVER = `player-${globalThis.GrobyRandomId()}`;
-      const CHANNEL = "ravelink-feature-ui-v1";
+      const CHANNEL = "groby-feature-ui-v1";
       const PARENT_ORIGIN = location.origin;
       let sequence = 0;
       const pendingCalls = new Map();
@@ -494,7 +494,7 @@ else globalThis.GrobyRandomId = browserRandomId;
       let starting = false;
       let youtubeGuard;
       const youtubeHeartbeat = setInterval(() => {
-        if (lease && window.ravelinkPlayerActive?.("youtube")) void youtubePlaybackGuard().heartbeat(player?.getPlayerState?.());
+        if (lease && window.grobyPlayerActive?.("youtube")) void youtubePlaybackGuard().heartbeat(player?.getPlayerState?.());
       }, 5000);
       function youtubePlaybackGuard() {
         return youtubeGuard ||= createYoutubePlaybackGuard({
@@ -741,7 +741,7 @@ else globalThis.GrobyRandomId = browserRandomId;
         $("clearCatalogKey").onclick = async () => {
           if (
             !confirm(
-              "Delete the saved YouTube API key? It cannot be displayed or recovered by RaveLink.",
+              "Delete the saved YouTube API key? It cannot be displayed or recovered by GrobyDeck.",
             )
           )
             return;
@@ -1123,11 +1123,11 @@ else globalThis.GrobyRandomId = browserRandomId;
         try {
           const [queueState, playback] = await Promise.all([
             call("song.queue.read.v1", "status", {
-              limit: window.ravelinkSoundCloud?.active() ? 10 : 3,
-              ...(window.ravelinkSoundCloud?.active()
+              limit: window.grobySoundCloud?.active() ? 10 : 3,
+              ...(window.grobySoundCloud?.active()
                 ? {
                     provider: "soundcloud",
-                    offset: window.ravelinkSoundCloud.offset(),
+                    offset: window.grobySoundCloud.offset(),
                   }
                 : {}),
               moderationOffset,
@@ -1153,7 +1153,7 @@ else globalThis.GrobyRandomId = browserRandomId;
             $("volumeFloor").value = volumeFloorPercent;
             $("volumeCeiling").value = volumeCeilingPercent;
           }
-          window.ravelinkPlayerVolume?.sync(queueState.volume);
+          window.grobyPlayerVolume?.sync(queueState.volume);
           if (playback.control?.revision > appliedChatPlaybackRevision) {
             appliedChatPlaybackRevision = playback.control.revision;
             chatPlaybackPaused = playback.control.paused;
@@ -1186,7 +1186,7 @@ else globalThis.GrobyRandomId = browserRandomId;
         );
       }
       async function maybePull() {
-        if (window.ravelinkPlayerActive && !window.ravelinkPlayerActive("youtube")) return;
+        if (window.grobyPlayerActive && !window.grobyPlayerActive("youtube")) return;
         if (!playerReady || lease || starting || !youtubePlaybackGuard().canPull()) return;
         starting = true;
         try {
@@ -1196,7 +1196,7 @@ else globalThis.GrobyRandomId = browserRandomId;
           });
           if (
             result.action &&
-            (!window.ravelinkPlayerActive || window.ravelinkPlayerActive("youtube"))
+            (!window.grobyPlayerActive || window.grobyPlayerActive("youtube"))
           ) {
             lease = result.action;
             player.loadVideoById(result.action.candidate.providerItemId);
@@ -1248,7 +1248,7 @@ else globalThis.GrobyRandomId = browserRandomId;
             onStateChange: (event) => {
               if (
                 document.getElementById("songPlayerProvider")?.value &&
-                (document.getElementById("songPlayerProvider").value !== "youtube" || window.ravelinkYouTubeBrowserActive?.())
+                (document.getElementById("songPlayerProvider").value !== "youtube" || window.grobyYouTubeBrowserActive?.())
               ) {
                 if (event.data === YT.PlayerState.PLAYING) player?.pauseVideo?.();
                 return;
@@ -2587,9 +2587,9 @@ function installYoutubeBrowserPlayer({
   panel.innerHTML = `<h2>YouTube Music browser</h2><p id="youtubeBrowserStatus" role="status"></p><div class="actions"><button id="youtubeBrowserPlay" type="button">Play / resume</button><button id="youtubeBrowserPause" type="button">Pause</button><button id="youtubeBrowserSkip" type="button">Skip current</button><button id="youtubeBrowserRefresh" type="button">Refresh connection</button></div><p id="youtubeBrowserSong"></p><h3>Delivered requests</h3><div id="youtubeBrowserRequests"></div>`;
   playbackPage.prepend(panel);
   const active = () => selected() === "youtube" && mode === "browser";
-  window.ravelinkYouTubeBrowserActive = active;
-  const originalActive = window.ravelinkPlayerActive;
-  window.ravelinkPlayerActive = (provider) =>
+  window.grobyYouTubeBrowserActive = active;
+  const originalActive = window.grobyPlayerActive;
+  window.grobyPlayerActive = (provider) =>
     originalActive(provider) && !(provider === "youtube" && active());
   async function request(method, payload) {
     const result = await call("song.youtube.browser.v1", method, payload || {});
@@ -4397,7 +4397,7 @@ function installNowPlayingDetails() {
         : 0);
     if (
       playback.candidate?.provider === "youtube" &&
-      !window.ravelinkYouTubeBrowserActive?.() &&
+      !window.grobyYouTubeBrowserActive?.() &&
       playerReady &&
       typeof player?.getCurrentTime === "function"
     )
@@ -4489,7 +4489,7 @@ function installPlayerVolumeControls(soundcloud) {
     volumePointer = false,
     volumeProtectUntil = 0;
   const selected = () => $("songPlayerProvider").value;
-  const youtubeBrowser = () => selected() === "youtube" && window.ravelinkYouTubeBrowserActive?.();
+  const youtubeBrowser = () => selected() === "youtube" && window.grobyYouTubeBrowserActive?.();
   async function native() {
     if (youtubeBrowser()) {
       const reply = await call("song.youtube.browser.v1", "control", {
@@ -4585,7 +4585,7 @@ function installPlayerVolumeControls(soundcloud) {
     volumeProtectUntil = Date.now() + 1800;
     preview();
   };
-  window.ravelinkPlayerVolume = {
+  window.grobyPlayerVolume = {
     sync(volume) {
       if (volumePointer || volumeWriting || volumePending || Date.now() < volumeProtectUntil)
         return false;
@@ -5368,7 +5368,7 @@ function installPlayerFavorites({ selected }) {
   policyGrid.insertBefore(durationControl, $("savePolicy"));
   const nativeLimit = document.createElement("label");
   nativeLimit.innerHTML =
-    'UPCOMING REQUESTS IN TIDAL<input id="tidalQueueLimit" type="number" value="10" disabled title="Extra requests wait in RaveLink. The playing song and underlying playlist do not count.">';
+    'UPCOMING REQUESTS IN TIDAL<input id="tidalQueueLimit" type="number" value="10" disabled title="Extra requests wait in Groby’s Deck. The playing song and underlying playlist do not count.">';
   nativeLimit.hidden = true;
   policyGrid.insertBefore(nativeLimit, $("savePolicy"));
   policyGrid.addEventListener("input", () => {
@@ -5530,7 +5530,7 @@ function installPlayerFavorites({ selected }) {
     return url.href;
   };
   const selected = () => $("songPlayerProvider").value;
-  window.ravelinkPlayerActive = (provider) => providerReady && selected() === provider;
+  window.grobyPlayerActive = (provider) => providerReady && selected() === provider;
   const providerCall = call;
   call = (capability, method, payload) =>
     providerCall(
@@ -5573,7 +5573,7 @@ function installPlayerFavorites({ selected }) {
   }
   const soundcloud = installSoundCloudPlayer();
   const volumeControls = installPlayerVolumeControls(soundcloud);
-  window.ravelinkSoundCloud = soundcloud;
+  window.grobySoundCloud = soundcloud;
   let soundcloudQueue = null;
   const spotify = installSpotifyPlayer({ showView, volumeControls });
   const originalPull = maybePull,
@@ -5679,10 +5679,7 @@ function installPlayerFavorites({ selected }) {
             $("tidalInstallStatus").textContent =
               "Companion installation details could not be refreshed.";
         });
-      if (
-        companionInstall?.installed &&
-        !["0.1.6", "0.1.7", "0.1.8"].includes(companionInstall.version)
-      )
+      if (companionInstall?.installed && !["0.1.9"].includes(companionInstall.version))
         $("tidalConnection").textContent = "Desktop companion update needed — open Setup";
       if (view === "setup") await refreshCatalogApi();
       renderTidalQueue();
@@ -5696,10 +5693,7 @@ function installPlayerFavorites({ selected }) {
         !tidalState.delivery?.processing &&
         !tidalState.delivery?.lastError &&
         tidalState.capacity?.available > 0 &&
-        !(
-          companionInstall?.installed &&
-          !["0.1.6", "0.1.7", "0.1.8"].includes(companionInstall.version)
-        ) &&
+        !(companionInstall?.installed && !["0.1.9"].includes(companionInstall.version)) &&
         tidalState.queue?.some(
           (entry) =>
             !entry.deliveryError &&
@@ -5823,11 +5817,7 @@ function installPlayerFavorites({ selected }) {
     }
   }
   async function signInTidal() {
-    const popup = window.open(
-      "about:blank",
-      "ravelink-tidal-sign-in",
-      "popup,width=720,height=760",
-    );
+    const popup = window.open("about:blank", "groby-tidal-sign-in", "popup,width=720,height=760");
     $("signInTidal").disabled = true;
     try {
       const result = await call("song.tidal.experimental.v1", "catalog", {
@@ -5863,7 +5853,9 @@ function installPlayerFavorites({ selected }) {
     });
     companionCheckedAt = Date.now();
     const ready = tidalState?.connected && tidalState?.ready,
-      needsUpdate = companionInstall.installed && companionInstall.version !== "0.1.8";
+      needsUpdate =
+        companionInstall.installed &&
+        (companionInstall.previousBundle || companionInstall.version !== "0.1.9");
     if (needsUpdate) $("tidalConnection").textContent = "Desktop companion update needed";
     $("tidalInstallStatus").textContent = needsUpdate
       ? "Close TIDAL, choose Update companion below, then reopen TIDAL. Your original app and playlist are preserved."
@@ -5872,7 +5864,7 @@ function installPlayerFavorites({ selected }) {
         : companionInstall.installed
           ? "Companion installed. Open TIDAL, play a song and choose Refresh."
           : companionInstall.foreignLoader
-            ? "Another desktop integration is installed. Remove it before connecting RaveLink."
+            ? "Another desktop integration is installed. Remove it before connecting Groby’s Deck."
             : companionInstall.available
               ? "One-time setup connects Groby’s Deck to your desktop player."
               : "Install TIDAL Desktop first, then choose Refresh.";

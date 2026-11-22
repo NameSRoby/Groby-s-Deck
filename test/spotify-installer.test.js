@@ -57,13 +57,13 @@ test("Spotify install planning is read-only and install/uninstall restores the e
     rows
       .find((row) => row.name === "index.html")
       .data.toString()
-      .includes('<script src="/ravelink-spotify.js"></script>'),
+      .includes('<script src="/groby-spotify.js"></script>'),
   );
   assert.ok(
     rows
       .find((row) => row.name === "xpui.js")
       .data.toString()
-      .includes("__ravelinkSpotify"),
+      .includes("__grobySpotify"),
   );
   assert.deepEqual(rows.find((row) => row.name === "cover.png").data, Buffer.from([0, 1, 255]));
   assert.equal(rows.find((row) => row.name === "theme.css").data.toString(), "body{color:white}");
@@ -118,7 +118,7 @@ test("Spotify removal refuses changed client files and corrupt backups instead o
   assert.throws(() => installer.uninstall(apps, { isRunning: () => false }), /archive_changed/);
   assert.equal(fs.readFileSync(archive, "utf8"), "client updated");
   fs.writeFileSync(archive, patched);
-  fs.writeFileSync(path.join(apps, ".ravelink-spotify-original.spa"), "corrupt backup");
+  fs.writeFileSync(path.join(apps, ".groby-spotify-original.spa"), "corrupt backup");
   assert.throws(
     () => installer.uninstall(apps, { isRunning: () => false }),
     /backup_integrity_failed/,
@@ -134,7 +134,7 @@ test("Spotify prepared transaction can be restored after interruption without de
     isRunning: () => false,
     expectedArchiveHash: plan.archiveHash,
   });
-  const file = path.join(apps, ".ravelink-spotify-install.json"),
+  const file = path.join(apps, ".groby-spotify-install.json"),
     journal = JSON.parse(fs.readFileSync(file));
   journal.phase = "prepared";
   fs.writeFileSync(file, JSON.stringify(journal));

@@ -621,8 +621,37 @@
   background: transparent;
 }
 .deckInlineMixer .deckEditorHeading h2 {
-  font-size: 18px;
-  margin: 0 0 14px;
+  font-size: 16px;
+  margin: 0;
+}
+.deckInlineMixer .deckEditorHeading {
+  min-height: 34px;
+  gap: 8px;
+}
+.deckMixerHeadingActions {
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+}
+.deckMixerHeadingActions button {
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.deckInlineMixer .deckMixerHeadingActions input[type="search"] {
+  flex: 0 1 160px;
+  min-width: 0;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 8px;
+}
+.deckInlineMixer[data-minimized="true"] > :not(.deckEditorHeading),
+.deckInlineMixer [hidden] {
+  display: none !important;
 }
 .deckInlineMixer > .deckEditorHint,
 .deckInlineMixer[data-editing="false"] > .deckPanelActions {
@@ -696,10 +725,6 @@
 .deckInlineMixer summary {
   font-size: 12px;
   margin: 16px 0 10px;
-}
-.deckInlineMixer input[type="search"] {
-  max-width: 280px;
-  margin-bottom: 12px;
 }
 .controlDeck[data-paged="true"] .deckInlineMixer {
   max-height: none;
@@ -2306,6 +2331,8 @@
   padding-top: 14px;
   border-top: 1px solid var(--edge);
 }
+.controlDeck:not([data-focus="true"]) .deckWidgetCollapse,
+.controlDeck[data-focus="true"] .deckWidgetRegion[data-collapsed="true"],
 .controlDeck[data-focus="true"] .deckWidgetRegion[data-fullscreen="false"] {
   display: none;
 }
@@ -4431,7 +4458,7 @@ dialog::backdrop {
 </div>
       </div>
       <dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmText"><div class="visibleDialogContent"><h2 id="confirmTitle"></h2><p id="confirmText"></p></div><div class="toolbar"><button id="confirmCancel" autofocus>Cancel</button><button id="confirmProceed" class="danger">Delete</button></div></dialog>
-<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.59</span></p>
+<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.60</span></p>
     </main>
     
 <!-- TWITCH_FLOW_SCRIPT_START -->
@@ -6381,7 +6408,7 @@ function buildActionSteps(host, title, initial, catalog, sendKey, options = {}) 
         (control.dataset.flowParallel === "true" && (options.parallel || options.inParallel)) ||
         (control.dataset.flowRestore === "true" && (options.parallel || options.inParallel)) ||
         (control.textContent === "Wait first" && options.parallel);
-    host.dispatchEvent(new Event("ravelink-sequence-change", { bubbles: true }));
+    host.dispatchEvent(new Event("groby-sequence-change", { bubbles: true }));
   }
   tools.append(
     button("+ Add action", () =>
@@ -6446,7 +6473,7 @@ Object.assign(DeckFlow,{buildActionSteps});
 /* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
-    CHANNEL = "ravelink-feature-ui-v1",
+    CHANNEL = "groby-feature-ui-v1",
     pending = new Map();
   const confirmation = createVisibleDialog($("confirm"));
   const triggerPills = {

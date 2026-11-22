@@ -24,7 +24,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 2));
 async function lab(t, devices) {
   const sim = await createSimulator({ devices });
   const adapter = createAdapter({ dryRun: false, dgramRef: sim.transport, log: { warn() {} } });
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-govee-features-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-govee-features-"));
   let at = 1000,
     rows = sim.fixtures().map((f) => ({
       ...f,
@@ -517,7 +517,7 @@ test("Govee full 64-fixture selection acquires, writes and restores with one bou
   assert.equal(e.adapter.getTelemetry().resources.persistentSockets, 0);
 });
 
-for (const preset of ["pulse", "bands", "ambient"]) {
+for (const preset of ["pulse"]) {
   test(`Govee Music-to-Light ${preset} renders bounded RGB and restores after Stop`, async (t) => {
     const e = await lab(t);
     const baseline = await Promise.all(e.fixtures.map((f) => e.adapter.readState(f)));

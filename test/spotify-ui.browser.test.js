@@ -8,7 +8,7 @@ const createCoreServer = require("../src/app/core/create-core-server");
 const createExtension = require("../src/app/optional/create-feature-platform-extension");
 
 test("Spotify UI restores selection, separates setup, submits songs and keeps compact song/user moderation available", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-spotify-ui-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-spotify-ui-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

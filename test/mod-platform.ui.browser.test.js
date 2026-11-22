@@ -110,7 +110,7 @@ test("runtime approval retries the real blocked worker and an old success envelo
 });
 
 test("normal app detects a dropped mod and one confirmation docks its button", async (t) => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-dock-"));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-dock-"));
   const appRoot = path.resolve(__dirname, "..");
   const created = createCoreServer({
     rootDir: appRoot,
@@ -170,7 +170,7 @@ test("normal app detects a dropped mod and one confirmation docks its button", a
 });
 
 test("management UI loads an approved contribution only when opened", async (t) => {
-  const rootDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-ui-browser-"));
+  const rootDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-ui-browser-"));
   const appRoot = path.resolve(__dirname, "..");
   const source = path.join(rootDir, "source");
   await createPackage(source, {
@@ -190,7 +190,7 @@ test("management UI loads an approved contribution only when opened", async (t) 
   );
   await fs.promises.writeFile(
     path.join(source, "ui/status.js"),
-    'const literal="$&";echo.onclick=async()=>{try{const result=await ravelink.call("example.service.v1","echo",{text:literal === "$&" ? "UI API works" : "bad replacement"});document.querySelector("output").textContent=result.text;}catch(error){document.querySelector("output").textContent=error.message;}};denied.onclick=async()=>{try{await ravelink.call("ravelink.controls.v1","catalog",{});}catch(error){document.querySelector("output").textContent=error.message;}}',
+    'const literal="$&";echo.onclick=async()=>{try{const result=await groby.call("example.service.v1","echo",{text:literal === "$&" ? "UI API works" : "bad replacement"});document.querySelector("output").textContent=result.text;}catch(error){document.querySelector("output").textContent=error.message;}};denied.onclick=async()=>{try{await groby.call("groby.controls.v1","catalog",{});}catch(error){document.querySelector("output").textContent=error.message;}}',
   );
   const manifestPath = path.join(source, "groby.mod.json");
   const manifest = JSON.parse(await fs.promises.readFile(manifestPath, "utf8"));

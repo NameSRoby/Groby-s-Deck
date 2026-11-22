@@ -16,7 +16,7 @@ const VIDEO = Object.freeze({
 });
 
 test("Player connects TIDAL automatically, signs in, chooses supported countries and keeps YouTube compact", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-player-tidal-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-player-tidal-"));
   const installer = require("../integrations/tidal-desktop/installer.cjs");
   const tidalResources = path.join(root, "TIDAL/app-2.43.2/resources");
   fs.mkdirSync(tidalResources, { recursive: true });
@@ -247,7 +247,13 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   assert.deepEqual(fs.readFileSync(path.join(tidalResources, "app.asar")), originalArchive);
   tidalRunning = false;
   await surface.locator("#installTidalCompanion").click();
-  await surface.locator("#tidalInstallStatus").filter({ hasText: "companion installed" }).waitFor();
+  await surface
+    .locator("#tidalInstallStatus")
+    .filter({ hasText: "companion installed" })
+    .waitFor({ timeout: 8000 })
+    .catch(async (error) => {
+      throw new Error(await surface.locator("#notice").textContent(), { cause: error });
+    });
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(tidalResources, "app/config.json"))).coreUrl,
     base,
@@ -257,7 +263,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   await surface.locator("#updateTidalCompanion").waitFor();
   await surface.locator("#updateTidalCompanion").click();
   await surface.locator("#tidalInstallStatus").filter({ hasText: "Companion installed" }).waitFor();
-  assert.equal(installer.inspect(tidalResources).version, "0.1.8");
+  assert.equal(installer.inspect(tidalResources).version, "0.1.9");
   assert.equal(await surface.locator("#tidalConnectionOptions").isVisible(), true);
   await surface.locator("#uninstallTidalCompanion").click();
   await surface.locator("#notice").filter({ hasText: "archive restored" }).waitFor();
@@ -454,7 +460,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   await page.evaluate(() =>
     document.querySelector("#surface").contentWindow.postMessage(
       {
-        channel: "ravelink-feature-ui-v1",
+        channel: "groby-feature-ui-v1",
         type: "presentation",
         developerMode: true,
       },
@@ -468,7 +474,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   await page.evaluate(() =>
     document.querySelector("#surface").contentWindow.postMessage(
       {
-        channel: "ravelink-feature-ui-v1",
+        channel: "groby-feature-ui-v1",
         type: "presentation",
         developerMode: false,
       },
@@ -758,7 +764,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
 });
 
 test("local player waits for a user start, then plays and permits re-request after skip", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-player-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-player-"));
   const installed = path.join(root, "installed", "song-request");
   fs.cpSync(path.join(__dirname, "..", "features", "song-request"), installed, {
     recursive: true,
@@ -901,7 +907,7 @@ test("local player waits for a user start, then plays and permits re-request aft
 });
 
 test("Moderation edits shared command permissions and scope through the supervised host", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-command-settings-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-command-settings-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

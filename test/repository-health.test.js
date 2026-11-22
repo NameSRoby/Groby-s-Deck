@@ -9,7 +9,7 @@ const { audit } = require("../scripts/audit-repository-health");
 const { sourceFiles } = require("../scripts/lib/source-inventory");
 
 test("feature integrity check hashes actual checkout bytes and never repairs files in check mode", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-feature-bytes-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-feature-bytes-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, "scripts"));
   fs.copyFileSync(
@@ -39,7 +39,7 @@ test("feature integrity check hashes actual checkout bytes and never repairs fil
 });
 
 test("source inventory distinguishes authored feature dist modules from rebuilt companion copies", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-inventory-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-inventory-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   for (const file of [
     "features/song-request/dist/main.js",
@@ -57,7 +57,7 @@ test("source inventory distinguishes authored feature dist modules from rebuilt 
 });
 
 test("health audit catches copied implementations despite notes/spacing and catches broken local imports", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-health-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-health-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, "src"));
   const implementation =

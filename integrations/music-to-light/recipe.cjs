@@ -5,7 +5,6 @@
  */
 const { catalog: behaviors } = require("./behavior-settings.cjs");
 const looks = require("./looks.cjs");
-const legacy = require("./legacy-response.cjs");
 const axes = [
   {
     id: "shape",
@@ -55,21 +54,14 @@ function options(input = {}) {
   const result = {};
   for (const axis of axes) {
     if (!Object.hasOwn(input, axis.id)) continue;
-    const raw = input[axis.id];
-    const migrate =
-      axis.id === "effect" ? legacy.effect : axis.id === "palette" ? legacy.palette : (v) => v;
-    const row = raw && {
-      ...raw,
-      value: migrate(raw.value),
-      allowed: Array.isArray(raw.allowed) ? [...new Set(raw.allowed.map(migrate))] : raw.allowed,
-    };
+    const row = input[axis.id];
     if (
       !row ||
       Object.keys(row).some((k) => !["mode", "value", "allowed"].includes(k)) ||
       !["configured", "fixed", "random"].includes(row.mode) ||
       !axis.choices.includes(row.value) ||
       !Array.isArray(row.allowed) ||
-      new Set(raw.allowed).size !== raw.allowed.length ||
+      new Set(row.allowed).size !== row.allowed.length ||
       row.allowed.some((c) => !axis.choices.includes(c)) ||
       (row.mode === "fixed" && !row.allowed.includes(row.value))
     )
@@ -83,7 +75,6 @@ function ranges(input = {}) {
     throw fault("invalid_music_parameter_ranges");
   const result = {};
   for (const [id, range] of Object.entries(input)) {
-    if (legacy.retiredBehaviors.includes(id)) continue;
     const f = behaviors.find((f) => f.id === id && f.type === "number" && f.stage !== "output");
     if (
       !f ||

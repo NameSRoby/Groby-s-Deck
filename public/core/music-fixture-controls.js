@@ -113,5 +113,5 @@
         ),
       }));
   }
-  globalThis.RaveLinkMusicFixtures = Object.freeze({ render, read });
+  globalThis.GrobyDeckMusicFixtures = Object.freeze({ render, read });
 })();

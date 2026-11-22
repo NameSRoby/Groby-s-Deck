@@ -11,7 +11,7 @@ const createHost = require("../src/domains/music-to-light/music-to-light.service
 const createApps = require("../integrations/music-to-light/application-sources.cjs");
 
 test("Core remembers app, grants and lights without capture; next Start resolves the new process", async (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-app-selection-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-app-selection-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const operatorPath = path.join(dir, "operator.json");
   let pid = 10,
@@ -92,7 +92,7 @@ test("Core remembers app, grants and lights without capture; next Start resolves
 });
 
 test("corrupt operator settings recover with denied grants and no native query", async (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-app-corrupt-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-app-corrupt-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const operatorPath = path.join(dir, "operator.json");
   fs.writeFileSync(

@@ -20,7 +20,7 @@ async function connect(catalog) {
   );
 }
 test("official catalog uses user PKCE, opaque search linkage and ordered track metadata; caches and disconnects safely", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-tidal-catalog-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-tidal-catalog-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   let requests = [];
   const options = {

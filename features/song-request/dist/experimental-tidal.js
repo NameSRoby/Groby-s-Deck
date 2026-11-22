@@ -70,7 +70,7 @@ module.exports = function createExperimentalTidal({
         ...result,
         entryId: entry.id,
         outcome: "handed_off",
-        removedFromRavelinkQueue: settled.ok,
+        removedFromDeckQueue: settled.ok,
         warning: settled.ok
           ? ""
           : "Queue changed during handoff; TIDAL append was confirmed. Do not replay.",

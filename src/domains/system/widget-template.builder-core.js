@@ -61,10 +61,10 @@ function generateSlimWidgetTemplateScript(config = {}) {
   const configJson = JSON.stringify(safeConfig, null, 2);
   return [
     "/* Groby’s Deck StreamElements widget: minimal event forwarder */",
-    "const RAVELINK_WIDGET_CONFIG = " + configJson + ";",
+    "const GROBYS_DECK_WIDGET_CONFIG = " + configJson + ";",
     "",
-    "(function ravelinkWidgetBootstrap() {",
-    "  const CFG = Object.freeze(RAVELINK_WIDGET_CONFIG);",
+    "(function grobyWidgetBootstrap() {",
+    "  const CFG = Object.freeze(GROBYS_DECK_WIDGET_CONFIG);",
     "  const rewardIds = new Set([CFG.colorRewardId, CFG.teachRewardId, CFG.songRewardId, CFG.playlistRewardId].filter(Boolean));",
     "  const recent = new Map();",
     "  let inFlight = false;",
@@ -143,7 +143,7 @@ function generateSlimWidgetTemplateScript(config = {}) {
     "      });",
     "      return transportResult(response.ok, response.status);",
     "    } catch (error) {",
-    '      console.warn("[RAVELINK][WIDGET] event forward failed", text(error && error.message));',
+    '      console.warn("[GROBYS_DECK][WIDGET] event forward failed", text(error && error.message));',
     "      return transportResult(false, 0);",
     "    } finally {",
     "      clearTimeout(timeout);",
@@ -152,8 +152,8 @@ function generateSlimWidgetTemplateScript(config = {}) {
     "  }",
     "  function onEventReceived(envelope) { void forward(envelope); }",
     '  window.addEventListener("onEventReceived", onEventReceived);',
-    '  window.addEventListener("onWidgetLoad", function () { void forward({ detail: { listener: "ravelink-widget-ready", event: { version: 3 } } }, true); });',
-    "  window.RaveLinkWidgetRuntime = Object.freeze({ config: CFG, forward, isRelevant });",
+    '  window.addEventListener("onWidgetLoad", function () { void forward({ detail: { listener: "groby-widget-ready", event: { version: 3 } } }, true); });',
+    "  window.GrobyDeckWidgetRuntime = Object.freeze({ config: CFG, forward, isRelevant });",
     "})();",
   ].join("\n");
 }

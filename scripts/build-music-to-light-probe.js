@@ -16,7 +16,7 @@ if (compiler.status !== 0 || !/^rustc 1\.94\.0\b/.test(compiler.stdout || ""))
 // Strip local checkout/cache names from compiler-embedded source locations.
 const flags = [
   "-Ctarget-feature=+crt-static",
-  `--remap-path-prefix=${root}=/ravelink-core`,
+  `--remap-path-prefix=${root}=/grobys-deck`,
   `--remap-path-prefix=${process.env.CARGO_HOME || path.join(os.homedir(), ".cargo")}=/cargo`,
 ];
 const result = spawnSync(

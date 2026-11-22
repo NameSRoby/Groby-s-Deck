@@ -23,7 +23,7 @@ function configuredBroker(provider = {}) {
     },
   });
   broker.registerHostProvider({
-    providerId: "ravelink.chat",
+    providerId: "groby.chat",
     capability: CAPABILITY,
     invoke: provider.invoke || (async () => ({ sent: true })),
     getStatus: provider.getStatus,
@@ -175,7 +175,7 @@ test("broker rejects unknown contracts and invalid provider responses safely", (
   assert.throws(
     () =>
       broker.registerHostProvider({
-        providerId: "ravelink.chat",
+        providerId: "groby.chat",
         capability: CAPABILITY,
         invoke() {},
       }),

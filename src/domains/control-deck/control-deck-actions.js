@@ -313,18 +313,13 @@ module.exports = function actions({
         },
       ),
     );
-    const mods = getMods()?.list().mods || [],
-      modIds = new Set(
-        mods.flatMap((mod) => (mod.actions || []).map((a) => `mod:${mod.id}:${a.id}`)),
-      ),
-      canonicalId = require("../../shared/fs/migrate-action-references").canonicalId;
+    const mods = getMods()?.list().mods || [];
     let modActionCount = 0;
     for (const mod of [...mods].sort(
       (a, b) => Number(b.lifecycle === "active") - Number(a.lifecycle === "active"),
     ))
       for (const action of mod.actions || []) {
         const id = `mod:${mod.id}:${action.id}`;
-        if (canonicalId(id) !== id && modIds.has(canonicalId(id))) continue;
         if (modActionCount >= 256) break;
         modActionCount++;
         const state = feedback.get(id) || null,

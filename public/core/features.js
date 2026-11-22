@@ -19,7 +19,7 @@ function acceptSnapshot(snapshot) {
 
 function connectLifecycle() {
   if (lifecycleEvents) return;
-  lifecycleEvents = window.ravelinkFeatureEvents.subscribe({ lifecycle: true }, (message) => {
+  lifecycleEvents = window.grobyFeatureEvents.subscribe({ lifecycle: true }, (message) => {
     if (message.type === "error") {
       notice(message.error, true);
       return;

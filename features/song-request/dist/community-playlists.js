@@ -27,7 +27,7 @@ module.exports = function communityPlaylists({
     timer;
   const storage = (method, value) =>
     context.callCapability(
-      "ravelink.storage.v1",
+      "groby.storage.v1",
       method,
       { key, ...(value ? { value } : {}) },
       { timeoutMs: 5000 },
@@ -228,14 +228,14 @@ module.exports = function communityPlaylists({
         });
         if (!made.ok) throw Error(made.code);
         target = library.get(made.collection.id);
-        const marker = "RaveLink community " + crypto.randomUUID();
+        const marker = "Groby’s Deck community " + crypto.randomUUID();
         state.lists[provider] = {
           collectionId: target.id,
           accountId: "",
           accountName:
             provider === "spotify"
-              ? "RaveLink Community " + marker.slice(-8)
-              : "RaveLink Community",
+              ? "Groby’s Deck Community " + marker.slice(-8)
+              : "Groby’s Deck Community",
           marker,
           written: 0,
           phase: ["tidal", "spotify"].includes(provider) ? "pending" : "local",

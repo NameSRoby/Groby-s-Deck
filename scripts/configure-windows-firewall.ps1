@@ -5,10 +5,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $taskRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskProgram = Join-Path $taskRoot 'runtime\Grobys-Deck-Node.exe'
-if ($Action -ne 'Plan' -and !(Test-Path -LiteralPath $taskProgram -PathType Leaf)) { throw 'Bundled RaveLink runtime not found.' }
+if ($Action -ne 'Plan' -and !(Test-Path -LiteralPath $taskProgram -PathType Leaf)) { throw 'Bundled Groby’s Deck runtime not found.' }
 $taskHash = [Security.Cryptography.SHA256]::Create()
 try { $taskId = [BitConverter]::ToString($taskHash.ComputeHash([Text.Encoding]::UTF8.GetBytes($taskProgram.ToLowerInvariant()))).Replace('-', '').Substring(0, 16) } finally { $taskHash.Dispose() }
-$taskName = 'RaveLink.Core.Private.' + $taskId
+$taskName = 'GrobyDeck.Core.Private.' + $taskId
 if ($Action -eq 'Plan') {
   @{ name = $taskName; program = $taskProgram; direction = 'Inbound'; profile = 'Private'; remoteAddress = 'LocalSubnet'; action = 'Allow' } | ConvertTo-Json -Compress
   exit 0

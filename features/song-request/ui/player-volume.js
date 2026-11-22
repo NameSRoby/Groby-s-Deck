@@ -39,7 +39,7 @@ function installPlayerVolumeControls(soundcloud) {
     volumePointer = false,
     volumeProtectUntil = 0;
   const selected = () => $("songPlayerProvider").value;
-  const youtubeBrowser = () => selected() === "youtube" && window.ravelinkYouTubeBrowserActive?.();
+  const youtubeBrowser = () => selected() === "youtube" && window.grobyYouTubeBrowserActive?.();
   async function native() {
     if (youtubeBrowser()) {
       const reply = await call("song.youtube.browser.v1", "control", {
@@ -135,7 +135,7 @@ function installPlayerVolumeControls(soundcloud) {
     volumeProtectUntil = Date.now() + 1800;
     preview();
   };
-  window.ravelinkPlayerVolume = {
+  window.grobyPlayerVolume = {
     sync(volume) {
       if (volumePointer || volumeWriting || volumePending || Date.now() < volumeProtectUntil)
         return false;

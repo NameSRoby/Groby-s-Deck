@@ -16,7 +16,7 @@ test("SDK defines a frozen mod and runs deterministic fake capabilities", async 
       client = createCapabilityClient(context);
     },
     async handleRequest(request) {
-      saved = await client.call("ravelink.storage.v1", "set", request.payload);
+      saved = await client.call("groby.storage.v1", "set", request.payload);
       client.publish("example.status.v1", "changed", { saved: true });
       return { saved, at: 1700000000100 };
     },
@@ -25,7 +25,7 @@ test("SDK defines a frozen mod and runs deterministic fake capabilities", async 
     modId: "example.test",
     startAt: 1700000000000,
     providers: {
-      "ravelink.storage.v1/set": async (payload) => ({ key: payload.key }),
+      "groby.storage.v1/set": async (payload) => ({ key: payload.key }),
     },
   });
   await harness.start();

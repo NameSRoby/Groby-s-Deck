@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("community redemptions use each selected provider and expose saved lists and the new reward choice", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-community-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-community-"));
   for (const name of ["song-request", "twitch-integration"])
     fs.cpSync(path.join(__dirname, "../features", name), path.join(root, "installed", name), {
       recursive: true,

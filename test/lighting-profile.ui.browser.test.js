@@ -8,7 +8,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 
 test("operator can route mixed fixtures and apply a default profile from the HUD", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-profile-ui-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-profile-ui-"));
   const created = createCoreServer({ runtimeDir, dryRun: true });
   created.services.lightingCore.fixtureRegistry.upsertFixtures([
     {

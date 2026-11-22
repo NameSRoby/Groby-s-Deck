@@ -24,7 +24,7 @@ function present(frame) {
   const developerMode = document.documentElement.dataset.developerMode === "true";
   frame.contentWindow.postMessage(
     {
-      channel: "ravelink-feature-ui-v1",
+      channel: "groby-feature-ui-v1",
       type: "presentation",
       theme,
       developerMode,
@@ -41,7 +41,7 @@ function present(frame) {
   });
 }
 window.addEventListener("message", (event) => {
-  if (event.origin !== location.origin || event.data?.channel !== "ravelink-feature-ui-v1") return;
+  if (event.origin !== location.origin || event.data?.channel !== "groby-feature-ui-v1") return;
   for (const [id, view] of views) {
     const frame = [...view.panel.querySelectorAll(".featurePageFrame")].find(
       (item) => item.contentWindow === event.source,
@@ -75,7 +75,7 @@ window.addEventListener("message", (event) => {
       /^[a-z][a-z0-9-]{0,39}$/.test(event.data.method)
     ) {
       window.dispatchEvent(
-        new CustomEvent("ravelink:feature-call-complete", {
+        new CustomEvent("groby:feature-call-complete", {
           detail: {
             featureId: id,
             capability: event.data.capability,
@@ -287,7 +287,7 @@ export function syncFeatureNavigation(features) {
       open(page);
       const frame = frames.get("player"),
         message = {
-          channel: "ravelink-feature-ui-v1",
+          channel: "groby-feature-ui-v1",
           type: "playlist-start",
           provider,
         };

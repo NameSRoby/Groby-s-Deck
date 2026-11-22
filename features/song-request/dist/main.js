@@ -113,7 +113,7 @@ async function flushSnapshot() {
     const snapshot = await profileStorage.prepare(queue.exportSnapshot({ includePlaylist: false }));
     snapshot.playlistPageCount = 0;
     const saved = await context.callCapability(
-      "ravelink.storage.v1",
+      "groby.storage.v1",
       "set",
       {
         key: "queue-state-v1",
@@ -125,7 +125,7 @@ async function flushSnapshot() {
     await profileStorage.committed(snapshot);
     for (let index = 0; index < persistedPlaylistPageCount; index += 1) {
       await context.callCapability(
-        "ravelink.storage.v1",
+        "groby.storage.v1",
         "remove",
         {
           key: `playlist-page-${String(index).padStart(6, "0")}`,
@@ -261,7 +261,7 @@ async function activate(nextContext) {
   });
   try {
     const stored = await context.callCapability(
-      "ravelink.storage.v1",
+      "groby.storage.v1",
       "get",
       { key: "queue-state-v1" },
       { timeoutMs: 1000 },
@@ -282,7 +282,7 @@ async function activate(nextContext) {
         const rows = [];
         for (let index = 0; index < pageCount; index += 1) {
           const page = await context.callCapability(
-            "ravelink.storage.v1",
+            "groby.storage.v1",
             "get",
             {
               key: `playlist-page-${String(index).padStart(6, "0")}`,

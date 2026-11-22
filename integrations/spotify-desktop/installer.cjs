@@ -8,8 +8,9 @@ const fs = require("node:fs"),
   crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const { prepareArchive } = require("./archive.cjs");
-const JOURNAL = ".ravelink-spotify-install.json",
-  BACKUP = ".ravelink-spotify-original.spa";
+const JOURNAL = ".groby-spotify-install.json",
+  BACKUP = ".groby-spotify-original.spa";
+const previousBundle = require("../../src/shared/fs/upgrade-identifiers.json").spotifyCompanion;
 const digest = (data) => crypto.createHash("sha256").update(data).digest("hex");
 const exists = (file) => {
   try {
@@ -107,7 +108,7 @@ function bundleData(bundle, connection) {
       catalog,
     });
     renderer = Buffer.concat([
-      Buffer.from("globalThis.__ravelinkSpotifyConfig=" + configuration + ";\n"),
+      Buffer.from("globalThis.__grobySpotifyConfig=" + configuration + ";\n"),
       renderer,
     ]);
   }
@@ -117,8 +118,11 @@ function bundleData(bundle, connection) {
     bundleHash: digest(Buffer.concat([fs.readFileSync(manifestPath), Buffer.from(configuration)])),
   };
 }
-function journal(root) {
-  const file = path.join(root, JOURNAL);
+function installedBundle(root) {
+  return exists(path.join(root, JOURNAL)) ? { journal: JOURNAL, archive: BACKUP } : previousBundle;
+}
+function journal(root, bundle) {
+  const file = path.join(root, bundle.journal);
   if (!exists(file)) return null;
   const value = JSON.parse(fs.readFileSync(regular(file, 16384), "utf8"));
   if (
@@ -141,7 +145,8 @@ function atomic(file, data) {
 }
 function status(appsPath, options = {}) {
   const root = rootPath(appsPath, options.allowProtectedRead === true),
-    stored = journal(root),
+    bundle = installedBundle(root),
+    stored = journal(root, bundle),
     hash = digest(fs.readFileSync(path.join(root, "xpui.spa")));
   if (!stored)
     return {
@@ -151,7 +156,7 @@ function status(appsPath, options = {}) {
       prototype: true,
       archiveHash: hash,
     };
-  const backup = path.join(root, BACKUP);
+  const backup = path.join(root, bundle.archive);
   const backupValid =
     exists(backup) &&
     digest(fs.readFileSync(regular(backup, 96 * 1024 * 1024))) === stored.originalHash;
@@ -167,7 +172,11 @@ function status(appsPath, options = {}) {
 }
 async function plan(appsPath, options = {}) {
   const root = rootPath(appsPath, options.allowProtectedRead === true);
-  if (exists(path.join(root, JOURNAL)) || exists(path.join(root, BACKUP)))
+  if (
+    [JOURNAL, BACKUP, previousBundle.journal, previousBundle.archive].some((name) =>
+      exists(path.join(root, name)),
+    )
+  )
     throw Error("spotify_installation_already_present");
   const original = fs.readFileSync(path.join(root, "xpui.spa"));
   const snapshotPath = path.join(root, "..", "v8_context_snapshot.bin"),
@@ -257,10 +266,11 @@ async function install(appsPath, options = {}) {
 function uninstall(appsPath, options = {}) {
   stopped(options);
   const root = rootPath(appsPath),
-    stored = journal(root);
+    bundle = installedBundle(root),
+    stored = journal(root, bundle);
   if (!stored) throw Error("spotify_installation_not_found");
   const target = path.join(root, "xpui.spa"),
-    backup = path.join(root, BACKUP),
+    backup = path.join(root, bundle.archive),
     currentHash = digest(fs.readFileSync(target));
   if (![stored.originalHash, stored.patchedHash].includes(currentHash))
     throw Error("spotify_archive_changed");
@@ -272,7 +282,7 @@ function uninstall(appsPath, options = {}) {
   if (currentHash !== stored.originalHash) atomic(target, original);
   // Only exact owned files are removed; unrelated app assets are never enumerated for deletion.
   fs.unlinkSync(backup);
-  fs.unlinkSync(regular(path.join(root, JOURNAL), 16384));
+  fs.unlinkSync(regular(path.join(root, bundle.journal), 16384));
   return { ok: true, installed: false, restored: true };
 }
 function discover(appData = process.env.APPDATA) {

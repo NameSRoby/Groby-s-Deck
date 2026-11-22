@@ -248,11 +248,11 @@ test("shared Song Request intake resolves text for the saved SoundCloud player a
   const harness = createFeatureRuntimeHarness(feature, {
     featureId: "song-request",
     providers: {
-      "ravelink.storage.v1/get": async (input) =>
+      "groby.storage.v1/get": async (input) =>
         input.key === "player-preferences-v1"
           ? { ok: true, found: true, value: { player } }
           : { ok: true, found: false },
-      "ravelink.storage.v1/set": async (input) => {
+      "groby.storage.v1/set": async (input) => {
         if (input.key === "player-preferences-v1") player = input.value.player;
         return { ok: true };
       },

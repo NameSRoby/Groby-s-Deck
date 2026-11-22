@@ -52,9 +52,6 @@ function settings(input = {}) {
   )
     throw fault("invalid_music_settings");
   const value = { ...DEFAULT, ...input };
-  const legacy = require("./legacy-response.cjs");
-  value.preset = legacy.preset(value.preset);
-  value.raveScenario = legacy.effect(value.raveScenario);
   const choice = (key, choices) => choices.includes(value[key]);
   const range = (key, min, max) =>
     Number.isFinite(value[key]) && value[key] >= min && value[key] <= max;

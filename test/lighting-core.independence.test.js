@@ -11,7 +11,7 @@ const createLightingCore = require("../src/app/core/create-lighting-core");
 const createCoreServer = require("../src/app/core/create-core-server");
 
 test("lighting core parses and applies a Twitch color without retired capabilities", async (t) => {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-lighting-core-"));
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-lighting-core-"));
   t.after(() => fs.rmSync(rootDir, { recursive: true, force: true }));
   const runtimeDir = path.join(rootDir, "runtime");
   const core = createLightingCore({
@@ -80,7 +80,7 @@ test("lighting core modules have no retired-capability imports", () => {
 });
 
 test("core HTTP server declares absent capabilities and applies color independently", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-core-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "grobys-deck-http-"));
   t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
   const { app, services } = createCoreServer({
     runtimeDir,
@@ -291,7 +291,7 @@ test("core HTTP server declares absent capabilities and applies color independen
 });
 
 test("capability snapshots follow live Song Request feature lifecycle", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-live-capabilities-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-live-capabilities-"));
   let lifecycle = "installed-disabled";
   const created = createCoreServer({
     runtimeDir,

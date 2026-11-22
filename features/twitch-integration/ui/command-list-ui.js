@@ -185,7 +185,7 @@ window.setupCommandList = ({ getRows, hasCommunity, getReplyExample = async () =
       const listener = (event) => {
         if (
           event.source !== parent ||
-          event.data?.channel !== "ravelink-feature-ui-v1" ||
+          event.data?.channel !== "groby-feature-ui-v1" ||
           event.data.id !== id
         )
           return;
@@ -199,7 +199,7 @@ window.setupCommandList = ({ getRows, hasCommunity, getReplyExample = async () =
       }, 1500);
       addEventListener("message", listener);
       parent.postMessage(
-        { channel: "ravelink-feature-ui-v1", type: "clipboard-write", id, text },
+        { channel: "groby-feature-ui-v1", type: "clipboard-write", id, text },
         "*",
       );
     });

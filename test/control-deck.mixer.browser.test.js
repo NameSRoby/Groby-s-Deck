@@ -131,6 +131,17 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.getByRole("button", { name: "Audio mixer", exact: true }).click();
   const mixer = page.locator("#deckAudioMixer"),
     systemSlider = mixer.getByRole("slider", { name: "System audio volume", exact: true });
+  const finder = mixer.getByRole("button", { name: "Search mixer apps" });
+  const appSearch = mixer.getByRole("searchbox", { name: "Find app audio" });
+  assert.equal(await appSearch.isVisible(), false);
+  await finder.click();
+  await appSearch.waitFor({ state: "visible" });
+  await appSearch.fill("missing audio app");
+  await appSearch.press("Escape");
+  assert.equal(await appSearch.isVisible(), false);
+  await mixer.getByRole("button", { name: "Minimize audio mixer" }).click();
+  assert.equal(await systemSlider.isVisible(), false);
+  await mixer.getByRole("button", { name: "Restore audio mixer" }).click();
   await systemSlider.waitFor();
   const nativeIncrease = mixer.getByRole("button", {
     name: "Increase System audio volume",
@@ -175,7 +186,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
     { ...state, output: { ...system, volume: 10 } },
   );
   assert.equal(
@@ -341,7 +352,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       sessions: 1,
     });
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
     await audio.read(true),
   );
   await page.waitForFunction(() =>
@@ -365,7 +376,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.waitForTimeout(1850);
   system.volume = 64;
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
     await audio.read(true),
   );
   assert.equal(
@@ -374,7 +385,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     "a fader released on the pager remains synchronized after capture transfers",
   );
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
     await audio.read(true),
   );
   assert.match(await page.locator(".deckScreenNav span").textContent(), /Audio mixer · 2 \/ /);
@@ -398,7 +409,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.getByRole("button", { name: "Audio mixer", exact: true }).click();
   await mixer.waitFor({ state: "visible" });
   assert.equal(await page.locator("#controlDeck").getAttribute("data-focus"), "false");
-  if (process.env.RAVELINK_CAPTURE_TOUCH === "1") {
+  if (process.env.GROBYS_DECK_CAPTURE_TOUCH === "1") {
     const capture = core.services.controlDeck.snapshot();
     capture.config.layout.sliderFill = true;
     capture.config.layout.hapticsEnabled = true;

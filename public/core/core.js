@@ -10,7 +10,7 @@ let fixtureTestState = new Map();
 let fixtureGroups = [];
 let twitchProgramUi;
 let songRequestAvailable = false;
-window.RaveLinkCoreUi = {
+window.GrobyDeckCoreUi = {
   request: (...args) => request(...args),
   fixtures: () => fixtures.slice(),
   refreshFixtures: () => loadFixtures(),
@@ -370,7 +370,7 @@ function applyTheme(theme, persist = true) {
   byId("glowValue").value = `${value.glow}%`;
   if (persist) {
     themeEditRevision++;
-    localStorage.setItem("ravelink.hud.theme", JSON.stringify(value));
+    localStorage.setItem("groby.hud.theme", JSON.stringify(value));
     saveSharedTheme(value);
   }
 }
@@ -398,7 +398,7 @@ document
 for (const id of ["themeAccent", "themeBg", "themeSurface", "themeText", "themeGlow"])
   byId(id).oninput = () => applyTheme(customTheme());
 try {
-  applyTheme(JSON.parse(localStorage.getItem("ravelink.hud.theme")), false);
+  applyTheme(JSON.parse(localStorage.getItem("groby.hud.theme")), false);
 } catch {
   applyTheme(themes.midnight, false);
 }
@@ -412,20 +412,20 @@ void (async () => {
     if (!body.ok || started !== themeEditRevision) return;
     if (body.revision > 0) {
       applyTheme(body.theme, false);
-      localStorage.setItem("ravelink.hud.theme", JSON.stringify(body.theme));
+      localStorage.setItem("groby.hud.theme", JSON.stringify(body.theme));
     } else saveSharedTheme(customTheme());
   } catch {}
 })();
 const developerMode = byId("developerMode");
-developerMode.checked = localStorage.getItem("ravelink.hud.developerMode") === "true";
+developerMode.checked = localStorage.getItem("groby.hud.developerMode") === "true";
 document.documentElement.dataset.developerMode = String(developerMode.checked);
 developerMode.onchange = () => {
-  localStorage.setItem("ravelink.hud.developerMode", String(developerMode.checked));
+  localStorage.setItem("groby.hud.developerMode", String(developerMode.checked));
   document.documentElement.dataset.developerMode = String(developerMode.checked);
 };
 
 function clearFixtureForm() {
-  window.RaveLinkHueSetup?.load();
+  window.GrobyDeckHueSetup?.load();
   byId("fixtureBrand").value = "hue";
   byId("fixtureId").value = "";
   byId("fixtureName").value = "";
@@ -589,7 +589,7 @@ byId("fixtureRows").onclick = async (event) => {
     if (!row) return;
     try {
       const detail = (await request(`/fixtures/${encodeURIComponent(row.id)}/edit`)).fixture;
-      window.RaveLinkHueSetup?.load(detail);
+      window.GrobyDeckHueSetup?.load(detail);
       byId("fixtureBrand").value = detail.brand;
       syncFixtureBrandUi();
       byId("fixtureId").value = detail.id;

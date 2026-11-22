@@ -32,19 +32,17 @@ Groby's Deck includes mod discovery in its normal startup. Drop an extracted
 mod folder or a ZIP directly into **`mods/`**, open **Mods**, and confirm **Activate**.
 No installer switch, special launch command, npm install or Core source edit is
 needed. Declared buttons appear in the Dashboard action library and declared UI
-panels appear in Mods. The former `mod/` folder is still watched for compatibility;
-new installations create only `mods/`. Version 0.7.6 predates this change.
+panels appear in Mods. Place all packages in `mods/`.
 Explicit Enable and Disable choices are remembered locally. On startup, only
 previously enabled mods are retried through the normal integrity, permission
 and runtime checks; discovering or approving a new mod does not enable it.
 The action picker explains when a disabled mod must be enabled in Mods.
-A source checkout can also use `npm.cmd run start:mods`; strict Core
-uses `npm.cmd run start:core`. Do not run two servers on the same port.
+For a source checkout, `npm.cmd start` runs the normal profile and
+`npm.cmd run start:core` runs Core alone.
 
-On the bundled Windows runtime, full network denial for third-party Node workers
-is not available. Normal activation fails closed unless the operator explicitly
-accepts reduced isolation in the Mods review flow. That choice is per execution;
-it does not turn the SDK into a malware sandbox. Only run trusted packages.
+The bundled Windows runtime enforces network denial for third-party Node workers.
+On an unsupported runtime, activation stops and the review explains what the
+operator can do. Review permissions and run trusted packages.
 The bundled adapters have a separate, exact-inventory first-party exception.
 Do not copy that exception into community packages or enable an unsafe default.
 
@@ -125,11 +123,11 @@ create Twitch subscriptions, global shortcuts or arbitrary event feeds.
 ## Call a host capability
 
 Declare both the consumed capability and its permission/resource budget. A storage
-example needs `consumes: ["ravelink.storage.v1"]`, `permissions.storage: true`
+example needs `consumes: ["groby.storage.v1"]`, `permissions.storage: true`
 and nonzero `resources.storageBytes`:
 
 ```js
-const reply = await context.callCapability("ravelink.storage.v1", "set", {
+const reply = await context.callCapability("groby.storage.v1", "set", {
   key: "preferences",
   value: { enabled: true },
 });
@@ -147,7 +145,7 @@ capability names without that suffix. Availability and provider compatibility
 still need checking. Do not infer availability merely because you declared it.
 
 The [reference](MOD_API_REFERENCE.md) lists every shipped host capability, its
-methods, payloads, bounds and limitations. Use `ravelink.controls.v1` for the app’s existing OBS, keyboard, audio, playback,
+methods, payloads, bounds and limitations. Use `groby.controls.v1` for the app’s existing OBS, keyboard, audio, playback,
 light and Twitch actions. The separate Core HTTP API remains for external clients;
 mods do not receive its tokens or direct service references.
 
@@ -186,14 +184,14 @@ script; the frame does not fetch third-party code or arbitrary HTTP resources.
 The panel can call its own mod or an approved consumed capability:
 
 ```js
-const result = await window.ravelink.call("example.settings.v1", "save", {
+const result = await window.groby.call("example.settings.v1", "save", {
   enabled: document.querySelector("input").checked,
 });
 ```
 
 Declare `example.settings.v1` in `provides` and implement `handleRequest` in your
 worker. Validate that payload before changing state. To use an app action instead,
-declare `ravelink.controls.v1` in `consumes`, read its catalog, and pass the selected
+declare `groby.controls.v1` in `consumes`, read its catalog, and pass the selected
 action's parameters to `execute`. The operator reviews that access during
 activation. A disabled mod cannot keep using APIs from a previously opened panel.
 
@@ -228,7 +226,7 @@ test("status is passive and toggle changes only owned state", async () => {
 
 Save this test at the source checkout root, adjust paths for your project, then
 run `node --test your-mod.test.cjs`. Fake host providers use keys such as
-`"ravelink.storage.v1/get"`. Test rejection, cancellation, missing providers,
+`"groby.storage.v1/get"`. Test rejection, cancellation, missing providers,
 restart/migration behavior, passive status and duplicate commands. The harness
 tests handler logic; it does not enforce OS isolation, package hashes, resource
 budgets or broker admission. Use production validators as a separate check.
@@ -267,7 +265,7 @@ Removing an inbox ZIP does not uninstall its private installed copy.
 
 | Symptom                              | Check                                                                                                           |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory. Legacy `mod/` is also recognized. |
+| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory. |
 | Integrity error                      | Recompute all changed file hashes after final formatting/building.                                              |
 | Approval required                    | Review the exact current fingerprint; permission or resource changes require renewed approval.                  |
 | Network isolation unavailable        | Current runtime limitation; use the test harness or explicitly review reduced isolation for trusted code.       |

@@ -339,7 +339,7 @@ export function buildActionSteps(host, title, initial, catalog, sendKey, options
         (control.dataset.flowParallel === "true" && (options.parallel || options.inParallel)) ||
         (control.dataset.flowRestore === "true" && (options.parallel || options.inParallel)) ||
         (control.textContent === "Wait first" && options.parallel);
-    host.dispatchEvent(new Event("ravelink-sequence-change", { bubbles: true }));
+    host.dispatchEvent(new Event("groby-sequence-change", { bubbles: true }));
   }
   tools.append(
     button("+ Add action", () =>

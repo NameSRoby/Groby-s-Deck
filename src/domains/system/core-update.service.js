@@ -104,7 +104,7 @@ async function downloadFile(fetchImpl, url, destination, maximum) {
     redirect: "follow",
     signal: AbortSignal.timeout(120000),
     headers: {
-      "User-Agent": "RaveLink-Core-Updater",
+      "User-Agent": "Grobys-Deck-Updater",
       Accept: "application/octet-stream",
     },
   });
@@ -175,7 +175,7 @@ function createCoreUpdateService(options = {}) {
         : null,
       staged: staged ? { version: staged.version, verified: staged.verified === true } : null,
       rollback: rollback ? { version: String(rollback.previousVersion || "") } : null,
-      hosted: process.env.RAVELINK_WINDOWS_HOST === "1",
+      hosted: process.env.GROBYS_DECK_WINDOWS_HOST === "1",
       lastError,
     };
   }
@@ -195,7 +195,7 @@ function createCoreUpdateService(options = {}) {
       const response = await fetchImpl(RELEASE_API, {
         signal: AbortSignal.timeout(10000),
         headers: {
-          "User-Agent": "RaveLink-Core-Updater",
+          "User-Agent": "Grobys-Deck-Updater",
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
         },
@@ -231,7 +231,7 @@ function createCoreUpdateService(options = {}) {
       const checksumResponse = await fetchImpl(latest.checksums.url, {
         signal: AbortSignal.timeout(10000),
         headers: {
-          "User-Agent": "RaveLink-Core-Updater",
+          "User-Agent": "Grobys-Deck-Updater",
           Accept: "text/plain",
         },
       });
@@ -271,7 +271,7 @@ function createCoreUpdateService(options = {}) {
   }
 
   function launchHelper(action) {
-    if (process.platform !== "win32" || process.env.RAVELINK_WINDOWS_HOST !== "1")
+    if (process.platform !== "win32" || process.env.GROBYS_DECK_WINDOWS_HOST !== "1")
       throw new Error("windows_host_required");
     const staged = readJson(stagedPath);
     if (action === "Apply" && (!staged?.verified || !fs.existsSync(staged.archivePath)))
@@ -283,7 +283,7 @@ function createCoreUpdateService(options = {}) {
     fs.mkdirSync(updateDir, { recursive: true });
     const runner = path.join(updateDir, "groby-update-runner.ps1");
     fs.copyFileSync(source, runner);
-    const hostPid = Number(process.env.RAVELINK_HOST_PID || 0);
+    const hostPid = Number(process.env.GROBYS_DECK_HOST_PID || 0);
     const child = spawn(
       "powershell.exe",
       [

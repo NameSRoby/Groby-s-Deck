@@ -5,8 +5,8 @@
  */
 // Runs in the trusted wrapper, never in the opaque-origin contribution.
 function featureDraftHost(featureId, pageId, surface) {
-  const channel = "ravelink-feature-ui-v1";
-  const prefix = "ravelink-ui-draft-v1:";
+  const channel = "groby-feature-ui-v1";
+  const prefix = "groby-ui-draft-v1:";
   const key = prefix + featureId + ":" + pageId;
   const frame = document.getElementById("surface");
   function beforeUnload(event) {
@@ -14,7 +14,7 @@ function featureDraftHost(featureId, pageId, surface) {
     event.returnValue = "";
   }
   function dirty(value) {
-    window.ravelinkDraftDirty = value;
+    window.grobyDraftDirty = value;
     window.removeEventListener("beforeunload", beforeUnload);
     if (value) window.addEventListener("beforeunload", beforeUnload);
   }

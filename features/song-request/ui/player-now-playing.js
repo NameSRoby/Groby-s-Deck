@@ -76,7 +76,7 @@ function installNowPlayingDetails() {
         : 0);
     if (
       playback.candidate?.provider === "youtube" &&
-      !window.ravelinkYouTubeBrowserActive?.() &&
+      !window.grobyYouTubeBrowserActive?.() &&
       playerReady &&
       typeof player?.getCurrentTime === "function"
     )

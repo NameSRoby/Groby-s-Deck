@@ -1,0 +1,39 @@
+{
+  "manifestNames": {
+    "mod": "ravelink.mod.json",
+    "feature": "ravelink.feature.json"
+  },
+  "featurePublisher": "ravelink",
+  "retiredHostFiles": [
+    "RaveLink-Core.exe",
+    "RaveLink-Core-Start.bat",
+    "RaveLink-Core-Stop.bat",
+    "runtime\\RaveLink-Core-Node.exe"
+  ],
+  "bridgeFiles": ["RaveLink-Bridge.exe", "RaveLink-Bridge-Start.bat"],
+  "bridgePackage": "ravelink-bridge",
+  "tidalCompanion": {
+    "journal": "ravelink-tidal-install.json",
+    "archive": "ravelink-original.asar",
+    "stage": ".ravelink-tidal-stage",
+    "owner": "ravelink-tidal-companion"
+  },
+  "spotifyCompanion": {
+    "journal": ".ravelink-spotify-install.json",
+    "archive": ".ravelink-spotify-original.spa"
+  },
+  "webViewProfile": ["RaveLink", "Core", "WebView2"],
+  "actionIds": {
+    "mod:ravelink.twitch-clips:create": "mod:groby.twitch-clips:create"
+  },
+  "nativeShortcuts": {
+    "mod:ravelink.discord-controls:microphone": "F13",
+    "mod:ravelink.discord-controls:deafen": "F14"
+  },
+  "removedActions": [
+    "mod:ravelink.discord-controls:camera",
+    "mod:ravelink.discord-controls:leave-voice",
+    "mod:ravelink.discord-controls:open",
+    "mod:ravelink.discord-controls:streamer"
+  ]
+}

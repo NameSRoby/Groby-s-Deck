@@ -50,7 +50,7 @@ function gate() {
 }
 
 function harness(t, overrides = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-output-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-output-"));
   let at = 1000;
   let rows = [
     { id: "hue", brand: "hue", enabled: true, engineEnabled: true, twitchEnabled: true },

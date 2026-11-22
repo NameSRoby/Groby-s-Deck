@@ -80,8 +80,8 @@ export function createDeckDisplay(host, paintFeedback = () => {}) {
     ],
   };
   changes.observe(host, watch);
-  host.addEventListener("ravelink-deck-mixer-layout", schedule);
-  host.addEventListener("ravelink-deck-screen-change", schedule);
+  host.addEventListener("groby-deck-mixer-layout", schedule);
+  host.addEventListener("groby-deck-screen-change", schedule);
   window.addEventListener("resize", schedule);
   document.fonts?.ready.then(() => {
     measurements = new WeakMap();
@@ -115,16 +115,16 @@ export function createDeckDisplay(host, paintFeedback = () => {}) {
       frame = 0;
       resize.disconnect();
       changes.disconnect();
-      host.removeEventListener("ravelink-deck-mixer-layout", schedule);
-      host.removeEventListener("ravelink-deck-screen-change", schedule);
+      host.removeEventListener("groby-deck-mixer-layout", schedule);
+      host.removeEventListener("groby-deck-screen-change", schedule);
       window.removeEventListener("resize", schedule);
     },
     resume() {
       closed = false;
       resize.observe(host.querySelector(".deckGrid"));
       changes.observe(host, watch);
-      host.addEventListener("ravelink-deck-mixer-layout", schedule);
-      host.addEventListener("ravelink-deck-screen-change", schedule);
+      host.addEventListener("groby-deck-mixer-layout", schedule);
+      host.addEventListener("groby-deck-screen-change", schedule);
       window.addEventListener("resize", schedule);
       schedule();
     },

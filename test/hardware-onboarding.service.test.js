@@ -103,7 +103,7 @@ test("Hue pairing retries retain selection and successful credentials after inve
 });
 
 test("Hue HTTP onboarding discovers, pairs, inventories, and atomically installs selected lights", async (t) => {
-  const runtimeDir = tempDir("ravelink-hue-onboarding-");
+  const runtimeDir = tempDir("groby-hue-onboarding-");
   const calls = [];
   const axios = {
     async get(url) {
@@ -233,7 +233,7 @@ test("Hue HTTP onboarding discovers, pairs, inventories, and atomically installs
 });
 
 test("WiZ onboarding consumes discovered devices and persists one bounded batch", () => {
-  const runtimeDir = tempDir("ravelink-wiz-onboarding-");
+  const runtimeDir = tempDir("groby-wiz-onboarding-");
   const storePath = path.join(runtimeDir, "fixtures.json");
   const fixtureRegistry = createFixtureRegistry({
     storePath,
@@ -266,7 +266,7 @@ test("WiZ onboarding consumes discovered devices and persists one bounded batch"
 });
 
 test("Govee LAN onboarding connects discovered LAN lights as routable fixtures", async () => {
-  const runtimeDir = tempDir("ravelink-govee-onboarding-");
+  const runtimeDir = tempDir("groby-govee-onboarding-");
   const fixtureRegistry = createFixtureRegistry({
     storePath: path.join(runtimeDir, "fixtures.json"),
     seedConfig: { fixtures: [], intentRoutes: {} },

@@ -5,7 +5,7 @@ test("player choice survives feature recreation and never calls a playback capab
   const data = new Map();
   const context = {
     callCapability: async (cap, method, input) => {
-      assert.equal(cap, "ravelink.storage.v1");
+      assert.equal(cap, "groby.storage.v1");
       if (method === "get") return { ok: true, value: data.get(input.key) };
       data.set(input.key, structuredClone(input.value));
       return { ok: true };

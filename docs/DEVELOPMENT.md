@@ -57,7 +57,7 @@ unchanged when changing a color palette.
    their approved local CSS/JavaScript files are verified and embedded in the
    sandboxed page, avoiding a second network connection or npm installation.
 
-The panel's `window.ravelink.call` uses a scoped parent relay. The parent accepts
+The panel's `window.groby.call` uses a scoped parent relay. The parent accepts
 messages only from the current frame with its current nonce. Core checks active
 state, UI permission and approved capabilities again for every call. Closing a
 panel cancels outstanding calls. Disabling the mod prevents a still-open panel

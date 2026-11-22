@@ -39,9 +39,9 @@ module.exports = function registerTidalOAuth(app, getCatalog) {
         "TIDAL connected. Return to Groby’s Deck and refresh the account status. You can close this window.",
       tidal_oauth_denied: "Sign-in cancelled. Return to Groby’s Deck to try again.",
       tidal_oauth_state_invalid:
-        "This callback does not match the active sign-in. Start a new sign-in from RaveLink.",
+        "This callback does not match the active sign-in. Start a new sign-in from Groby’s Deck.",
       tidal_oauth_session_expired:
-        "Sign-in expired or already used. Start a new sign-in from RaveLink.",
+        "Sign-in expired or already used. Start a new sign-in from Groby’s Deck.",
       tidal_oauth_exchange_rejected:
         "TIDAL rejected the sign-in exchange. Check the registered redirect URI and OAuth access for this app. No developer secret is sent.",
       tidal_oauth_scope_missing:

@@ -124,7 +124,7 @@ test("older measured wave fronts reach distant fixtures under repeated attacks",
   assert.ok(run(12) > 30, "a new onset must not erase every older travelling front");
 });
 test("sub-floor noise settles without turning a quiet room into continuing color motion", () => {
-  const m = create({ preset: "ambient", colorMode: "travel", colorSeconds: 2 });
+  const m = create({ preset: "pulse", colorMode: "travel", colorSeconds: 2 });
   for (let i = 1; i <= 150; i++) m.update(sample(i, false, 0.00001), i * 20);
   const a = m.render(3000, { position: 0 }),
     b = m.render(3000, { position: 1 });

@@ -22,7 +22,7 @@ const { defineMod, createCapabilityClient } = require("@grobys-deck/mod-sdk");
 module.exports = defineMod({
   async activate(context) {
     const capabilities = createCapabilityClient(context);
-    await capabilities.call("ravelink.storage.v1", "set", {
+    await capabilities.call("groby.storage.v1", "set", {
       key: "settings",
       value: { enabled: true },
     });

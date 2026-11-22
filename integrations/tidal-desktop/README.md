@@ -21,7 +21,7 @@ Direct track URLs/IDs do not require the separate catalog sign-in.
 2. Open Song Request → Player and choose TIDAL. The local integration starts automatically.
 3. Close TIDAL. In the selected player's Setup subtab, under Connect the desktop player, choose Install companion.
 4. Start TIDAL normally. Play something locally to initialize its queue, then
-   refresh the companion status in RaveLink.
+   refresh the companion status in Groby’s Deck.
 5. For text lookup, choose Sign in with TIDAL and finish authorization in the
    TIDAL popup. Check connection tests catalog access. Account tokens are saved
    encrypted with Windows DPAPI and can be removed with Disconnect account.
@@ -45,7 +45,7 @@ the native transport. There are no environment variables to set. Enabling the
 integration is remembered privately and starts again after Core restarts. Connection
 status still requires the actual companion to reconnect.
 
-Companion 0.1.8 waits up to 1.5 seconds on an authenticated local request for the
+Companion 0.1.9 waits up to 1.5 seconds on an authenticated local request for the
 next command. Enqueuing a command wakes that request immediately; idle waiting
 uses no polling timer in the renderer. Disconnects and shutdown release the wait,
 only one request may wait at a time, and legacy polling remains compatible.
@@ -64,7 +64,7 @@ npm.cmd run tidal:companion -- uninstall
 
 The manager discovers the latest `%LOCALAPPDATA%/TIDAL/app-*/resources` directory.
 Use `--resources "PATH TO resources"` for a custom installation and
-`--pairing-file "PATH SHOWN BY RAVELINK"` for a custom runtime directory. An
+`--pairing-file "PATH SHOWN BY GROBYS_DECK"` for a custom runtime directory. An
 alternate loopback port can be supplied with `--core-url http://127.0.0.1:PORT`.
 After TIDAL updates, the new version needs installation again. Old version
 directories are not silently modified. The UI discovers the latest version;
@@ -77,7 +77,7 @@ Node modules. Source and compiled payload ship in `integrations/tidal-desktop`.
 There is no upstream download/build step. The existing Luna companion remains an
 optional legacy path using the same authored adapter and Core protocol.
 
-The bootstrap preserves `app.asar` as `ravelink-original.asar`, starts the original
+The bootstrap preserves `app.asar` as `groby-original.asar`, starts the original
 TIDAL entry point, and adds a narrow Electron preload. Only the main frame on
 `desktop.tidal.com` or `listen.tidal.com` can use the two-method native bridge.
 Trusted `/assets/*.js` responses get a small Redux hook prefix/transform. The
@@ -87,11 +87,11 @@ TIDAL desktop assets on 2026-10-14. Missing hooks leave the companion not ready;
 unrelated actions are untouched. Core journals uncertain writes without replay.
 
 Companion 0.1.1 preserves access to `app.asar.unpacked` through an owned junction
-at `ravelink-original.asar.unpacked`; uninstall removes the junction only. This
+at `groby-original.asar.unpacked`; uninstall removes the junction only. This
 keeps native helpers and unpacked modules accessible without moving their original
 directory. Window ownership uses Electron's real `web-contents-created` event,
 including apps whose cached imports bypass a constructor proxy. Bounded startup
-stages/error codes are logged to `resources/ravelink-tidal-startup.log`; no
+stages/error codes are logged to `resources/groby-tidal-startup.log`; no
 credentials, command payloads or full error messages are logged.
 
 Private app internals remain a compatibility dependency even though Luna is no
@@ -141,7 +141,7 @@ Failures reported before dispatch are recorded as not sent and can be retried
 without an uncertain-delivery review. No uncertain write is automatically replayed.
 
 Licenses and credits: [NOTICE.md](NOTICE.md),
-[TidaLuna Ms-PL](LICENSE.TidaLuna), [Groby’s Deck Apache-2.0](LICENSE.Groby’s Deck).
+[TidaLuna Ms-PL](LICENSE.TidaLuna), [Groby’s Deck Apache-2.0](LICENSE.GrobysDeck).
 
 Companion 0.1.5 reports upcoming manual-request UIDs/count and the current native UID to Core. Core and the adapter both enforce ten upcoming requests while preserving the playlist. Remaining requests stay in Groby’s Deck; native queue changes wake the FIFO delivery worker without a UI timer. The count excludes history, the playing item and underlying playlist entries. Queue reports contain no account credentials or media bytes.
 

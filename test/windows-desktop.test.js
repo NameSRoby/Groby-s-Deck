@@ -10,7 +10,7 @@ const createCoreServer = require("../src/app/core/create-core-server");
 const root = path.resolve(__dirname, "..");
 let built;
 async function cleanProfile(port) {
-  const parent = path.resolve(process.env.LOCALAPPDATA, "RaveLink/Core/WebView2");
+  const parent = path.resolve(process.env.LOCALAPPDATA, "GrobysDeck/WebView2");
   const id = crypto
     .createHash("sha256")
     .update(path.resolve(compiled().directory).replace(/\\$/, "").toUpperCase() + ":" + port)

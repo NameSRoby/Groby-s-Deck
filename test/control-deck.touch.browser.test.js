@@ -190,7 +190,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
     card.innerHTML =
       '<div class="deckWindowsAudioHeading"><strong>Demo native audio</strong><small>Demo output</small></div><div class="deckWindowsAudioValues"><div class="deckFaderTrack"><input type="range" min="0" max="100" value="50"></div><output>50%</output><button>Mute</button></div>';
     document.querySelector(".deckMixerChannels").append(card);
-    host.dispatchEvent(new Event("ravelink-deck-mixer-layout"));
+    host.dispatchEvent(new Event("groby-deck-mixer-layout"));
   });
   const native = page.locator(".deckWindowsAudioCard input");
   await page.waitForFunction(
@@ -205,7 +205,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
   }
   await page.evaluate(() => {
     document.querySelector(".deckWindowsAudioCard").hidden = true;
-    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
+    host.dispatchEvent(new Event("groby-deck-screen-change"));
   });
   await page.waitForFunction(
     () =>
@@ -215,7 +215,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
   );
   await page.evaluate(() => {
     document.querySelector(".deckWindowsAudioCard").hidden = false;
-    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
+    host.dispatchEvent(new Event("groby-deck-screen-change"));
   });
   await page.waitForFunction(
     () =>

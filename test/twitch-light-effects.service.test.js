@@ -6,7 +6,7 @@ const path = require("node:path");
 const createEffects = require("../src/domains/twitch/twitch-light-effects.service");
 
 function setup(t, labOverrides = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-effects-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-effects-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const fixtures = [
     { id: "old-hue", name: "Old Hue", brand: "hue", twitchEnabled: true },
@@ -148,7 +148,7 @@ test("dynamic effect parser supports the approved language and does not claim ex
 });
 
 test("Rave color lists consume every color, including typos, descriptors and taught names", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-palette-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-palette-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const library = require("../src/domains/colors/color-library.service")({
     storePath: path.join(root, "colors.json"),
@@ -662,7 +662,7 @@ test("spatial sweep is a brightness pulse while wave remains a full-brightness g
   const first = setup(t);
   // Inject the small public geometry boundary used by the renderer.
   first.service.shutdown();
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-effects-spatial-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-effects-spatial-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const fixtures = first.fixtures,
     calls = [];

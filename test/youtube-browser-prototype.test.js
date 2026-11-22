@@ -21,7 +21,7 @@ const observation = () => ({
 
 test("loaded Chromium extension exchanges observations and confirms a console control end to end", async (t) => {
   const f = await fixture(t);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-youtube-extension-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-youtube-extension-"));
   const folders = build(path.join(root, "extension"));
   const context = await chromium.launchPersistentContext(path.join(root, "profile"), {
     channel: "chromium",
@@ -257,7 +257,7 @@ test("stale observations disable controls, hostile metadata is bounded, and ads 
   );
 });
 test("Firefox and Chromium bundles share source and request no cookie or all-site permissions", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-youtube-build-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-youtube-build-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const folders = build(root);
   const manifests = folders.map((folder) =>
@@ -409,7 +409,7 @@ for (const [family, engine] of [
     });
     await page.addScriptTag({ path: path.join(extension, "site-adapter.js") });
     const result = await page.evaluate(async () => {
-      const site = globalThis.RaveLinkYouTubeSite.create(document, location);
+      const site = globalThis.GrobyDeckYouTubeSite.create(document, location);
       const before = site.read();
       const changed = await site.execute({ action: "pause", expectedVideoId: "ddddddddddd" });
       const pause = await site.execute({ action: "pause", expectedVideoId: "aaaaaaaaaaa" });

@@ -25,13 +25,11 @@ namespace Groby.Deck.WindowsHost
 {
     internal static class Program
     {
-        // These names are stable across upgrades. The v0.6 suffix is an IPC
-        // compatibility identifier, not the current product version: renaming
-        // it would allow old and new hosts to compete for the same local port.
-        private const string MutexName = "Local\\RaveLink-Core-v0.6";
-        internal const string ExitEventName = "Local\\RaveLink-Core-Exit-v0.6";
-        internal const string RestartEventName = "Local\\RaveLink-Core-Restart-v0.6";
-        internal const string OpenEventName = "Local\\RaveLink-Core-Open-v0.6";
+        // Scope the current desktop host and its controls to one local server port.
+        private const string MutexName = "Local\\Grobys-Deck-Host";
+        internal const string ExitEventName = "Local\\Grobys-Deck-Exit";
+        internal const string RestartEventName = "Local\\Grobys-Deck-Restart";
+        internal const string OpenEventName = "Local\\Grobys-Deck-Open";
         internal static string Scoped(string name) { return ServerControl.Port() == 5050 ? name : name + "-" + ServerControl.Port(); }
 
         [STAThread]
@@ -181,10 +179,7 @@ namespace Groby.Deck.WindowsHost
                     SetStatus("Port " + port + " is already in use. Close the older Groby’s Deck / Bridge instance or choose another port.", ToolTipIcon.Error);
                     return;
                 }
-                string entryName = File.Exists(Path.Combine(root, "config", "mod-platform.enabled"))
-                    ? "combined-enabled-server.js"
-                    : "feature-enabled-server.js";
-                string entry = Path.Combine(root, "src", "app", "optional", entryName);
+                string entry = Path.Combine(root, "src", "app", "optional", "feature-enabled-server.js");
                 if (!File.Exists(entry))
                 {
                     SetStatus("Server files missing", ToolTipIcon.Error);
@@ -207,8 +202,8 @@ namespace Groby.Deck.WindowsHost
                 };
                 start.EnvironmentVariables["PORT"] = port.ToString();
                 start.EnvironmentVariables["HOST"] = "127.0.0.1";
-                start.EnvironmentVariables["RAVELINK_WINDOWS_HOST"] = "1";
-                start.EnvironmentVariables["RAVELINK_HOST_PID"] = Process.GetCurrentProcess().Id.ToString();
+                start.EnvironmentVariables["GROBYS_DECK_WINDOWS_HOST"] = "1";
+                start.EnvironmentVariables["GROBYS_DECK_HOST_PID"] = Process.GetCurrentProcess().Id.ToString();
                 server = new Process { StartInfo = start, EnableRaisingEvents = true };
                 server.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) HostLog.Write(root, e.Data); };
                 server.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) HostLog.Write(root, e.Data); };
@@ -374,7 +369,7 @@ namespace Groby.Deck.WindowsHost
             await StopServerAsync();
             try
             {
-                string runner = Path.Combine(root, "runtime", "updates", "ravelink-update-runner.ps1");
+                string runner = Path.Combine(root, "runtime", "updates", "groby-update-runner.ps1");
                 if (!File.Exists(runner)) throw new FileNotFoundException("Update rollback helper is missing.", runner);
                 var rollback = new ProcessStartInfo
                 {

@@ -53,8 +53,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = inspectSpo
 else
   console.log(
     JSON.stringify(
-      window.__ravelinkSpotify?.status
-        ? window.__ravelinkSpotify.status()
+      window.__grobySpotify?.status
+        ? window.__grobySpotify.status()
         : inspectSpotifyDesktop(window.Spicetify),
       null,
       2,

@@ -41,7 +41,7 @@ test("credit history survives restart, isolates accounts and caches supporter pa
   assert.deepEqual(noAccess.subscribers, { ok: false, names: [] });
 });
 function fixture(t) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-overlay-"));
   t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
   let time = 100000,
     account = "123",

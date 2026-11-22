@@ -51,7 +51,7 @@ function permissionSummary(mod) {
   if (permissions.ui) rows.push("Operator UI");
   if (permissions.process) rows.push("Child process");
   if (permissions.hardware?.length) rows.push(`Hardware: ${permissions.hardware.join(", ")}`);
-  if ((mod.consumes || []).includes("ravelink.controls.v1"))
+  if ((mod.consumes || []).includes("groby.controls.v1"))
     rows.push(
       "Full app controls: keyboard/app launch, audio, playback, OBS, lights and Twitch actions",
     );

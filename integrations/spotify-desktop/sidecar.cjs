@@ -65,7 +65,7 @@ function inspect(runtimeRoot, id) {
   )
     throw Error("spotify_sidecar_root_invalid");
   const manifest = JSON.parse(
-    regular(path.join(directory, "ravelink-sidecar.json"), 1048576).toString("utf8"),
+    regular(path.join(directory, "groby-sidecar.json"), 1048576).toString("utf8"),
   );
   if (
     manifest.schemaVersion !== 1 ||
@@ -82,7 +82,7 @@ function inspect(runtimeRoot, id) {
   )
     throw Error("spotify_sidecar_manifest_invalid");
   if (
-    fs.readdirSync(directory).some((name) => !["Apps", "ravelink-sidecar.json"].includes(name)) ||
+    fs.readdirSync(directory).some((name) => !["Apps", "groby-sidecar.json"].includes(name)) ||
     inventoryFiles(apps).some((name) => !Object.hasOwn(manifest.files, name))
   )
     throw Error("spotify_sidecar_modified");
@@ -193,7 +193,7 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
     files,
   };
   fs.writeFileSync(
-    path.join(temporary, "ravelink-sidecar.json"),
+    path.join(temporary, "groby-sidecar.json"),
     JSON.stringify(manifest, null, 2) + "\n",
     { flag: "wx", mode: 0o600 },
   );
@@ -244,7 +244,7 @@ function remove(runtimeRoot, id) {
   for (const directory of [...directories].sort((a, b) => b.length - a.length))
     fs.rmdirSync(directory);
   fs.rmdirSync(record.apps);
-  fs.unlinkSync(path.join(directory, "ravelink-sidecar.json"));
+  fs.unlinkSync(path.join(directory, "groby-sidecar.json"));
   fs.rmdirSync(directory);
   return { ok: true, removed: true };
 }

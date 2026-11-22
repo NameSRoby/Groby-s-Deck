@@ -216,7 +216,7 @@ function installRequestSecurityMiddleware(app, options = {}) {
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,PUT,PATCH,OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, X-Requested-With, X-Ravelink-Mod-Key, X-Mod-Key, X-Api-Key, Authorization",
+      "Content-Type, X-Requested-With, X-Mod-Key, X-Api-Key, Authorization",
     );
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");

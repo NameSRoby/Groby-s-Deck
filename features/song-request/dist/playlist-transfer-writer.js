@@ -9,7 +9,7 @@ const plan = require("./playlist-transfer-plan");
 module.exports = function writer({ provider, save, get }) {
   const current = (job, rows) => plan(rows, job)[job.groupIndex || 0];
   const marker = (job) =>
-    "Created by RaveLink transfer " +
+    "Created by Groby’s Deck transfer " +
     job.id +
     (job.groupBy && job.groupBy !== "single" ? " group " + (job.groupIndex || 0) : "");
   const key = (job) =>

@@ -7,7 +7,7 @@ const { createHash } = require("node:crypto");
 function createOverlayProfileStorage(context) {
   let previous = null;
   const call = (method, payload) =>
-    context.callCapability("ravelink.storage.v1", method, payload, {
+    context.callCapability("groby.storage.v1", method, payload, {
       timeoutMs: 1000,
     });
   const key = (ref, index) => `ovp-${ref.generation}-${index}`;

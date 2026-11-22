@@ -20,7 +20,7 @@ function manifest(publisher, name) {
     publisher,
     license: "MIT",
     entry: "dist/main.js",
-    engine: { ravelinkModApi: "^1.0.0", node: ">=22" },
+    engine: { grobyModApi: "^1.0.0", node: ">=22" },
     activationEvents: ["onEnable"],
     consumes: [],
     provides: [`${name}.service.v1`],
@@ -204,7 +204,7 @@ test("a blocked activation retries with newly confirmed permissions and never re
 });
 
 test("registry treats an absent mods directory as an empty zero-work state", () => {
-  const root = path.join(os.tmpdir(), `ravelink-missing-mods-${Date.now()}`);
+  const root = path.join(os.tmpdir(), `groby-missing-mods-${Date.now()}`);
   const registry = createModHostRegistry({ modsRoot: root });
   const snapshot = registry.discover();
   assert.equal(snapshot.total, 0);
@@ -213,7 +213,7 @@ test("registry treats an absent mods directory as an empty zero-work state", () 
 });
 
 test("registry discovers manifests without evaluating mod entry code", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-registry-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-registry-"));
   const marker = path.join(root, "executed.txt");
   installFixture(
     root,
@@ -229,7 +229,7 @@ test("registry discovers manifests without evaluating mod entry code", () => {
 });
 
 test("registry reports malformed and duplicate manifests deterministically", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-registry-errors-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-registry-errors-"));
   installFixture(root, manifest("alpha", "echo"));
   const duplicateRoot = path.join(root, "duplicate-folder");
   fs.mkdirSync(duplicateRoot, { recursive: true });
@@ -255,7 +255,7 @@ test("registry reports malformed and duplicate manifests deterministically", () 
 });
 
 test("registry requires explicit enable and enforces the global process limit", async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-registry-limit-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-registry-limit-"));
   installFixture(root, manifest("alpha", "one"));
   installFixture(root, manifest("beta", "two"));
   const created = [];
@@ -280,7 +280,7 @@ test("registry requires explicit enable and enforces the global process limit", 
 });
 
 test("registry routes calls only to an explicitly activated supervisor", async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-registry-request-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-registry-request-"));
   installFixture(root, manifest("alpha", "echo"));
   const created = [];
   const registry = createModHostRegistry({
@@ -303,7 +303,7 @@ test("registry routes calls only to an explicitly activated supervisor", async (
 });
 
 test("registry negotiates required capabilities and exposes brokered core calls", async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-registry-broker-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-registry-broker-"));
   const descriptor = manifest("alpha", "consumer");
   descriptor.consumes = ["chat.send.v1"];
   installFixture(root, descriptor);
@@ -324,7 +324,7 @@ test("registry negotiates required capabilities and exposes brokered core calls"
     },
   });
   registry.registerHostCapability({
-    providerId: "ravelink.chat",
+    providerId: "groby.chat",
     capability: "chat.send.v1",
     invoke: async () => ({ sent: true }),
   });

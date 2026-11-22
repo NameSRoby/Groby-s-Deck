@@ -81,7 +81,7 @@ export function createDeckPager({
       (pages.length > 1 ? (pages[at]?.name || `Page ${at + 1}`) + " · " : "") +
       `${index + 1} / ${total}`;
     if (document.activeElement?.closest?.("[data-deck-button][hidden]")) next.focus();
-    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
+    host.dispatchEvent(new Event("groby-deck-screen-change"));
   }
   function measure() {
     frame = null;
@@ -181,7 +181,7 @@ export function createDeckPager({
   const resize = new ResizeObserver(schedule);
   resize.observe(host);
   resize.observe(grid);
-  host.addEventListener("ravelink-deck-mixer-layout", schedule);
+  host.addEventListener("groby-deck-mixer-layout", schedule);
   const widgets = host.querySelector(".deckWidgetRegion");
   if (widgets) resize.observe(widgets);
   addEventListener("resize", schedule);

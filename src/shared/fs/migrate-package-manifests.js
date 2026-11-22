@@ -1,11 +1,12 @@
 /** One-time manifest filename migration; never executes packages or grants permissions. */
 const fs = require("node:fs"),
   path = require("node:path");
+const { manifestNames, featurePublisher } = require("./upgrade-identifiers.json");
 module.exports = async function migratePackageManifests(root, kind, verify) {
   if (!fs.existsSync(root)) return;
   const stat = fs.lstatSync(root);
   if (!stat.isDirectory() || stat.isSymbolicLink()) return;
-  const oldName = kind === "mod" ? "ravelink.mod.json" : "ravelink.feature.json",
+  const oldName = manifestNames[kind],
     newName = kind === "mod" ? "groby.mod.json" : "groby.feature.json";
   for (const entry of fs.readdirSync(root, { withFileTypes: true }).slice(0, 256)) {
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
@@ -22,7 +23,7 @@ module.exports = async function migratePackageManifests(root, kind, verify) {
       moved = true;
       if (kind === "feature") {
         const manifest = JSON.parse(original.toString("utf8"));
-        if (manifest.publisher === "ravelink") {
+        if (manifest.publisher === featurePublisher) {
           manifest.publisher = "grobys-deck";
           fs.writeFileSync(newFile, JSON.stringify(manifest, null, 2) + "\n");
         }

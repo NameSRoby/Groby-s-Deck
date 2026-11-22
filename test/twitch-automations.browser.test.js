@@ -129,7 +129,7 @@ test("Syntax page searches functions and previews messages, random choices and c
   await f.page.evaluate(() =>
     document
       .querySelector("iframe")
-      .contentWindow.postMessage({ channel: "ravelink-feature-ui-v1", type: "theme" }, "*"),
+      .contentWindow.postMessage({ channel: "groby-feature-ui-v1", type: "theme" }, "*"),
   );
   await panel
     .locator("#template")
@@ -625,7 +625,7 @@ test("automation list searches and filters compact rows, expands inline, and pre
     await panel.locator("#name").evaluate((node) => node === document.activeElement),
     true,
   );
-  if (process.env.RAVELINK_CAPTURE_AUTOMATIONS === "1")
+  if (process.env.GROBYS_DECK_CAPTURE_AUTOMATIONS === "1")
     await f.page.screenshot({
       path: path.join(__dirname, "../runtime/automation-list-private.png"),
       fullPage: true,
@@ -861,7 +861,7 @@ test("a chat automation uses the shared builder, saves/reopens its restore flow,
     .locator(".automationRowTitle")
     .filter({ hasText: "Temporary microphones" })
     .click();
-  if (process.env.RAVELINK_CAPTURE_AUTOMATIONS === "1")
+  if (process.env.GROBYS_DECK_CAPTURE_AUTOMATIONS === "1")
     await f.page.screenshot({
       path: path.join(__dirname, "../runtime/twitch-automations-private.png"),
       fullPage: true,

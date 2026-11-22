@@ -13,7 +13,7 @@ const event = (rewardId = "reward-one") => ({
 
 test("renamed mod actions upgrade saved Twitch flows without changing access, cooldowns or activation", async (t) => {
   const f = fixture(t),
-    old = "mod:ravelink.twitch-clips:create",
+    old = "mod:groby.twitch-clips:create",
     current = "mod:groby.twitch-clips:create";
   const row = flow("c".repeat(24), { type: "command", command: "!cliptest" });
   row.enabled = false;

@@ -13,7 +13,7 @@ const { createNativeBridge } = require("./native-bridge.cjs");
 const bundle = __dirname;
 function diagnostic(stage, error) {
   try {
-    const filename = path.join(process.resourcesPath, "ravelink-tidal-startup.log");
+    const filename = path.join(process.resourcesPath, "groby-tidal-startup.log");
     if (fs.existsSync(filename) && fs.statSync(filename).size > 65536)
       fs.writeFileSync(filename, "");
     const code = String(error?.code || error?.name || "")
@@ -25,7 +25,7 @@ function diagnostic(stage, error) {
   }
 }
 diagnostic("bootstrap-start");
-const original = path.join(process.resourcesPath, "ravelink-original.asar");
+const original = path.join(process.resourcesPath, "groby-original.asar");
 const manifest = JSON.parse(fs.readFileSync(path.join(original, "package.json"), "utf8"));
 let bridge;
 try {
@@ -60,7 +60,7 @@ electron.app.on("web-contents-created", (_event, contents) => {
   contents.on("did-finish-load", () => diagnostic("window-loaded"));
   contents.on("did-fail-load", () => diagnostic("window-load-failed"));
 });
-electron.ipcMain.handle("ravelink-tidal-command", (event, method, payload) => {
+electron.ipcMain.handle("groby-tidal-command", (event, method, payload) => {
   if (
     !windows.has(event.sender.id) ||
     event.senderFrame !== event.sender.mainFrame ||

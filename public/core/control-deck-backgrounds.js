@@ -30,11 +30,11 @@ function pauseControl(host) {
   let paused = false;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   document.documentElement.dataset.deckMotionAllowed = String(
-    localStorage.getItem("ravelink.deck.motion") === "allowed",
+    localStorage.getItem("groby.deck.motion") === "allowed",
   );
   button.onclick = () => {
     if (reduced && document.documentElement.dataset.deckMotionAllowed !== "true") {
-      localStorage.setItem("ravelink.deck.motion", "allowed");
+      localStorage.setItem("groby.deck.motion", "allowed");
       document.documentElement.dataset.deckMotionAllowed = "true";
       button.textContent = "Pause effects";
       return;

@@ -4,7 +4,7 @@
  * docs/DEVELOPMENT.md#lighting-and-dynamic-effects
  */
 (() => {
-  const ui = window.RaveLinkCoreUi;
+  const ui = window.GrobyDeckCoreUi;
   if (!ui) return;
   const element = (id) => document.getElementById(id);
   let loading = null;

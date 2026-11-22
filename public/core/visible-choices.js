@@ -4,7 +4,7 @@
  * docs/DEVELOPMENT.md#request-security-and-the-feature-ui-relay
  */
 function installVisibleChoices() {
-  if (window.RaveLinkChoices) return;
+  if (window.GrobyDeckChoices) return;
   const shortIds = new Set([
     "twitchRoutingMode",
     "lightingProfileStrategy",
@@ -239,7 +239,7 @@ function installVisibleChoices() {
   window.addEventListener("pagehide", () => observer.disconnect(), {
     once: true,
   });
-  window.RaveLinkChoices = { refresh: scan };
+  window.GrobyDeckChoices = { refresh: scan };
   scan();
 }
 if (typeof module !== "undefined" && module.exports) module.exports = installVisibleChoices;

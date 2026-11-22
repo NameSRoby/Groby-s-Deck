@@ -6,7 +6,7 @@ const test = require("node:test"),
   express = require("express");
 const { chromium } = require("playwright");
 async function setup(t, provider = null, fetchChatCatalog) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-ui-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-overlay-ui-"));
   const app = express(),
     service = require("../src/domains/overlays/stream-overlays.service")({
       runtimeDir,

@@ -54,7 +54,7 @@ test("Spotify rooted SPA and odd-offset V8 source stage locally without modifyin
   assert.ok(
     fs
       .readFileSync(path.join(result.apps, "xpui/xpui-modules.js"), "utf8")
-      .includes("__ravelinkSpotify"),
+      .includes("__grobySpotify"),
   );
   const html = fs.readFileSync(path.join(result.apps, "xpui/index.html"), "utf8");
   assert.ok(html.indexOf("/xpui-modules.js") < html.indexOf("/xpui-snapshot.js"));

@@ -42,7 +42,6 @@ Your account sign-ins and online music services still need internet.
   Compare downloads with **SHA256SUMS.txt**.
 - **Code > Download ZIP** downloads source code. Run **Start-Grobys-Deck.cmd** for
   first-time source setup; it downloads a verified runtime bundle.
-- Use a separate folder from an old RaveLink Bridge installation.
 
 [Windows setup guide](docs/WINDOWS_SETUP.md) |
 [Source setup](docs/USER_GUIDE.md#source-and-tests)
@@ -236,5 +235,4 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 Groby’s Deck 0.8 is the current release. Previous releases remain available in the
 [release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8 for new installations.
 
-Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
-The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.
+Install into the same folder to retain local settings, account authorizations and automation data. Update Song Request and Twitch Integration in **Packages & updates**. Mods use the current SDK and require review after a package change. Regenerate any external event-intake widgets from **Widget**.

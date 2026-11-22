@@ -51,7 +51,7 @@ try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     # Keep extraction shallow: Windows PowerShell's ZIP APIs have a path limit.
     $stageRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
-    $stage = Join-Path $stageRoot ("ravelink-source-" + [Guid]::NewGuid().ToString('N').Substring(0, 16))
+    $stage = Join-Path $stageRoot ("groby-source-" + [Guid]::NewGuid().ToString('N').Substring(0, 16))
     New-Item -ItemType Directory -Path $stage | Out-Null
     $zip = [IO.Compression.ZipFile]::OpenRead($archive)
     try {
@@ -77,7 +77,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Runtime installation failed. See the setup output above.' }
     @{ lock = $lockHash; archive = $spec.sha256 } | ConvertTo-Json | Set-Content -LiteralPath $stamp -Encoding UTF8
     # Only this generated staging directory is removed, never application settings.
-    if (![IO.Path]::GetFullPath($stage).StartsWith("$stageRoot\ravelink-source-", [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid staging directory.' }
+    if (![IO.Path]::GetFullPath($stage).StartsWith("$stageRoot\groby-source-", [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid staging directory.' }
     Remove-Item -LiteralPath $stage -Recurse -Force
   }
   $hostStamp = Join-Path $cache 'host.sha256'

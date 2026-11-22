@@ -15,7 +15,7 @@ const {
 } = require("../src/capabilities/mod-platform/packages/mod-package-integrity");
 
 test("template validates and packager emits a production-admissible ZIP", async (t) => {
-  const temp = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-cli-"));
+  const temp = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-cli-"));
   t.after(() => fs.promises.rm(temp, { recursive: true, force: true }));
   const template = path.join(__dirname, "..", "packages", "mod-sdk", "starter");
   assert.equal((await validate(template)).manifest.id, "example.button");
@@ -29,7 +29,7 @@ test("template validates and packager emits a production-admissible ZIP", async 
 });
 
 test("packager rejects outputs inside source and tampered packages", async (t) => {
-  const temp = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-cli-bad-"));
+  const temp = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-cli-bad-"));
   t.after(() => fs.promises.rm(temp, { recursive: true, force: true }));
   const template = path.join(__dirname, "..", "packages", "mod-sdk", "starter");
   assert.equal(

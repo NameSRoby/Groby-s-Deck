@@ -30,7 +30,7 @@ module.exports = function createModBuiltinServices(options = {}) {
   }
 
   broker.registerContract({
-    capability: "ravelink.storage.v1",
+    capability: "groby.storage.v1",
     methods: {
       get: {
         validateRequest: (value) => record(value) && typeof value.key === "string",
@@ -52,8 +52,8 @@ module.exports = function createModBuiltinServices(options = {}) {
     },
   });
   broker.registerHostProvider({
-    providerId: "ravelink.storage",
-    capability: "ravelink.storage.v1",
+    providerId: "groby.storage",
+    capability: "groby.storage.v1",
     invoke: async (_capability, method, payload, context) => {
       const manifest = manifestFor(context);
       if (!manifest) return { ok: true, value: { ok: false, error: "requester_unknown" } };
@@ -70,12 +70,12 @@ module.exports = function createModBuiltinServices(options = {}) {
   });
 
   broker.registerContract({
-    capability: "ravelink.network.v1",
+    capability: "groby.network.v1",
     methods: { request: { validateRequest: record, validateResponse: result } },
   });
   broker.registerHostProvider({
-    providerId: "ravelink.network",
-    capability: "ravelink.network.v1",
+    providerId: "groby.network",
+    capability: "groby.network.v1",
     invoke: async (_capability, _method, payload, context) => ({
       ok: true,
       value: await network.request(manifestFor(context), payload, context),
@@ -83,7 +83,7 @@ module.exports = function createModBuiltinServices(options = {}) {
   });
 
   broker.registerContract({
-    capability: "ravelink.secrets.v1",
+    capability: "groby.secrets.v1",
     methods: {
       invoke: {
         validateRequest: (value) =>
@@ -93,8 +93,8 @@ module.exports = function createModBuiltinServices(options = {}) {
     },
   });
   broker.registerHostProvider({
-    providerId: "ravelink.secrets",
-    capability: "ravelink.secrets.v1",
+    providerId: "groby.secrets",
+    capability: "groby.secrets.v1",
     invoke: async (_capability, _method, payload, context) => ({
       ok: true,
       value: await secrets.invoke(

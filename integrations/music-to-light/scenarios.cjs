@@ -35,19 +35,11 @@ function weights(input = {}) {
     !input ||
     typeof input !== "object" ||
     Array.isArray(input) ||
-    Object.keys(input).some(
-      (k) => !definitions.some((d) => d.id === k) && !["wash", "bands"].includes(k),
-    )
+    Object.keys(input).some((k) => !definitions.some((d) => d.id === k))
   )
     throw Error("invalid_music_scenarios");
   if (Object.values(input).some((v) => !Number.isFinite(v) || v < 0 || v > 10))
     throw Error("invalid_music_scenarios");
-  input = {
-    ...input,
-    ...(Object.hasOwn(input, "wash") || Object.hasOwn(input, "bands")
-      ? { pulse: Math.max(input.pulse ?? 1, input.wash ?? 0, input.bands ?? 0) }
-      : {}),
-  };
   const value = Object.fromEntries(
     definitions.map((d) => [
       d.id,

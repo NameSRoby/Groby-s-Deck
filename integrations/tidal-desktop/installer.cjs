@@ -8,7 +8,19 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const hash = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-const journalName = "ravelink-tidal-install.json";
+const journalName = "groby-tidal-install.json";
+const previousBundle = require("../../src/shared/fs/upgrade-identifiers.json").tidalCompanion;
+function removalBundle(resources) {
+  if (fs.existsSync(path.join(resources, journalName))) {
+    return {
+      journal: journalName,
+      archive: "groby-original.asar",
+      stage: ".groby-tidal-stage",
+      owner: "groby-tidal-companion",
+    };
+  }
+  return previousBundle;
+}
 function regular(file) {
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("tidal_file_invalid");
@@ -50,7 +62,7 @@ function requireStopped(probe) {
 function checkedBundle(bundle) {
   const inventory = JSON.parse(fs.readFileSync(path.join(bundle, "integrity.json"), "utf8"));
   if (
-    !/^0\.1\.[012345678]$/.test(inventory.version) ||
+    !/^0\.1\.[0-9]$/.test(inventory.version) ||
     !inventory.files ||
     !inventory.files["injector.cjs"] ||
     !inventory.files["LICENSE.TidaLuna"]
@@ -114,7 +126,8 @@ exports.discover = function discover(localAppData = process.env.LOCALAPPDATA) {
 };
 exports.inspect = function inspect(input) {
   const resources = resourcesPath(input),
-    journal = path.join(resources, journalName);
+    bundle = removalBundle(resources),
+    journal = path.join(resources, bundle.journal);
   let version = "";
   if (fs.existsSync(journal)) {
     try {
@@ -124,6 +137,7 @@ exports.inspect = function inspect(input) {
   return {
     resources,
     installed: fs.existsSync(journal),
+    previousBundle: fs.existsSync(journal) && bundle === previousBundle,
     version,
     foreignLoader:
       fs.existsSync(path.join(resources, "original.asar")) ||
@@ -141,16 +155,26 @@ exports.install = function install({
   requireStopped(probe);
   const resources = resourcesPath(input);
   const original = path.join(resources, "app.asar"),
-    backup = path.join(resources, "ravelink-original.asar");
+    backup = path.join(resources, "groby-original.asar");
   const unpacked = original + ".unpacked",
     unpackedAlias = backup + ".unpacked";
   const app = path.join(resources, "app"),
-    stage = path.join(resources, ".ravelink-tidal-stage"),
+    stage = path.join(resources, ".groby-tidal-stage"),
     journal = path.join(resources, journalName);
   if (
-    [backup, unpackedAlias, app, stage, journal, path.join(resources, "original.asar")].some(
-      (file) => fs.existsSync(file),
-    )
+    [
+      backup,
+      unpackedAlias,
+      app,
+      stage,
+      journal,
+      ...[
+        previousBundle.archive,
+        previousBundle.stage,
+        previousBundle.journal,
+        "original.asar",
+      ].map((name) => path.join(resources, name)),
+    ].some((file) => fs.existsSync(file))
   )
     throw new Error("Existing loader or incomplete install found; uninstall/review it first.");
   const hasUnpacked = fs.existsSync(unpacked);
@@ -191,7 +215,7 @@ exports.install = function install({
       fs.readdirSync(stage).map((file) => [file, hash(path.join(stage, file))]),
     );
     const record = {
-      owner: "ravelink-tidal-companion",
+      owner: "groby-tidal-companion",
       version: inventory.version,
       originalHash: hash(original),
       unpackedAlias: hasUnpacked,
@@ -250,7 +274,7 @@ exports.repairPairing = function repairPairing({ resources: input, pairingFile }
     config = JSON.parse(originalConfig),
     record = JSON.parse(originalJournal);
   if (
-    record.owner !== "ravelink-tidal-companion" ||
+    record.owner !== "groby-tidal-companion" ||
     record.files?.["config.json"] !== hash(configFile) ||
     fs.lstatSync(path.join(resources, "app")).isSymbolicLink()
   )
@@ -276,16 +300,13 @@ exports.repairPairing = function repairPairing({ resources: input, pairingFile }
 exports.uninstall = function uninstall({ resources: input, probe }) {
   requireStopped(probe);
   const resources = resourcesPath(input),
-    journal = path.join(resources, journalName);
+    bundle = removalBundle(resources),
+    journal = path.join(resources, bundle.journal);
   regular(journal);
   const record = JSON.parse(fs.readFileSync(journal, "utf8"));
-  if (
-    record.owner !== "ravelink-tidal-companion" ||
-    !record.files ||
-    !/^[a-f0-9]{64}$/.test(record.originalHash)
-  )
+  if (record.owner !== bundle.owner || !record.files || !/^[a-f0-9]{64}$/.test(record.originalHash))
     throw new Error("tidal_install_record_invalid");
-  const backup = path.join(resources, "ravelink-original.asar"),
+  const backup = path.join(resources, bundle.archive),
     original = path.join(resources, "app.asar");
   if (record.unpackedAlias === true)
     validateUnpackedAlias(backup + ".unpacked", original + ".unpacked");
@@ -294,7 +315,7 @@ exports.uninstall = function uninstall({ resources: input, probe }) {
   regular(archive);
   if (hash(archive) !== record.originalHash || (fs.existsSync(backup) && fs.existsSync(original)))
     throw new Error("TIDAL was updated or its archive changed; review before restoring.");
-  for (const directory of ["app", ".ravelink-tidal-stage"]) {
+  for (const directory of ["app", bundle.stage]) {
     const target = path.join(resources, directory);
     if (!fs.existsSync(target)) continue;
     if (fs.lstatSync(target).isSymbolicLink()) throw new Error("tidal_install_modified");
@@ -304,7 +325,7 @@ exports.uninstall = function uninstall({ resources: input, probe }) {
         throw new Error("tidal_install_modified");
     }
   }
-  for (const directory of ["app", ".ravelink-tidal-stage"])
+  for (const directory of ["app", bundle.stage])
     removeOwned(path.join(resources, directory), record.files);
   if (fs.existsSync(backup)) fs.renameSync(backup, original);
   if (record.unpackedAlias === true)

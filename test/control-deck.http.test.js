@@ -5,7 +5,7 @@ const test = require("node:test"),
   path = require("node:path");
 const createCore = require("../src/app/core/create-core-server");
 test("deck HTTP validates saved actions, origins and media without desktop side effects on read", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-deck-http-"));
   let executions = 0;
   const desktopActions = {
     catalog: () => [
@@ -122,7 +122,7 @@ test("deck HTTP validates saved actions, origins and media without desktop side 
 });
 
 test("default source profile discovers the example mod without granting or executing it", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-default-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-deck-default-"));
   const featuresRoot = path.join(runtimeDir, "empty-features");
   fs.mkdirSync(featuresRoot);
   const desktopActions = {
@@ -156,5 +156,5 @@ test("default source profile discovers the example mod without granting or execu
   assert.ok(
     core.extension.mods.inbox.list().candidates.some((row) => row.id === "groby.twitch-clips"),
   );
-  assert(!mods.some((m) => m.id === "ravelink.discord-controls" && m.enabled));
+  assert(!mods.some((m) => m.id === "groby.discord-controls" && m.enabled));
 });

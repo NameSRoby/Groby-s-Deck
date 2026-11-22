@@ -55,7 +55,7 @@ async function render(
     preview = false,
   } = {},
 ) {
-  source = require("./command-variables").compile(require("./command-source").canonical(source));
+  source = require("./command-variables").compile(source);
   const tree = parse(source),
     memo = new Map(),
     lookups = new Map();

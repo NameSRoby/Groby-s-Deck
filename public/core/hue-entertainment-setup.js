@@ -1,7 +1,7 @@
 /** Entertainment setup uses saved bridge credentials without revealing them. */
 (() => {
   const $ = (id) => document.getElementById(id);
-  const ui = window.RaveLinkCoreUi;
+  const ui = window.GrobyDeckCoreUi;
   let selected = null,
     areas = [],
     generation = 0;
@@ -134,6 +134,6 @@
       if (revision === generation) $("saveHueEntertainment").disabled = false;
     }
   };
-  window.RaveLinkHueSetup = { load };
+  window.GrobyDeckHueSetup = { load };
   load();
 })();

@@ -15,6 +15,7 @@ const createQuotaJsonStorage = require("../../../shared/storage/quota-json-stora
 const createResourceMonitor = require("../../supervised-runtime/host/resource-monitor");
 const createFeatureStateStore = require("../packages/feature-state-store");
 const createFeaturePackageManager = require("../packages/feature-package-manager");
+const compareVersions = require("../../../shared/contracts/compare-package-versions");
 
 const MAX_INSTALLED_FEATURES = 16;
 
@@ -122,6 +123,11 @@ module.exports = function createFeatureHostRegistry(options = {}) {
     });
   let discoveryErrors = [];
 
+  function needsUpdate(row) {
+    const minimum = options.minimumVersions?.[row.id];
+    return Boolean(minimum && compareVersions(row.manifest.version, minimum) < 0);
+  }
+
   function rowStatus(row) {
     const status = supervisors.get(row.id)?.getStatus() || null;
     const desired = stateStore.get(row.id);
@@ -129,9 +135,9 @@ module.exports = function createFeatureHostRegistry(options = {}) {
       id: row.id,
       name: row.manifest.name,
       version: row.manifest.version,
-      lifecycle: status?.lifecycle || "installed-disabled",
+      lifecycle: needsUpdate(row) ? "incompatible" : status?.lifecycle || "installed-disabled",
       pid: status?.pid || 0,
-      error: status?.lastError || "",
+      error: needsUpdate(row) ? "feature_update_required" : status?.lastError || "",
       enabledOnStartup: desired.enabled,
       stateReason: desired.reason,
       rollbackAvailable: packageManager.hasRollback(row.id),
@@ -185,10 +191,7 @@ module.exports = function createFeatureHostRegistry(options = {}) {
           retryable: false,
         },
       };
-    if (
-      capability === "ravelink.storage.v1" &&
-      ["get", "set", "remove", "status"].includes(method)
-    ) {
+    if (capability === "groby.storage.v1" && ["get", "set", "remove", "status"].includes(method)) {
       const storagePayload = payload && typeof payload === "object" ? payload : {};
       const value =
         method === "set"
@@ -391,6 +394,7 @@ module.exports = function createFeatureHostRegistry(options = {}) {
         error: "feature_not_found",
         featureId: String(featureId || ""),
       };
+    if (needsUpdate(row)) return { ok: false, error: "feature_update_required", featureId: row.id };
     let supervisor = supervisors.get(row.id);
     if (!supervisor) {
       supervisor = supervisorFactory({
@@ -442,6 +446,9 @@ module.exports = function createFeatureHostRegistry(options = {}) {
       verifyFeaturePackageDirectory,
     );
     await discover();
+    const older = [...catalog.values()].filter(needsUpdate);
+    for (const row of older) await packageManager.update(row.id, { bundledOnly: true });
+    if (older.length) await discover();
     return Promise.all(
       [...catalog.keys()]
         .filter((id) => stateStore.get(id).enabled)

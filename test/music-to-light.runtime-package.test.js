@@ -23,7 +23,7 @@ test("music runtime inventory follows deferred imports and excludes development-
   assert(files.every((file) => !/(?:^|\/)(?:test|native|target)(?:\/|$)/.test(file)));
 });
 test("staged music runtime starts without source-only helpers and rejects an omitted dependency", async (t) => {
-  const target = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-music-runtime-"));
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), "groby-music-runtime-"));
   t.after(() => fs.rmSync(target, { recursive: true, force: true }));
   fs.cpSync(path.join(ROOT, "src"), path.join(target, "src"), { recursive: true });
   fs.copyFileSync(path.join(ROOT, "package.json"), path.join(target, "package.json"));

@@ -6,7 +6,7 @@
  * DOM queries locate the service roots only; operations do not click the UI.
  * The page can inspect/interfere with MAIN code, so its output stays untrusted.
  */
-globalThis.RaveLinkYouTubeNative = async function nativeService(command = { action: "inspect" }) {
+globalThis.GrobyDeckYouTubeNative = async function nativeService(command = { action: "inspect" }) {
   const clean = (value, length = 180) =>
     typeof value === "string"
       ? value
@@ -20,7 +20,7 @@ globalThis.RaveLinkYouTubeNative = async function nativeService(command = { acti
     typeof value === "string" && /^[A-Za-z0-9_-]{11}$/.test(value) ? value : "";
   const error = (code) => ({ ok: false, error: code });
   if (location.origin !== "https://music.youtube.com") return error("native_unavailable");
-  const key = Symbol.for("ravelink.youtube.native.v1");
+  const key = Symbol.for("groby.youtube.native.v1");
   if (!document[key])
     document[key] = { id: crypto.randomUUID(), jobs: new Map(), owned: new Map() };
   const memory = document[key];

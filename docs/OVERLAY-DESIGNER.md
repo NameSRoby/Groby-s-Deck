@@ -90,7 +90,7 @@ provide visual text; there is no built-in alert audio/variation system.
 
 HTML, CSS, JS and Fields have separate editor views. Fields is a JSON object, for
 example `{"greeting":"Welcome!"}`. JavaScript can read it as
-`RaveLinkOverlay.fields.greeting`. Subscribe to read-only data updates:
+`GrobyDeckOverlay.fields.greeting`. Subscribe to read-only data updates:
 
 ```js
 addEventListener("overlay-data", ({ detail }) => {
@@ -134,7 +134,7 @@ actual provider methods and event definitions:
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [StreamElements overlay overview](https://docs.streamelements.com/overlays) and [canvas payload](https://docs.streamelements.com/websockets/topics/channel-overlay-update)                               | One transparent browser-source document with independent canvas dimensions and layers                                  |
 | [Editor shortcuts](https://docs.streamelements.com/overlays/overlay-editor-shortcuts)                                                                                                                    | Undo/redo, duplication, pixel nudging, selection and groups; independent fit/zoom                                      |
-| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly RaveLink-specific read-only data API                                       |
+| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly Groby’s Deck-specific read-only data API                                       |
 | [Alert variations](https://docs.streamelements.com/overlays/alertbox-variations) and [session data](https://docs.streamelements.com/overlays/session-data)                                               | Do not advertise advanced variations, imported session statistics or external event sources without implementing them  |
 | [OBS Browser Source](https://obsproject.com/kb/browser-source)                                                                                                                                           | Supply matching width/height and transparent output; browser codec and local-server lifetime are real dependencies     |
 | [Twitch channel events](https://dev.twitch.tv/docs/eventsub/reference/channel) and [subscription authorization](https://dev.twitch.tv/docs/eventsub/manage-subscriptions/)                               | Use existing authorized follow/sub/raid/cheer/poll/Hype Train events; do not invent data when authorization is missing |

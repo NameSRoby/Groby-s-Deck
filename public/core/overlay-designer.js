@@ -142,11 +142,11 @@
       name.title = "Select " + w.name + ". Double-click to rename.";
       name.draggable = true;
       name.ondragstart = (event) => {
-        event.dataTransfer.setData("application/x-ravelink-layer", w.id);
+        event.dataTransfer.setData("application/x-groby-deck-layer", w.id);
         event.dataTransfer.effectAllowed = "move";
       };
       row.ondragover = (event) => {
-        if (event.dataTransfer.types.includes("application/x-ravelink-layer")) {
+        if (event.dataTransfer.types.includes("application/x-groby-deck-layer")) {
           event.preventDefault();
           row.classList.add("dropTarget");
         }
@@ -155,7 +155,7 @@
       row.ondrop = (event) => {
         event.preventDefault();
         row.classList.remove("dropTarget");
-        const id = event.dataTransfer.getData("application/x-ravelink-layer");
+        const id = event.dataTransfer.getData("application/x-groby-deck-layer");
         if (id)
           commands.move(
             id,

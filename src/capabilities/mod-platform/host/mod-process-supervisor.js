@@ -15,7 +15,7 @@ module.exports = function createModProcessSupervisor(options = {}) {
     displayName: "Mod",
     identityField: "modId",
     statusIdentityField: "modId",
-    configArgument: "--ravelink-mod-config=",
+    configArgument: "--groby-mod-config=",
     apiMajor: 1,
     validateManifest: (manifest) => validateManifestV1(manifest, { modApiMajor: 1 }),
     buildPermissions: (permissionOptions) =>

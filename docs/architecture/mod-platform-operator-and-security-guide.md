@@ -2,12 +2,11 @@
 
 ## Startup Profiles
 
-The normal desktop profile includes only reviewed bundled adapters. Enable the
-optional Community mod platform in Setup for the watched inbox and third-party
-management UI. A source checkout can start that explicit profile with:
+The desktop and standard source profile include the watched mod inbox and
+permission review. Start a source checkout with:
 
 ```powershell
-npm.cmd run start:mods
+npm.cmd start
 ```
 
 Use the strict core with no mod routes or filesystem watcher:
@@ -16,7 +15,7 @@ Use the strict core with no mod routes or filesystem watcher:
 npm.cmd run start:core
 ```
 
-The host defaults to `127.0.0.1`, four active mod processes, a root `mods/` inbox (with legacy `mod/` compatibility), and private `runtime/mods/` installed packages, approvals, rollback, and data. Core-only startup does not discover mods, create mod directories, start a monitor, or expose the mod API/tab.
+The host defaults to `127.0.0.1`, four active mod processes, a root `mods/` inbox, and private `runtime/mods/` installed packages, approvals, rollback, and data. Core-only startup does not discover mods, create mod directories, start a monitor, or expose the mod API/tab.
 
 ## Operator Flow
 
@@ -48,7 +47,7 @@ Node on Windows currently cannot enforce network denial. The activation confirma
 
 A mod may declare at most four HTML panels, with declared local CSS and JavaScript files embedded on delivery. Every panel requires `permissions.ui`, must be listed in package integrity, is reverified before delivery, and is limited to 256 KiB. Panels load only when opened in an opaque-origin sandbox.
 
-The contribution CSP denies network access, forms, objects, base URL changes, and external assets. A panel cannot inject into the Core DOM or directly invoke server APIs. Its injected `window.ravelink.call` bridge can invoke its own worker capabilities or declared consumed capabilities through the active approval. Parent frame identity and a per-open nonce prevent unrelated windows from borrowing that relay. Requests have size, concurrency and deadline limits; disabling the mod rejects subsequent calls. See the [mod API reference](../MOD_API_REFERENCE.md#panel-javascript-api) for the JavaScript contract.
+The contribution CSP denies network access, forms, objects, base URL changes, and external assets. A panel cannot inject into the Core DOM or directly invoke server APIs. Its injected `window.groby.call` bridge can invoke its own worker capabilities or declared consumed capabilities through the active approval. Parent frame identity and a per-open nonce prevent unrelated windows from borrowing that relay. Requests have size, concurrency and deadline limits; disabling the mod rejects subsequent calls. See the [mod API reference](../MOD_API_REFERENCE.md#panel-javascript-api) for the JavaScript contract.
 
 ## Threat Model
 

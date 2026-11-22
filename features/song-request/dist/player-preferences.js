@@ -14,7 +14,7 @@ module.exports = function playerPreferences(context) {
         let saved;
         try {
           saved = await context.callCapability(
-            "ravelink.storage.v1",
+            "groby.storage.v1",
             "get",
             { key: "player-preferences-v1" },
             { timeoutMs: 5000 },
@@ -37,7 +37,7 @@ module.exports = function playerPreferences(context) {
         if (!["youtube", "tidal", "soundcloud", "spotify"].includes(input?.player))
           return { ok: false, code: "player_invalid" };
         const saved = await context.callCapability(
-          "ravelink.storage.v1",
+          "groby.storage.v1",
           "set",
           {
             key: "player-preferences-v1",

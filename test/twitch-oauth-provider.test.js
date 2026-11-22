@@ -9,7 +9,7 @@ test(
     const fs = require("node:fs"),
       os = require("node:os"),
       path = require("node:path");
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-twitch-permissions-"));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "groby-twitch-permissions-"));
     const options = {
       vaultPath: path.join(directory, "oauth.json"),
       defaultClientId: "clientid12345",

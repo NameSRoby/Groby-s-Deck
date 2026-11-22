@@ -97,7 +97,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     paint();
     if (latest !== previous)
       input.dispatchEvent(
-        new CustomEvent("ravelink-slider-change", {
+        new CustomEvent("groby-slider-change", {
           bubbles: true,
           detail: { value: latest, previous },
         }),

@@ -49,7 +49,8 @@ export function createWindowsPanel({
     timer,
     reading = null,
     saving = 0,
-    revision = 0;
+    revision = 0,
+    minimized = false;
   const button = (text, fn) => {
     const e = el("button", text);
     e.type = "button";
@@ -88,12 +89,61 @@ export function createWindowsPanel({
   search.placeholder = "Find an app";
   search.setAttribute("aria-label", "Find app audio");
   appsSection.append(search, empty);
+  if (inline) {
+    channels.id = "deckMixerChannels";
+    search.id = "deckMixerSearch";
+    const actions = el("div", undefined, "deckMixerHeadingActions");
+    const finder = button("Search", () => setSearchOpen(search.hidden));
+    finder.setAttribute("aria-label", "Search mixer apps");
+    finder.setAttribute("aria-controls", search.id);
+    const minimize = button("−", () => {
+      minimized = !minimized;
+      dialog.dataset.minimized = String(minimized);
+      minimize.textContent = minimized ? "+" : "−";
+      minimize.title = minimized ? "Restore audio mixer" : "Minimize audio mixer";
+      minimize.setAttribute("aria-label", minimize.title);
+      minimize.setAttribute("aria-expanded", String(!minimized));
+      finder.hidden = minimized;
+      if (minimized) {
+        setSearchOpen(false);
+        revision++;
+        clearTimeout(timer);
+        for (const card of cards.values()) sliderControl(card.slider).cancel();
+      } else if (reading) {
+        void reading.then(read);
+      } else void read();
+      dialog.dispatchEvent(new CustomEvent("groby-deck-mixer-layout", { bubbles: true }));
+    });
+    minimize.title = "Minimize audio mixer";
+    minimize.setAttribute("aria-label", minimize.title);
+    minimize.setAttribute("aria-controls", channels.id);
+    minimize.setAttribute("aria-expanded", "true");
+    function setSearchOpen(open) {
+      search.hidden = !open;
+      finder.setAttribute("aria-expanded", String(open));
+      if (open) search.focus();
+      else if (search.value) {
+        search.value = "";
+        filter();
+      }
+    }
+    search.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setSearchOpen(false);
+      finder.focus();
+    });
+    actions.append(search, finder, minimize);
+    heading.append(actions);
+    setSearchOpen(false);
+  }
   const media = el("section"),
     mediaButtons = el("div", undefined, "deckPanelActions");
   media.append(el("h3", "Media controls"), mediaButtons);
   dialog.append(
     heading,
-    el("p", "Windows audio · controls the PC hosting RaveLink.", "deckEditorHint"),
+    el("p", "Windows audio · controls the PC hosting Groby’s Deck.", "deckEditorHint"),
     tools,
     notice,
     appsSection,
@@ -281,7 +331,7 @@ export function createWindowsPanel({
       next.some((element, index) => element !== lastLayout[index])
     ) {
       lastLayout = next;
-      dialog.dispatchEvent(new CustomEvent("ravelink-deck-mixer-layout", { bubbles: true }));
+      dialog.dispatchEvent(new CustomEvent("groby-deck-mixer-layout", { bubbles: true }));
     }
   }
   function arrange() {
@@ -292,7 +342,7 @@ export function createWindowsPanel({
       nativeOrder.find((key) => {
         const name = cards.get(key)?.name.toLowerCase() || "";
         return ["youtube", "soundcloud"].includes(provider)
-          ? /ravelink|webview/.test(name)
+          ? /groby|webview/.test(name)
           : provider === "apple-music"
             ? /apple.?music|amplibraryagent/.test(name)
             : name.includes(provider);
@@ -374,13 +424,13 @@ export function createWindowsPanel({
     } finally {
       card.pending = false;
       saving--;
-      if (dialog.open) timer = setTimeout(() => void read(), 2000);
+      if (dialog.open && !minimized) timer = setTimeout(() => void read(), 2000);
     }
   }
   async function read() {
     clearTimeout(timer);
     if (reading) return reading;
-    if (saving || !dialog.open || !visible() || document.hidden) return;
+    if (saving || minimized || !dialog.open || !visible() || document.hidden) return;
     const current = revision;
     reading = Promise.resolve().then(async () => {
       try {
@@ -390,13 +440,13 @@ export function createWindowsPanel({
         if (dialog.open && revision === current) notice.textContent = explain(error);
       } finally {
         reading = null;
-        if (dialog.open) timer = setTimeout(() => void read(), 2000);
+        if (dialog.open && !minimized) timer = setTimeout(() => void read(), 2000);
       }
     });
     return reading;
   }
-  document.addEventListener("ravelink-deck-state", (event) => {
-    if (!dialog.open || saving || !event.detail) return;
+  document.addEventListener("groby-deck-state", (event) => {
+    if (!dialog.open || minimized || saving || !event.detail) return;
     render(event.detail);
     clearTimeout(timer);
     timer = setTimeout(() => void read(), 2000);

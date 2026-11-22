@@ -391,7 +391,7 @@
       <section data-task-panel="Connection" id="developerApplication" hidden>
         <h2>DEVELOPER APPLICATION</h2>
         <p class="warning">
-          The saved Client ID is write-only and can never be displayed by RaveLink. Replacing it
+          The saved Client ID is write-only and can never be displayed by GrobyDeck. Replacing it
           disconnects the current Twitch authorization. Deleting it is permanent; recovery requires
           entering your own Client ID or restoring the server package.
         </p>
@@ -518,7 +518,7 @@
             ><span>Let viewers send a color, fixture prefix, and brightness.</span></button
           ><button class="choiceCard" type="button" data-value="teach">
             <strong>Teach a color</strong
-            ><span>Add a custom color name and hex value to RaveLink.</span></button
+            ><span>Add a custom color name and hex value to GrobyDeck.</span></button
           ><button class="choiceCard" type="button" data-value="song_request">
             <strong>Request a song</strong
             ><span>Add a song to the selected player's moderated request queue.</span>
@@ -547,7 +547,7 @@
         <div class="actions">
           <button id="createReward" class="primary">CREATE TWITCH REWARD</button>
         </div>
-        <div id="managedRewards" class="managedRewards">NO RAVELINK-MANAGED REWARDS</div>
+        <div id="managedRewards" class="managedRewards">NO GROBYS_DECK-MANAGED REWARDS</div>
         <div id="rewardNotice" role="status"></div>
       </section>
       <section data-task-panel="Review">
@@ -566,7 +566,7 @@
       </section>
     </main>
     <script>
-      const CHANNEL = "ravelink-feature-ui-v1",
+      const CHANNEL = "groby-feature-ui-v1",
         pending = new Map();
       let sequence = 0,
         last = {},
@@ -673,11 +673,7 @@
       function openActivationWindow(value = "about:blank") {
         const url = value === "about:blank" ? value : safeActivationUrl(value);
         if (!url) return null;
-        const popup = window.open(
-          url,
-          "ravelink-twitch-authorization",
-          "popup,width=720,height=760",
-        );
+        const popup = window.open(url, "groby-twitch-authorization", "popup,width=720,height=760");
         if (popup && url !== "about:blank") popup.opener = null;
         return popup;
       }
@@ -699,7 +695,7 @@
       function renderManagedRewards(rewards) {
         const box = $("managedRewards");
         if (!rewards.length) {
-          box.textContent = "NO RAVELINK-MANAGED REWARDS";
+          box.textContent = "NO GROBYS_DECK-MANAGED REWARDS";
           return;
         }
         box.replaceChildren(

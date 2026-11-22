@@ -191,7 +191,7 @@ test("chat clipping is opt-in, channel-scoped, role-aware and deduplicated", asy
   assert.equal(e.service.status().feedback.state, "success");
 });
 test("clip setup persists locally and rejects unknown configuration or oversized input", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-clips-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-clips-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const options = {
     getProvider: () => ({ status: () => ({ connected: false, scopes: [] }) }),
@@ -288,7 +288,7 @@ test("preview and rejected titles cannot consume cooldown, alter preferences or 
 });
 
 test("legacy clip preferences migrate to default masking; policy changes persist independently of chat", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-clips-policy-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-clips-policy-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const storePath = path.join(root, "clips.json"),
     options = { storePath, getProvider: () => ({ status: () => ({}) }) };

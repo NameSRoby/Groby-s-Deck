@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 
 test("Light Commands builds and copies guides from active saved routes", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-command-guide-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-command-guide-"));
   const created = createCoreServer({
     runtimeDir,
     dryRun: true,

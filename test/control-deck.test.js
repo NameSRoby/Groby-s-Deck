@@ -10,8 +10,8 @@ const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 test("rebrand repairs nested clip actions and conditions without rewriting text or unrelated mods", () => {
   const migrate = require("../src/shared/fs/migrate-action-references"),
-    old = "mod:ravelink.twitch-clips:create",
-    current = "mod:groby.twitch-clips:create";
+    { actionIds } = require("../src/shared/fs/upgrade-identifiers.json");
+  const [[old, current]] = Object.entries(actionIds);
   const config = {
     pages: [
       {
@@ -54,9 +54,9 @@ test("rebrand repairs nested clip actions and conditions without rewriting text 
 });
 
 test("saved clipping buttons upgrade once with a backup and still require an available approved mod", async (t) => {
-  const e = environment(t),
-    old = "mod:ravelink.twitch-clips:create",
-    current = "mod:groby.twitch-clips:create";
+  const e = environment(t);
+  const { actionIds } = require("../src/shared/fs/upgrade-identifiers.json");
+  const [[old, current]] = Object.entries(actionIds);
   const config = e.config([{ actionId: old, params: { duration: 30 }, delayMs: 0 }]);
   config.pages[0].buttons[0].title = "My clip";
   const filename = path.join(e.runtimeDir, "system", "control-deck.json");
@@ -346,7 +346,7 @@ test("light actions and popup navigation reuse bounded existing manual owners wi
   assert.equal(writes.length, 2);
 });
 function environment(t, invoke = async () => ({ ok: true })) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-deck-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-deck-"));
   let available = true;
   const actions = {
     catalog: () => [
@@ -840,14 +840,14 @@ test("a large built-in catalog cannot hide active mods or use their separate act
   }
 });
 
-test("mod catalog hides replaced identities without merging unrelated mods or changing their enabled state", () => {
+test("mod catalog lists the current clip action and preserves independent mods and enabled state", () => {
   const mod = (id) => ({
     id,
     name: "Twitch Clip Button",
     lifecycle: "installed-disabled",
     actions: [{ id: "create", title: "Clip stream" }],
   });
-  const mods = [mod("ravelink.twitch-clips"), mod("groby.twitch-clips"), mod("someone.clips")];
+  const mods = [mod("groby.twitch-clips"), mod("someone.clips")];
   const before = structuredClone(mods);
   const adapter = require("../src/domains/control-deck/control-deck-actions")({
     core: { lightingProfiles: { snapshot: () => ({ profiles: [] }) } },
@@ -861,11 +861,6 @@ test("mod catalog hides replaced identities without merging unrelated mods or ch
   );
   assert.ok(rows.every((row) => !row.available && row.unavailableReason === "enable in Mods"));
   assert.deepEqual(mods, before);
-  mods.splice(1, 1);
-  assert.ok(
-    adapter.catalog().some((row) => row.id === "mod:ravelink.twitch-clips:create"),
-    "an old-only install is not silently discarded",
-  );
 });
 
 test("mod feedback refresh shares concurrent reads and fairly visits more than eight actions", async () => {

@@ -82,7 +82,7 @@ module.exports = function createYoutubeBrowserProvider(options) {
     const snapshot = observed.snapshot;
     options.onSnapshot?.({
       provider: "youtube",
-      sourceId: "ravelink-browser",
+      sourceId: "groby-browser",
       available: true,
       title: snapshot.current.title || "YouTube Music",
       artists: snapshot.current.artist ? [snapshot.current.artist] : [],
@@ -197,7 +197,7 @@ module.exports = function createYoutubeBrowserProvider(options) {
       connection = null;
       for (const row of entries.values()) if (active(row)) row.phase = "unknown";
       save();
-      options.onSnapshot?.({ provider: "youtube", sourceId: "ravelink-browser", available: false });
+      options.onSnapshot?.({ provider: "youtube", sourceId: "groby-browser", available: false });
       return status();
     }
     if (input.action !== "start") return { ok: false, error: "youtube_browser_action_invalid" };
@@ -219,7 +219,7 @@ module.exports = function createYoutubeBrowserProvider(options) {
               observedAvailable = false;
               options.onSnapshot?.({
                 provider: "youtube",
-                sourceId: "ravelink-browser",
+                sourceId: "groby-browser",
                 available: false,
               });
             }

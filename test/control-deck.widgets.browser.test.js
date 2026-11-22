@@ -250,7 +250,7 @@ test("LAN status widgets add, customize, reorder and remove independently; song 
   const download = page.waitForEvent("download");
   await markers.locator("summary").click();
   await markers.getByRole("button", { name: "Export", exact: true }).click();
-  assert.equal((await download).suggestedFilename(), "RaveLink-stream-timestamps.txt");
+  assert.equal((await download).suggestedFilename(), "GrobyDeck-stream-timestamps.txt");
   const reads = streamReads;
   await page.waitForTimeout(1200);
   assert.equal(streamReads, reads, "idle widget screens reuse the Twitch cache");

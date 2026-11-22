@@ -20,7 +20,7 @@ test(
   },
 );
 test("desktop macros use validated data, not a command-language boundary", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-desktop-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-desktop-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const calls = [];
   const service = create({

@@ -22,10 +22,10 @@ exports.transform = function transform(code) {
   let actionHooks = 0,
     storeHooks = 0;
   if (action) {
-    const renamed = "__RaveLinkOriginal_" + action.name;
+    const renamed = "__GrobyDeckOriginal_" + action.name;
     code =
       code.slice(0, action.start - 9) +
-      `const ${action.name}=globalThis.__ravelinkTidal.wrapAction(${renamed});function ${renamed}` +
+      `const ${action.name}=globalThis.__grobyTidal.wrapAction(${renamed});function ${renamed}` +
       code.slice(action.start + action.name.length);
     actionHooks = 1;
   }
@@ -33,7 +33,7 @@ exports.transform = function transform(code) {
   // The exact supported shape was inspected in TIDAL's framework asset on 2026-10-14.
   code = code.replace(/\{\.\.\.([\w$]+),dispatch:([\w$]+)\}/g, (match) => {
     storeHooks += 1;
-    return `globalThis.__ravelinkTidal.captureStore(${match})`;
+    return `globalThis.__grobyTidal.captureStore(${match})`;
   });
   return { code, actionHooks, storeHooks };
 };

@@ -95,7 +95,7 @@
           : ["task", "role"].includes(axis.id)
             ? "Uses the settings saved for each light in Setup."
             : "Keeps the current look’s setting.";
-    globalThis.RaveLinkMusicChoices.sync();
+    globalThis.GrobyDeckMusicChoices.sync();
   }
   function build(catalog) {
     $("paletteGrouping").onchange = () => {
@@ -234,7 +234,7 @@
     $("randomSummary").textContent = randomized.length
       ? "Compatible choices · " + randomized.map((id) => names[id][0].toLowerCase()).join(", ")
       : "From your look";
-    globalThis.RaveLinkMusicChoices.sync();
+    globalThis.GrobyDeckMusicChoices.sync();
   }
   function read() {
     return {
@@ -300,5 +300,5 @@
               : "Color movement is disabled in Advanced response controls.";
     }
   }
-  globalThis.RaveLinkMusicRecipe = { build, render, read, quickAssignments, controls };
+  globalThis.GrobyDeckMusicRecipe = { build, render, read, quickAssignments, controls };
 })();

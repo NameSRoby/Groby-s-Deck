@@ -30,7 +30,7 @@ function fixture(t, count = 53, source = "tidal") {
     creates = 0;
   const context = {
     callCapability: async (cap, method, payload) => {
-      if (cap === "ravelink.storage.v1") {
+      if (cap === "groby.storage.v1") {
         if (method === "get")
           return {
             ok: true,

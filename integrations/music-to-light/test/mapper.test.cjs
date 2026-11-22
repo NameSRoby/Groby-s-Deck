@@ -75,7 +75,7 @@ test("literal response is faster; all feels obey identical brightness bounds", (
 });
 test("Pulse uses measured role energy, while unified ignores assignment", () => {
   const m = createMapper({
-    preset: "bands",
+    preset: "pulse",
     arrangement: "roles",
     colorMode: "fixed",
     behaviors: { colorEnabled: false },
@@ -92,7 +92,7 @@ test("Pulse uses measured role energy, while unified ignores assignment", () => 
   assert.deepEqual(m.render(2000, { role: "low" }).rgb, { r: 255, g: 0, b: 0 });
   assert.deepEqual(m.render(2000, { role: "mid" }).rgb, { r: 0, g: 255, b: 0 });
   assert.deepEqual(m.render(2000, { role: "high" }).rgb, { r: 0, g: 0, b: 255 });
-  const unified = createMapper({ preset: "ambient", arrangement: "unified" });
+  const unified = createMapper({ preset: "pulse", arrangement: "unified" });
   feed(unified, 1, 100, 0.2, [0.2, 0.001, 0]);
   assert.equal(
     unified.render(2000, { role: "low" }).brightness,
@@ -275,22 +275,8 @@ test("Pulse roles reveal measured treble while the full mix controls its ceiling
   assert.ok(m.render(15000, { role: "low" }).brightness < 10.01);
 });
 
-test("retired Ambient contrast cannot change Pulse or introduce adaptive gain", () => {
-  const response = (contrast, rms) => {
-    const m = createMapper({
-      preset: "ambient",
-      arrangement: "unified",
-      intensity: 1,
-      behaviors: { ambientContrast: contrast },
-    });
-    return feed(m, 1, 500, rms).brightness;
-  };
-  const rmsAt = (level) => 10 ** ((-42 + level * 24) / 20);
-  const originalSpan = response(1, rmsAt(0.7)) - response(1, rmsAt(0.3));
-  const contrastedSpan = response(2, rmsAt(0.7)) - response(2, rmsAt(0.3));
-  assert.equal(contrastedSpan, originalSpan);
-  assert.ok(response(2, 0.001) < 10.01);
-  const m = createMapper({ preset: "ambient", intensity: 1, arrangement: "unified" });
+test("Pulse holds its gain curve after changes in song loudness", () => {
+  const m = createMapper({ preset: "pulse", intensity: 1, arrangement: "unified" });
   const first = feed(m, 1, 500, 0.025).brightness;
   feed(m, 501, 500, 0.2);
   const again = feed(m, 1001, 500, 0.025).brightness;

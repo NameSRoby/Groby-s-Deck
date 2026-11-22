@@ -79,7 +79,7 @@ function fixture() {
     setTimeout,
   };
   vm.runInNewContext(source, context);
-  const call = (command) => context.RaveLinkYouTubeNative(command);
+  const call = (command) => context.GrobyDeckYouTubeNative(command);
   const command = (action, nativeDocumentId, other = {}) => ({
     id: require("node:crypto").randomUUID(),
     sessionId: "fixture-session",

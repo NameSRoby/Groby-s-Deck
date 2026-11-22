@@ -1,9 +1,9 @@
 # Third-Party Notices
 
-RaveLink Core includes or interoperates with the following third-party components. Their respective licenses remain in effect.
+Groby’s Deck includes or interoperates with the following third-party components. Their respective licenses remain in effect.
 
 - **Inrixia/TidaLuna** — Microsoft Public License (Ms-PL), revision
-  `4b8c306737fb53423d5c0138e24a367f0c268cf0`. The RaveLink TIDAL companion adapts
+  `4b8c306737fb53423d5c0138e24a367f0c268cf0`. The Groby’s Deck TIDAL companion adapts
   the action-factory finder from `render/src/helpers/findCreateAction.ts`.
   Credit: Inrixia and TidaLuna contributors. Complete license, provenance and
   modification notices ship in `integrations/tidal-desktop/LICENSE.TidaLuna`
@@ -25,7 +25,7 @@ RaveLink Core includes or interoperates with the following third-party component
   `LICENSE.SimpleIcons.txt`.
 
 - **Microsoft.Web.WebView2 1.0.4314.35 SDK** - Microsoft redistribution license. The managed WinForms bindings and x64 loader are installed under `runtime/desktop`; the license also ships at `desktop/windows-host/LICENSE.WebView2.txt` in source. The Microsoft Edge WebView2 Evergreen Runtime renders the desktop UI and receives Microsoft's runtime updates. Windows Setup bundles Microsoft's signed Evergreen Standalone Installer for offline prerequisite installation, under Microsoft's distribution terms: https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#offline-deployment . SDK: https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4314.35 .
-- **Node.js 24.13.0 Windows runtime** - Node.js license. The executable is renamed `RaveLink-Core-Node.exe` and its Windows description is branded for RaveLink; its complete license is installed as `runtime/NODE-LICENSE.txt`.
+- **Node.js 26.13.1 Windows runtime** - Node.js license. The executable is renamed `Grobys-Deck-Node.exe` and its Windows description is branded for Groby’s Deck; its complete license is installed as `runtime/NODE-LICENSE.txt`.
 - **axios** - MIT License.
 - **bonjour-service** - MIT License. Used for bounded Philips Hue discovery.
 - **qrcode** - MIT License. Generates LAN sharing QR codes locally; no external QR service is used. Upstream: https://github.com/soldair/node-qrcode .
@@ -38,7 +38,7 @@ RaveLink Core includes or interoperates with the following third-party component
 - **yauzl** - MIT License. Used for bounded mod package extraction.
 - **yazl** - MIT License. Used for mod package creation.
 - **youtubei.js** - MIT License. Used for YouTube catalog lookup and playback metadata.
-- **Rajdhani Bold** - SIL Open Font License 1.1. Used to render the RaveLink Core application icon. Source: Google Fonts.
+- **Rajdhani Bold** - SIL Open Font License 1.1. Used to render the Groby’s Deck application icon. Source: Google Fonts.
 
 The installed `node_modules` packages include their own package metadata and license files where supplied upstream.
 
@@ -53,7 +53,7 @@ Transitive production packages currently use MIT, ISC, BSD-2-Clause, BSD-3-Claus
 - **Spicetify contributors** — LGPL-2.1. The optional Spotify desktop companion contains a reduced, modified platform-capture hook and native Player/Queue facade based on Spicetify v2.45.3. Its separate license, attribution, editable sources and build script are retained under `integrations/spotify-desktop/vendor/spicetify` and the generated companion bundle. The Spicetify CLI, marketplace, themes and extensions are not bundled. The companion is prepared locally from Setup; no Spotify executable, proprietary Spotify assets or account credentials are distributed.
 
 - WiZ local control documentation was used to implement the local `setPilot` protocol. No WiZ source code is included.
-- Twitch, YouTube, StreamElements, Philips Hue, WiZ, Spotify, and OBS are trademarks or services of their respective owners. RaveLink Core is not endorsed by them.
+- Twitch, YouTube, StreamElements, Philips Hue, WiZ, Spotify, and OBS are trademarks or services of their respective owners. Groby’s Deck is not endorsed by them.
 
 # Fullscreen screen-awake compatibility media
 

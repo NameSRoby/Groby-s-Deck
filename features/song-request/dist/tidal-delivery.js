@@ -76,7 +76,7 @@ module.exports = function createTidalDelivery({
           held.delete(entry.id);
           return;
         }
-        if (result.ok && result.removedFromRavelinkQueue) held.delete(entry.id);
+        if (result.ok && result.removedFromDeckQueue) held.delete(entry.id);
         else held.set(entry.id, errorCode(result.error));
       }
     } catch (error) {

@@ -15,11 +15,6 @@ function candidateId(name) {
 
 module.exports = function createModDropInbox(options = {}) {
   const inboxRoot = path.resolve(String(options.inboxRoot || path.join(process.cwd(), "mods")));
-  const roots = [
-    ...new Set(
-      [inboxRoot, options.legacyInboxRoot && path.resolve(options.legacyInboxRoot)].filter(Boolean),
-    ),
-  ];
   const packageManager = options.packageManager;
   const log = options.log || console;
   if (!packageManager?.inspectSource || !packageManager?.inspectArchive) {
@@ -28,7 +23,7 @@ module.exports = function createModDropInbox(options = {}) {
   const events = new EventEmitter();
   events.setMaxListeners(64);
   let rows = [];
-  const watchers = [];
+  let watcher;
   let timer = null;
   let scanning = Promise.resolve();
   let startPromise = null;
@@ -54,9 +49,9 @@ module.exports = function createModDropInbox(options = {}) {
     };
   }
 
-  async function inspectEntry(entry, root) {
-    const sourcePath = path.join(root, entry.name);
-    const sourceName = root === inboxRoot ? entry.name : "mod/" + entry.name;
+  async function inspectEntry(entry) {
+    const sourcePath = path.join(inboxRoot, entry.name);
+    const sourceName = entry.name;
     const kind = entry.isDirectory()
       ? "directory"
       : entry.isFile() && path.extname(entry.name).toLowerCase() === ".zip"
@@ -83,28 +78,24 @@ module.exports = function createModDropInbox(options = {}) {
     if (stopped) return list();
     await fs.promises.mkdir(inboxRoot, { recursive: true });
     const next = [];
-    for (const root of roots) {
-      if (!fs.existsSync(root)) continue;
-      const stat = await fs.promises.lstat(root);
-      if (!stat.isDirectory() || stat.isSymbolicLink()) continue;
-      let entries = await fs.promises.readdir(root, { withFileTypes: true });
-      entries = entries
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .slice(0, MAX_INBOX_ENTRIES - next.length);
-      for (const entry of entries) {
+    const stat = await fs.promises.lstat(inboxRoot);
+    if (stat.isDirectory() && !stat.isSymbolicLink()) {
+      const entries = await fs.promises.readdir(inboxRoot, { withFileTypes: true });
+      entries.sort((a, b) => a.name.localeCompare(b.name));
+      for (const entry of entries.slice(0, MAX_INBOX_ENTRIES)) {
         try {
-          const row = await inspectEntry(entry, root);
+          const row = await inspectEntry(entry);
           if (row) next.push(row);
         } catch (error) {
           next.push({
-            candidateId: candidateId(root === inboxRoot ? entry.name : "mod/" + entry.name),
-            sourceName: root === inboxRoot ? entry.name : "mod/" + entry.name,
+            candidateId: candidateId(entry.name),
+            sourceName: entry.name,
             kind: "unknown",
             valid: false,
             error: String(error?.message || "package_inspection_failed").slice(0, 120),
             manifest: null,
             approval: null,
-            sourcePath: path.join(root, entry.name),
+            sourcePath: path.join(inboxRoot, entry.name),
           });
         }
       }
@@ -135,18 +126,14 @@ module.exports = function createModDropInbox(options = {}) {
     if (startPromise) return startPromise;
     startPromise = (async () => {
       await scan();
-      if (stopped || watchers.length) return list();
-      for (const root of roots) {
-        if (!fs.existsSync(root) || fs.lstatSync(root).isSymbolicLink()) continue;
-        try {
-          const watcher = fs.watch(root, { recursive: process.platform === "win32" }, scheduleScan);
-          watchers.push(watcher);
-          watcher.on("error", (error) =>
-            log.warn?.(`[MOD INBOX] watcher error: ${error?.message || error}`),
-          );
-        } catch (error) {
-          log.warn?.(`[MOD INBOX] watcher unavailable: ${error?.message || error}`);
-        }
+      if (stopped || watcher || fs.lstatSync(inboxRoot).isSymbolicLink()) return list();
+      try {
+        watcher = fs.watch(inboxRoot, { recursive: process.platform === "win32" }, scheduleScan);
+        watcher.on("error", (error) =>
+          log.warn?.(`[MOD INBOX] watcher error: ${error?.message || error}`),
+        );
+      } catch (error) {
+        log.warn?.(`[MOD INBOX] watcher unavailable: ${error?.message || error}`);
       }
       return list();
     })();
@@ -178,7 +165,8 @@ module.exports = function createModDropInbox(options = {}) {
   async function shutdown() {
     stopped = true;
     clearTimeout(timer);
-    for (const watcher of watchers.splice(0)) watcher.close();
+    watcher?.close();
+    watcher = undefined;
     events.removeAllListeners();
     await scanning.catch(() => {});
   }

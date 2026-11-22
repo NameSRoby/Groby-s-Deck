@@ -4,7 +4,7 @@ module.exports = function outcomeStorage(context, key) {
   let count = -1,
     saving = Promise.resolve();
   const call = async (method, payload) => {
-    const result = await context.callCapability("ravelink.storage.v1", method, payload, {
+    const result = await context.callCapability("groby.storage.v1", method, payload, {
       timeoutMs: 2000,
     });
     if (result?.ok === false) throw Error("reward_outcome_storage_failed");

@@ -222,7 +222,7 @@ module.exports = function createFeaturePackageManager(options = {}) {
     });
   }
 
-  function update(featureIdRaw) {
+  function update(featureIdRaw, { bundledOnly = false } = {}) {
     return serialize(async () => {
       const featureId = String(featureIdRaw || "");
       if (!FEATURE_ID_RE.test(featureId)) return { ok: false, error: "invalid_feature_id" };
@@ -239,7 +239,7 @@ module.exports = function createFeaturePackageManager(options = {}) {
           error: "installed_feature_invalid",
           detail: current.error,
         };
-      const { packages } = await availablePackages();
+      const packages = bundledOnly ? await bundledPackages() : (await availablePackages()).packages;
       const source = packages.get(featureId);
       if (!source) return { ok: false, error: "feature_package_not_available" };
       if (compareVersions(source.verified.manifest.version, current.manifest.version) <= 0) {

@@ -32,16 +32,16 @@ test("community rewards announce success or failure once at the outer request bo
       const harness = createFeatureRuntimeHarness(feature, {
         featureId: "song-request",
         providers: {
-          "ravelink.storage.v1/get": async ({ key }) => ({
+          "groby.storage.v1/get": async ({ key }) => ({
             ok: true,
             found: store.has(key),
             value: store.get(key),
           }),
-          "ravelink.storage.v1/set": async ({ key, value }) => {
+          "groby.storage.v1/set": async ({ key, value }) => {
             store.set(key, structuredClone(value));
             return { ok: true };
           },
-          "ravelink.storage.v1/remove": async () => ({ ok: true }),
+          "groby.storage.v1/remove": async () => ({ ok: true }),
           "twitch.chat.send.v1/send": async (input) => {
             sent.push(input);
             return { ok: true };

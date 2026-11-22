@@ -12,7 +12,7 @@ const {
 } = require("../src/domains/system/core-update.service");
 
 function temporaryRoot() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-update-test-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-update-test-"));
   fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ version: "0.6.1" }));
   return root;
 }

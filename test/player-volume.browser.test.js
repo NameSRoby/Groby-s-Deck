@@ -8,7 +8,7 @@ const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 
 test("explicitly enabled TIDAL bridge reconnects after Core restart without opening the Player page", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-tidal-restart-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-tidal-restart-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),
@@ -61,7 +61,7 @@ test("explicitly enabled TIDAL bridge reconnects after Core restart without open
   );
 });
 test("one SoundCloud playback surface and inline output range work across selected providers", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-player-volume-")),
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-player-volume-")),
     native = [];
   let nativeGate, releaseNative;
   fs.cpSync(
@@ -93,7 +93,7 @@ test("one SoundCloud playback surface and inline output range work across select
           ok: true,
           available: true,
           installed: true,
-          version: "0.1.8",
+          version: "0.1.9",
         }),
         "tidal.desktop.experimental.v1/volume": async (input) => {
           native.push(input.percent);

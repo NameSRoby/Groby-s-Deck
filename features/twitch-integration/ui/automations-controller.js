@@ -2,7 +2,7 @@
 /* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
-    CHANNEL = "ravelink-feature-ui-v1",
+    CHANNEL = "groby-feature-ui-v1",
     pending = new Map();
   const confirmation = createVisibleDialog($("confirm"));
   const triggerPills = {

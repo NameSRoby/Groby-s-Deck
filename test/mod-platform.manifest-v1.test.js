@@ -14,14 +14,14 @@ const HASH = "a".repeat(64);
 function validManifest(overrides = {}) {
   const base = {
     schemaVersion: 1,
-    id: "ravelink.hello-mod",
+    id: "groby.hello-mod",
     name: "Hello Mod",
     description: "A contract fixture.",
     version: "1.2.3",
-    publisher: "ravelink",
+    publisher: "groby",
     license: "MIT",
     entry: "dist/main.js",
-    engine: { ravelinkModApi: "^1.0.0", node: ">=22" },
+    engine: { grobyModApi: "^1.0.0", node: ">=22" },
     activationEvents: ["onCapability:song.queue.v1"],
     consumes: ["chat.send.v1?"],
     provides: ["song.queue.v1"],
@@ -59,7 +59,7 @@ function errorCodes(result) {
 test("manifest v1 accepts and freezes a bounded opt-in manifest", () => {
   const result = validateManifestV1(validManifest());
   assert.equal(result.ok, true);
-  assert.equal(result.value.id, "ravelink.hello-mod");
+  assert.equal(result.value.id, "groby.hello-mod");
   assert.equal(Object.isFrozen(result.value), true);
   assert.equal(Object.isFrozen(result.value.permissions.network), true);
   assert.equal(Object.isFrozen(result.value.resources), true);

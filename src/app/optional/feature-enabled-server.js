@@ -15,7 +15,7 @@ startCoreServer({
   capabilities: { features: true, mods: true },
   extend: createFeaturePlatformExtension({
     rootDir,
-    maxActiveMods: Number(process.env.RAVELINK_MAX_ACTIVE_MODS || 4),
-    allowUnsafeRuntime: process.env.RAVELINK_ALLOW_UNSAFE_FEATURE_RUNTIME !== "0",
+    maxActiveMods: Number(process.env.GROBYS_DECK_MAX_ACTIVE_MODS || 4),
+    allowUnsafeRuntime: process.env.GROBYS_DECK_ALLOW_UNSAFE_FEATURE_RUNTIME !== "0",
   }),
 });

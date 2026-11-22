@@ -613,8 +613,37 @@
   background: transparent;
 }
 .deckInlineMixer .deckEditorHeading h2 {
-  font-size: 18px;
-  margin: 0 0 14px;
+  font-size: 16px;
+  margin: 0;
+}
+.deckInlineMixer .deckEditorHeading {
+  min-height: 34px;
+  gap: 8px;
+}
+.deckMixerHeadingActions {
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+}
+.deckMixerHeadingActions button {
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.deckInlineMixer .deckMixerHeadingActions input[type="search"] {
+  flex: 0 1 160px;
+  min-width: 0;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 8px;
+}
+.deckInlineMixer[data-minimized="true"] > :not(.deckEditorHeading),
+.deckInlineMixer [hidden] {
+  display: none !important;
 }
 .deckInlineMixer > .deckEditorHint,
 .deckInlineMixer[data-editing="false"] > .deckPanelActions {
@@ -688,10 +717,6 @@
 .deckInlineMixer summary {
   font-size: 12px;
   margin: 16px 0 10px;
-}
-.deckInlineMixer input[type="search"] {
-  max-width: 280px;
-  margin-bottom: 12px;
 }
 .controlDeck[data-paged="true"] .deckInlineMixer {
   max-height: none;
@@ -2298,6 +2323,8 @@
   padding-top: 14px;
   border-top: 1px solid var(--edge);
 }
+.controlDeck:not([data-focus="true"]) .deckWidgetCollapse,
+.controlDeck[data-focus="true"] .deckWidgetRegion[data-collapsed="true"],
 .controlDeck[data-focus="true"] .deckWidgetRegion[data-fullscreen="false"] {
   display: none;
 }

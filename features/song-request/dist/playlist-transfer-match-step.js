@@ -23,7 +23,7 @@ module.exports = async ({ job, rows, match, store, save }) => {
         job.rateLimitSource = reply.rateLimitSource || "";
         job.error =
           job.rateLimitSource === "local"
-            ? "Waiting for RaveLink search allowance"
+            ? "Waiting for Groby’s Deck search allowance"
             : job.rateLimitSource === "soundcloud"
               ? "SoundCloud requested a pause"
               : job.rateLimitSource === "concurrency"

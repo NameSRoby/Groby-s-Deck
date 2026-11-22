@@ -8,7 +8,7 @@ define admission. This reference does not grant access to undocumented Core inte
 
 ## App controls
 
-Declare `"ravelink.controls.v1"` in `consumes` to use the same first-party actions
+Declare `"groby.controls.v1"` in `consumes` to use the same first-party actions
 as deck buttons. Activation review explicitly lists this access. No local HTTP
 token, URL, Windows username or machine-specific paths are required.
 
@@ -19,9 +19,9 @@ token, URL, Windows username or machine-specific paths are required.
 | `execute` | `{actionId, params}`                                       | The underlying app action's confirmed result. Unavailable controls, invalid parameters, cancellation and provider failures reject the call.                  |
 
 ```js
-const page = await context.callCapability("ravelink.controls.v1", "catalog", {});
+const page = await context.callCapability("groby.controls.v1", "catalog", {});
 // Let the user choose an action from page.actions and supply its parameters.
-const result = await context.callCapability("ravelink.controls.v1", "execute", {
+const result = await context.callCapability("groby.controls.v1", "execute", {
   actionId: selectedAction.id,
   params: userParameters,
 });
@@ -41,7 +41,7 @@ mods do not need to patch Core HTML or inject scripts into the main page.
 
 ### Panel JavaScript API
 
-Core supplies `window.ravelink.call(capability, method, payload = null)` before
+Core supplies `window.groby.call(capability, method, payload = null)` before
 the panel's authored scripts run. It returns a promise for the validated response
 payload and rejects when a call is denied, fails or times out. A panel can call
 capabilities provided by its own active worker or capabilities in its approved
@@ -122,7 +122,7 @@ They are available only in a mod-enabled composition and with the declared grant
 An absent provider is a normal unavailable condition, not a reason to fall back
 to raw sockets, filesystem access or account tokens.
 
-### `ravelink.storage.v1` — provider `ravelink.storage`
+### `groby.storage.v1` — provider `groby.storage`
 
 Requires `permissions.storage: true` and nonzero `resources.storageBytes`.
 Keys match `^[a-z0-9][a-z0-9._-]{0,79}$` and are isolated per mod.
@@ -141,13 +141,13 @@ mod's private state. Failure replies include `storage_permission_denied`,
 `storage_quota_exceeded`, `storage_key_limit`, `invalid_storage_key` and corrupt
 entry/value errors. The exact storage layout remains host-owned.
 
-### `ravelink.network.v1` — provider `ravelink.network`
+### `groby.network.v1` — provider `groby.network`
 
 Method: `request`. Declare the exact DNS host (optionally `:port`) in
 `permissions.network`, consume this capability and request `externalInFlight > 0`.
 
 ```js
-const result = await context.callCapability("ravelink.network.v1", "request", {
+const result = await context.callCapability("groby.network.v1", "request", {
   host: "api.example.com",
   path: "/v1/status",
   method: "GET",
@@ -175,7 +175,7 @@ Failures include `network_permission_denied`, `network_budget_disabled`,
 request/response errors and `network_failed`. Authentication belongs in a reviewed
 operation-only host provider, not in a mod-supplied bearer token.
 
-### `ravelink.secrets.v1` — provider `ravelink.secrets`
+### `groby.secrets.v1` — provider `groby.secrets`
 
 Method: `invoke`, payload `{handle, operation, payload?}`. The handle must appear in
 `permissions.secrets` and be registered by the trusted host. Replies are
@@ -221,7 +221,7 @@ not claim to confirm Discord’s mute state, and Groby’s Deck does not own its
 | `id`, `publisher`                           | `<publisher>.<name>` lowercase portable ID; publisher must match the prefix. Publisher text is self-asserted, not a verified signature.                    |
 | `name`, `description`, `license`, `version` | Name ≤80 characters, optional description ≤500, nonempty license and semantic version.                                                                     |
 | `entry`                                     | Relative integrity-listed CommonJS entry; portable package path.                                                                                           |
-| `engine`                                    | `{ravelinkModApi, node}` compatible ranges; not the product release number.                                                                                |
+| `engine`                                    | `{grobyModApi, node}` compatible ranges; not the product release number.                                                                                |
 | `activationEvents`                          | At most 16 unique declared startup triggers.                                                                                                               |
 | `consumes`, `provides`                      | At most 32 each; versioned capability names. Optional consumed names may end in `?`.                                                                       |
 | `permissions`                               | Closed object with `network`, `storage`, `secrets`, `ui`, `process`, `hardware`. Declarations do not create a host provider or bypass runtime containment. |

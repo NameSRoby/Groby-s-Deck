@@ -57,17 +57,18 @@ test("swell uses distinct fixture positions, halts in silence and resumes the sa
   assert.equal(m.preset(), "pulse");
 });
 
-test("retired band competition cannot change Pulse frequency roles or invent an absent band", () => {
-  const design = { preset: "bands", intensity: 1, arrangement: "roles", colorMode: "fixed" };
-  const broad = create({ ...design, behaviors: { pulseBed: 1, bandSeparation: 1 } });
-  const separated = create({ ...design, behaviors: { pulseBed: 1, bandSeparation: 5 } });
-  feed(broad, 1, 300, 0.06, [0.05, 0.015, 0]);
-  feed(separated, 1, 300, 0.06, [0.05, 0.015, 0]);
-  const contrast = (m) =>
-    m.render(6000, { role: "low" }).brightness - m.render(6000, { role: "mid" }).brightness;
-  assert.equal(contrast(separated), contrast(broad));
-  assert.ok(contrast(separated) > 0);
-  assert.ok(separated.render(6000, { role: "high" }).brightness < 10.01);
+test("Pulse follows measured frequency roles and leaves absent frequencies quiet", () => {
+  const mixer = create({
+    intensity: 1,
+    arrangement: "roles",
+    colorMode: "fixed",
+    behaviors: { pulseBed: 1 },
+  });
+  feed(mixer, 1, 300, 0.06, [0.05, 0.015, 0]);
+  assert.ok(
+    mixer.render(6000, { role: "low" }).brightness > mixer.render(6000, { role: "mid" }).brightness,
+  );
+  assert.ok(mixer.render(6000, { role: "high" }).brightness < 10.01);
 });
 
 test("Pulse requires spectrum for explicit frequency roles and uses RMS for all-role fixtures", () => {

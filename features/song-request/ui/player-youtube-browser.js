@@ -37,9 +37,9 @@ function installYoutubeBrowserPlayer({
   panel.innerHTML = `<h2>YouTube Music browser</h2><p id="youtubeBrowserStatus" role="status"></p><div class="actions"><button id="youtubeBrowserPlay" type="button">Play / resume</button><button id="youtubeBrowserPause" type="button">Pause</button><button id="youtubeBrowserSkip" type="button">Skip current</button><button id="youtubeBrowserRefresh" type="button">Refresh connection</button></div><p id="youtubeBrowserSong"></p><h3>Delivered requests</h3><div id="youtubeBrowserRequests"></div>`;
   playbackPage.prepend(panel);
   const active = () => selected() === "youtube" && mode === "browser";
-  window.ravelinkYouTubeBrowserActive = active;
-  const originalActive = window.ravelinkPlayerActive;
-  window.ravelinkPlayerActive = (provider) =>
+  window.grobyYouTubeBrowserActive = active;
+  const originalActive = window.grobyPlayerActive;
+  window.grobyPlayerActive = (provider) =>
     originalActive(provider) && !(provider === "youtube" && active());
   async function request(method, payload) {
     const result = await call("song.youtube.browser.v1", method, payload || {});
