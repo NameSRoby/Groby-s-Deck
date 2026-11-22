@@ -2331,7 +2331,6 @@
   padding-top: 14px;
   border-top: 1px solid var(--edge);
 }
-.controlDeck:not([data-focus="true"]) .deckWidgetCollapse,
 .controlDeck[data-focus="true"] .deckWidgetRegion[data-collapsed="true"],
 .controlDeck[data-focus="true"] .deckWidgetRegion[data-fullscreen="false"] {
   display: none;
@@ -2826,6 +2825,11 @@
   top: 0;
   z-index: 10;
   background: var(--bg);
+}
+.deckFullscreenBar .deckWidgetCollapse {
+  flex: none;
+  padding: 7px 10px;
+  font-size: 13px;
 }
 .deckFullscreenBar .deckExitFullscreen {
   position: static;
