@@ -1,9 +1,9 @@
 {
   "name": "@grobys-deck/mod-sdk",
   "version": "1.0.0",
-  "description": "Standalone contracts and test harness for isolated Groby’s Deck mods",
+  "description": "Standalone contracts and test harness for isolated RaveLink mods",
   "keywords": [
-    "groby",
+    "ravelink",
     "mods",
     "sdk",
     "streaming",

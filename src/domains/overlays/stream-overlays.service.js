@@ -9,6 +9,7 @@ const EVENT_SCOPES = {
   "channel.subscription.end": "channel:read:subscriptions",
   "channel.subscription.gift": "channel:read:subscriptions",
   "channel.cheer": "bits:read",
+  "channel.charity_campaign.donate": "channel:read:charity",
 };
 const CHAT_EVENTS = [
   "channel.chat.message_delete",
@@ -25,6 +26,14 @@ module.exports = function streamOverlays({
   fetchChatCatalog = globalThis.fetch,
 }) {
   const store = require("./overlay-store")(runtimeDir),
+    goals = require("./overlay-goals")({
+      runtimeDir,
+      now,
+      changed: () => {
+        after = twitchAfter = 0;
+        refreshSubscriptions();
+      },
+    }),
     activity = require("./overlay-events")(now),
     redemptions = require("./overlay-redemptions")(now),
     games = require("./overlay-games")({
@@ -88,8 +97,8 @@ module.exports = function streamOverlays({
         .map((row) => row.type),
     );
   }
-  function events() {
-    const wanted = new Set();
+  function events(owner = getProvider()?.status()?.userId || "") {
+    const wanted = new Set(goals.events(owner));
     for (const row of widgets().filter((w) => w.visible)) {
       if (row.type === "credits" && row.creditsSource !== "manual") {
         if (row.creditsSource === "followers") wanted.add("channel.follow");
@@ -233,10 +242,16 @@ module.exports = function streamOverlays({
       if (status.connected && now() >= twitchAfter) {
         twitchAfter = now() + 30000;
         const read = async (name, fn) => {
+          const requestedAt = now();
           try {
             const value = await fn();
             if (generation === key)
-              twitch[name] = name === "prediction" ? { ...value, at: now() } : value;
+              twitch[name] =
+                name === "prediction"
+                  ? { ...value, at: now() }
+                  : ["creatorGoals", "charity"].includes(name)
+                    ? { ...value, requestedAt }
+                    : value;
           } catch {
             if (generation === key) twitch[name] = { ok: false };
           }
@@ -247,20 +262,41 @@ module.exports = function streamOverlays({
           status.provider.overlayPrediction
         )
           jobs.push(read("prediction", () => status.provider.overlayPrediction()));
-        if (["title", "category", "viewers", "uptime"].some((type) => wanted.has(type)))
+        const goalTypes = new Set(
+          Object.values(goals.snapshot(status.provider.status().userId)).map((g) => g.tracking),
+        );
+        if (
+          [...goalTypes].some((type) => type.startsWith("creator-")) &&
+          status.scopes.includes("channel:read:goals") &&
+          status.provider.overlayCreatorGoals
+        )
+          jobs.push(read("creatorGoals", () => status.provider.overlayCreatorGoals()));
+        if (
+          goalTypes.has("charity-total") &&
+          status.scopes.includes("channel:read:charity") &&
+          status.provider.overlayCharity
+        )
+          jobs.push(read("charity", () => status.provider.overlayCharity()));
+        if (
+          ["title", "category", "viewers", "uptime"].some((type) => wanted.has(type)) ||
+          ["viewers", "uptime"].some((type) => goalTypes.has(type))
+        )
           jobs.push(read("stream", () => status.provider.dashboardStream()));
         if (
-          ["followers", "latest-follower"].some((type) => wanted.has(type)) &&
+          (["followers", "latest-follower"].some((type) => wanted.has(type)) ||
+            goalTypes.has("follower-total")) &&
           status.scopes.includes("moderator:read:followers")
         )
           jobs.push(read("followers", () => status.provider.dashboardFollowers()));
         if (
-          ["subscribers", "sub-points"].some((type) => wanted.has(type)) &&
+          (["subscribers", "sub-points"].some((type) => wanted.has(type)) ||
+            ["subscriber-total", "subscription-points"].some((type) => goalTypes.has(type))) &&
           status.scopes.includes("channel:read:subscriptions")
         )
           jobs.push(read("subscribers", () => status.provider.dashboardSubscribers()));
       }
       await Promise.all(jobs);
+      if (status.connected) goals.update(status.provider.status().userId, twitch);
     })().finally(() => {
       flight = null;
     });
@@ -268,10 +304,18 @@ module.exports = function streamOverlays({
   }
   return {
     store,
+    goals,
     catalog,
+    goalControl(input) {
+      const tx = goals.transaction(getProvider()?.status()?.userId);
+      const message = input.operation === "reset" ? tx.reset(input.name) : tx.create(input);
+      tx.commit();
+      return { message, goals: goals.snapshot(getProvider()?.status()?.userId) };
+    },
     events,
     receive(type, event, metadata) {
       if (auth().connected) {
+        goals.receive(getProvider().status().userId, type, event, metadata);
         if (activity.receive(type, event, metadata)) chatFeed.changed();
         credits.receive(type, event);
         redemptions.receive(type, event);
@@ -303,8 +347,10 @@ module.exports = function streamOverlays({
         session,
         music: song,
         records: structuredClone(records),
+        goals: status.connected ? goals.snapshot(getProvider().status().userId) : {},
         soundboard: structuredClone(soundboard),
         gameStorageError: games.error(),
+        goalStorageError: goals.error(),
         games: games.snapshot(getProvider()?.status()?.userId || ""),
         redemptions: status.connected ? redemptions.snapshot() : { entries: [] },
         twitch: structuredClone(twitch),
@@ -315,7 +361,35 @@ module.exports = function streamOverlays({
       };
     },
     save(input) {
+      const owner = getProvider()?.status()?.userId;
+      const previous = store.get(input.document?.id || input.id);
+      const draft = input.document;
+      let goalTransaction;
+      if (owner && draft?.widgets?.some((w) => w.type === "goal" && w.goalSource === "events")) {
+        const transaction = (goalTransaction = goals.transaction(owner));
+        for (const w of draft.widgets.filter(
+          (w) => w.type === "goal" && w.goalSource === "events",
+        )) {
+          const prior = previous?.widgets.find((r) => r.id === w.id);
+          if (
+            !goals.snapshot(owner)[w.goalName] ||
+            !prior ||
+            ["goalName", "goalTracking", "target", "goalCurrency", "endsAt"].some(
+              (k) => prior[k] !== w[k],
+            )
+          )
+            transaction.create({
+              name: w.goalName,
+              tracking: w.goalTracking,
+              target: w.target,
+              currency: w.goalCurrency,
+              endsAt: w.endsAt,
+            });
+        }
+        model.document(draft);
+      }
       const result = store.save(input);
+      goalTransaction?.commit();
       games.reconcile();
       after = twitchAfter = 0;
       refreshSubscriptions();
@@ -400,6 +474,7 @@ module.exports = function streamOverlays({
       previews.remove(id);
     },
     close() {
+      goals.close();
       previews.close();
       chatFeed.close();
       chatAssets.reset("");

@@ -1,6 +1,6 @@
 /** Explicit, optional OS acceptance. It captures only this silent test process,
  * never an operator's music, desktop mix or microphone. Build the helper first
- * and set GROBYS_DECK_AUDIO_NATIVE_ACCEPTANCE=1 to admit these live Windows checks.
+ * and set RAVELINK_AUDIO_NATIVE_ACCEPTANCE=1 to admit these live Windows checks.
  */
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -11,13 +11,13 @@ const fs = require("node:fs");
 const os = require("node:os");
 const { spawn, spawnSync } = require("node:child_process");
 const enabled =
-  process.platform === "win32" && process.env.GROBYS_DECK_AUDIO_NATIVE_ACCEPTANCE === "1";
+  process.platform === "win32" && process.env.RAVELINK_AUDIO_NATIVE_ACCEPTANCE === "1";
 
 test(
   "fullscreen capture remains pinned and receiving after its source loses focus",
-  { skip: !enabled || process.env.GROBYS_DECK_AUDIO_FOCUS_ACCEPTANCE !== "1", timeout: 15000 },
+  { skip: !enabled || process.env.RAVELINK_AUDIO_FOCUS_ACCEPTANCE !== "1", timeout: 15000 },
   async (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-fullscreen-test-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-fullscreen-test-"));
     const executable = path.join(root, "fullscreen-source.exe");
     const compiler = path.join(process.env.WINDIR, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
     const compiled = spawnSync(
@@ -116,7 +116,7 @@ test(
       },
     );
     try {
-      const duration = process.env.GROBYS_DECK_AUDIO_LONG_ACCEPTANCE === "1" ? 160000 : 8500;
+      const duration = process.env.RAVELINK_AUDIO_LONG_ACCEPTANCE === "1" ? 160000 : 8500;
       await new Promise((resolve) => setTimeout(resolve, duration));
       assert.equal(ended, false, "zero must not become an eight-second watchdog deadline");
       assert(windows >= 200);

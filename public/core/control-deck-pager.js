@@ -1,4 +1,5 @@
 import { deckScreens } from "./control-deck-screen-layout.js";
+import { sliderControl } from "./control-deck-slider.js";
 
 export function renderDeckPageTabs(nav, pages, selected, onPage, extraTab) {
   nav.hidden = false;
@@ -81,7 +82,7 @@ export function createDeckPager({
       (pages.length > 1 ? (pages[at]?.name || `Page ${at + 1}`) + " · " : "") +
       `${index + 1} / ${total}`;
     if (document.activeElement?.closest?.("[data-deck-button][hidden]")) next.focus();
-    host.dispatchEvent(new Event("groby-deck-screen-change"));
+    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
   }
   function measure() {
     frame = null;
@@ -181,7 +182,7 @@ export function createDeckPager({
   const resize = new ResizeObserver(schedule);
   resize.observe(host);
   resize.observe(grid);
-  host.addEventListener("groby-deck-mixer-layout", schedule);
+  host.addEventListener("ravelink-deck-mixer-layout", schedule);
   const widgets = host.querySelector(".deckWidgetRegion");
   if (widgets) resize.observe(widgets);
   addEventListener("resize", schedule);
@@ -226,6 +227,7 @@ export function createDeckPager({
     if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
       if (!gesture.dragging) {
         gesture.dragging = true;
+        sliderControl(gesture.target)?.cancel();
         onSwipe();
         host.setPointerCapture(event.pointerId);
       }

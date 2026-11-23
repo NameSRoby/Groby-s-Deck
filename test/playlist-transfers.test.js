@@ -75,7 +75,7 @@ function fixture(t) {
   const native = { created: 0, ids: [], fail: false, calls: [] };
   const context = {
     callCapability: async (cap, method, value) => {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "get")
           return {
             ok: true,
@@ -322,7 +322,7 @@ test("grouped writes create and verify distinct destinations and lock the review
   );
   const context = {
     callCapability: async (cap, method, value) => {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "get")
           return {
             found: storage.has(value.key),

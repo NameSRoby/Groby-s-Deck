@@ -283,11 +283,16 @@ module.exports = function registerFeaturePlatformRoutes(app, options = {}) {
       // YouTube rejects IFrame API playback without client identification (error 153).
       // External feature players receive only the loopback origin, never a path or token.
       res.setHeader("Referrer-Policy", result.page.embedHosts.length ? "origin" : "no-referrer");
+      // Some installed packages renamed this wire identifier during the rebrand.
+      // Normalize only after package integrity verification, including overlays,
+      // so their calls and listeners agree with the host and injected scripts.
+      const content = String(result.content).replaceAll(
+        "groby-feature-ui-v1",
+        "ravelink-feature-ui-v1",
+      );
       return res
         .type("html")
-        .send(
-          result.page.surface === "panel" ? featurePresentation(result.content) : result.content,
-        );
+        .send(result.page.surface === "panel" ? featurePresentation(content) : content);
     } catch (error) {
       return next(error);
     }

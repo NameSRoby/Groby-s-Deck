@@ -19,7 +19,7 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
     "Windows updater preserves mutable data and can restore managed files: " + targetVersion,
     { skip: !windows },
     (t) => {
-      const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "groby-update-integration-"));
+      const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-update-integration-"));
       t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
       const root = path.join(fixture, "install");
       const release = path.join(fixture, "release");
@@ -61,15 +61,15 @@ for (const targetVersion of ["0.6.2", "0.7.1a"])
         [
           "-NoProfile",
           "-Command",
-          "Compress-Archive -Path (Join-Path $env:GROBYS_DECK_TEST_RELEASE '*') -DestinationPath $env:GROBYS_DECK_TEST_ARCHIVE -Force",
+          "Compress-Archive -Path (Join-Path $env:RAVELINK_TEST_RELEASE '*') -DestinationPath $env:RAVELINK_TEST_ARCHIVE -Force",
         ],
         {
           encoding: "utf8",
           windowsHide: true,
           env: {
             ...process.env,
-            GROBYS_DECK_TEST_RELEASE: release,
-            GROBYS_DECK_TEST_ARCHIVE: archive,
+            RAVELINK_TEST_RELEASE: release,
+            RAVELINK_TEST_ARCHIVE: archive,
           },
         },
       );

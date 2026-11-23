@@ -5,7 +5,7 @@
  */
 function hasDraft(featureId) {
   try {
-    const prefix = `groby-ui-draft-v1:${featureId ? `${featureId}:` : ""}`;
+    const prefix = `ravelink-ui-draft-v1:${featureId ? `${featureId}:` : ""}`;
     for (let i = 0; i < sessionStorage.length; i++) {
       if (sessionStorage.key(i).startsWith(prefix)) return true;
     }
@@ -14,7 +14,9 @@ function hasDraft(featureId) {
   }
   return [...document.querySelectorAll(".featurePageFrame")].some((frame) => {
     const owner = frame.closest("[data-panel]")?.dataset.panel;
-    return (!featureId || owner === `feature:${featureId}`) && frame.contentWindow?.grobyDraftDirty;
+    return (
+      (!featureId || owner === `feature:${featureId}`) && frame.contentWindow?.ravelinkDraftDirty
+    );
   });
 }
 

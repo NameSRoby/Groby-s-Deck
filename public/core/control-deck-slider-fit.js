@@ -1,11 +1,16 @@
 /** Fit fader travel into the visible room, leaving space for labels and controls. */
 export function fitDeckSliders(host) {
   const updates = [];
-  const footer =
-    host.querySelector(".deckFullscreenBar:not([hidden])")?.getBoundingClientRect().height || 0;
+  const fullscreen = host.dataset.focus === "true";
+  const navigation = host.querySelector(".deckScreenNav:not([hidden])");
+  const lowerEdge = fullscreen && navigation ? navigation.getBoundingClientRect().top : innerHeight;
+  const mixer =
+    host.dataset.mixerPage === "true" ? host.querySelector(".deckInlineMixer:not([hidden])") : null;
+  const mixerTop = mixer?.getBoundingClientRect().top;
   for (const track of host.querySelectorAll(".deckFaderTrack")) {
     const surface = track.closest("[data-slider-orientation],.deckWindowsPanel"),
-      fill = track.closest('[data-slider-fill="true"]'),
+      inMixer = mixer?.contains(track),
+      fill = inMixer || track.closest('[data-slider-fill="true"]'),
       vertical =
         (surface?.dataset.sliderOrientation || surface?.dataset.orientation) === "vertical";
     let length = "";
@@ -21,9 +26,15 @@ export function fitDeckSliders(host) {
           bottom = Math.max(bottom, sibling.getBoundingClientRect().bottom);
       }
       const tail = bottom - bounds.bottom + (parseFloat(style?.paddingBottom) || 0);
+      const top =
+        inMixer && !fullscreen
+          ? Math.max(0, Math.min(bounds.top, bounds.top - mixerTop + innerHeight * 0.35))
+          : bounds.top;
+      const available = Math.floor(lowerEdge - top - tail - 76);
       length =
-        Math.max(72, Math.min(720, Math.floor(innerHeight - bounds.top - tail - footer - 88))) +
-        "px";
+        (inMixer
+          ? Math.max(fullscreen ? 96 : 220, available)
+          : Math.max(72, Math.min(720, available))) + "px";
     }
     updates.push([track, length]);
   }

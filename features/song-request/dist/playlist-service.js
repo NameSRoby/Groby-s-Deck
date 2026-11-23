@@ -60,7 +60,7 @@ function createPlaylistService(options) {
     void transfers.load();
     try {
       const stored = await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "get",
         { key: "playlist-library-index-v1" },
         { timeoutMs: 5000 },
@@ -74,7 +74,7 @@ function createPlaylistService(options) {
           for (let index = 0; index < pageCount; index += 1) {
             const key = `library-page-${collection.id}-${String(index).padStart(4, "0")}`;
             const page = await context.callCapability(
-              "groby.storage.v1",
+              "ravelink.storage.v1",
               "get",
               { key },
               { timeoutMs: 5000 },
@@ -118,7 +118,7 @@ function createPlaylistService(options) {
       const serialized = JSON.stringify(value);
       if (persistedPages.get(key) === serialized) continue;
       const saved = await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "set",
         { key, value },
         { timeoutMs: 5000 },
@@ -130,7 +130,7 @@ function createPlaylistService(options) {
     const serializedIndex = JSON.stringify(storage.index);
     if (serializedIndex !== persistedIndex) {
       const saved = await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "set",
         { key: "playlist-library-index-v1", value: storage.index },
         { timeoutMs: 5000 },
@@ -140,7 +140,7 @@ function createPlaylistService(options) {
     }
     for (const key of persistedPages.keys())
       if (!nextPageKeys.has(key)) {
-        await context.callCapability("groby.storage.v1", "remove", { key }, { timeoutMs: 5000 });
+        await context.callCapability("ravelink.storage.v1", "remove", { key }, { timeoutMs: 5000 });
         persistedPages.delete(key);
       }
   }

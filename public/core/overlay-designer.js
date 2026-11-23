@@ -47,6 +47,7 @@
     testWidget: (w) => feed.open(w),
   };
   const inspector = setupOverlayInspector(a);
+  document.addEventListener("overlay-media-error", (event) => a.notice(event.detail));
   const commands = setupOverlayCommands(a);
   a.commands = commands;
   a.showInspectorSection = (name) => inspector.show(name);
@@ -115,7 +116,7 @@
     const wrap = $("stageWrap"),
       value = $("zoom").value;
     zoom =
-      value === "fit"
+      previewing || value === "fit"
         ? Math.min((wrap.clientWidth - 32) / doc.width, (wrap.clientHeight - 32) / doc.height, 1)
         : Number(value);
     zoom = Math.max(0.03, zoom);
@@ -219,7 +220,11 @@
     }
   }
   function renderContent() {
-    OverlayRenderer.render($("canvas"), doc, feed?.data() || {}, { editor: !previewing });
+    OverlayRenderer.render($("canvas"), doc, feed?.data() || {}, {
+      editor: !previewing,
+      preview: true,
+      audio: a.previewAudio === true,
+    });
   }
   function renderDraft(fields = true) {
     a.doc = doc;
@@ -278,6 +283,7 @@
     $("documentName").value = doc.name;
     $("canvasWidth").value = doc.width;
     $("canvasHeight").value = doc.height;
+    $("overlayMotion").value = doc.motion || "full";
     $("sizePreset").value =
       OverlayModel.presets.find((row) => row[1] === doc.width && row[2] === doc.height)?.[0] ||
       "custom";
@@ -482,6 +488,10 @@
     change(() => {
       doc.name = $("documentName").value.trim() || "Untitled overlay";
     });
+  $("overlayMotion").onchange = () =>
+    change(() => {
+      doc.motion = $("overlayMotion").value;
+    });
   $("grid").onchange = () => draw(false);
   $("exitStudio").hidden = parent === window;
   $("exitStudio").onclick = () =>
@@ -622,6 +632,27 @@
   };
   $("save").onclick = async () => {
     if (
+      !a.enhancedReady &&
+      (doc.motion !== "full" ||
+        doc.widgets.some(
+          (w) =>
+            w.goalSource === "events" ||
+            w.alertVariants?.length ||
+            w.alert?.mediaUrl ||
+            w.alert?.soundUrl ||
+            ["slide-left", "slide-right", "blur"].includes(w.entrance) ||
+            w.textEffect !== "none" ||
+            w.hideCommands ||
+            w.showTimestamps ||
+            (w.statSource === "watchtime" && w.watchtimeFormat !== "compact"),
+        ))
+    ) {
+      a.notice(
+        "Restart Core before saving these upgraded widget settings. Your draft is still here.",
+      );
+      return;
+    }
+    if (
       !a.livePreviewReady &&
       doc.widgets.some((w) => w.hideBotMessages || w.hiddenAccounts?.length)
     ) {
@@ -728,6 +759,7 @@
       a.catalog = catalog;
       a.motionReady = result.presentationEffects === true;
       a.livePreviewReady = result.livePreview === true;
+      a.enhancedReady = result.designerVersion >= 4;
       library();
       if (documents.length && !dirty()) void load(documents[0].id);
     })

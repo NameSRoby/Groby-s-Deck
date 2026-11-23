@@ -66,7 +66,7 @@ test("desktop queue appends serialize FIFO and remove one UID without replacing 
         await new Promise((resolve) => setTimeout(resolve, 5));
         queue.nextTracks.splice(queue.nextTracks.length - 1, 0, {
           ...rows[0],
-          uid: "groby-" + ++nextId,
+          uid: "ravelink-" + ++nextId,
           provider: "queue",
         });
       },

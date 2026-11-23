@@ -87,5 +87,5 @@
       if (select.isConnected) sync(select);
       else groups.delete(select);
   }
-  globalThis.GrobyDeckMusicChoices = { enhance, sync: syncAll };
+  globalThis.RaveLinkMusicChoices = { enhance, sync: syncAll };
 })();

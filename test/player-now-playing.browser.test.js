@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("Now Playing shows local artwork, album, paused timing and a compact accessible fallback", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-now-playing-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-now-playing-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

@@ -8,7 +8,7 @@
 module.exports = function transferStore(context) {
   const call = (method, key, value) =>
     context.callCapability(
-      "groby.storage.v1",
+      "ravelink.storage.v1",
       method,
       { key, ...(value === undefined ? {} : { value }) },
       { timeoutMs: 5000 },

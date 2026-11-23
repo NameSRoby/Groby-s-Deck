@@ -1,6 +1,6 @@
 # Groby’s Deck TIDAL companion 0.1.6
 
-This is a narrow Groby’s Deck-maintained Windows companion, not TidaLuna and not an
+This is a narrow RaveLink-maintained Windows companion, not TidaLuna and not an
 official TIDAL product. It does not include Luna's plugin platform, UI, updater,
 Quartz module loader, or third-party plugins. It ships no TIDAL application code.
 

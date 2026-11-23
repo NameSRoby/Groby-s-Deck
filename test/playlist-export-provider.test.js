@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const exportsProvider = require("../src/capabilities/feature-platform/providers/playlist-export-provider");
 test("CSV exports are bounded, listed after completion, cannot escape their folder, and open that exact folder", async (t) => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "groby-csv-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "ravelink-csv-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   let opened;
   const provider = exportsProvider({

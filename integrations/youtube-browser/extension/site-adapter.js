@@ -127,5 +127,5 @@
     }
     return { read, execute };
   }
-  globalThis.GrobyDeckYouTubeSite = Object.freeze({ create });
+  globalThis.RaveLinkYouTubeSite = Object.freeze({ create });
 })();

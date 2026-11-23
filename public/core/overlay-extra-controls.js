@@ -1,5 +1,5 @@
 /** Compact, editable controls for record, game and schedule widgets. */
-/* global OverlayGameRules */
+/* global OverlayGameRules, OverlayRecordFormat */
 globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
   const note = (text) => {
     const p = document.createElement("small");
@@ -229,21 +229,23 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
         note("Reads the same named counter as your commands; displaying it does not increment it.");
       }
       if (w.type === "leaderboard") {
-        const source = select("Leaderboard source", "statSource", [
+        select("Leaderboard source", "statSource", [
           ["stats", "Saved player stat"],
           ["watchtime", "Watchtime"],
           ["points", "Loyalty points"],
         ]);
-        const stat = field("Saved stat name (for example xp or wins)", "statField");
-        stat.disabled = w.statSource !== "stats";
-        const sourceChange = source.onchange;
-        source.onchange = () => {
-          sourceChange();
-          stat.disabled = w.statSource !== "stats";
-        };
+        if (w.statSource === "stats")
+          field("Saved stat name (for example xp or wins)", "statField");
+        if (w.statSource === "watchtime")
+          select("Watchtime display format", "watchtimeFormat", OverlayRecordFormat.formats);
         num("Maximum visible players", "maxItems", 1, 20);
+        check("Show rank numbers", "showRank");
         note(
-          "Shows only existing records in the connected channel. Custom stats use the same names as your command recipes.",
+          w.statSource === "stats"
+            ? "Shows existing player records. Use the same stat name as your command recipes."
+            : w.statSource === "watchtime"
+              ? "Shows recorded watchtime. Formatting only changes the display; months use 30 days and years use 365 days."
+              : "Shows existing loyalty point balances in this channel.",
         );
       }
       if (w.type === "player-card") {

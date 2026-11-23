@@ -1,6 +1,7 @@
 # Overlay designer
 
-Open **Overlay designer** from the main navigation or **More**, depending on your tab settings. Use **Song Request → Overlay Designer** to edit the standalone now-playing card.
+Open **More > Overlay designer**. This is the full-scene compositor; Song Request's
+existing designer continues to edit its detailed music card independently.
 
 ## Editing and OBS
 
@@ -24,10 +25,8 @@ Open **Overlay designer** from the main navigation or **More**, depending on you
   scrolling as soon as Twitch returns names. Switch **Credit names** to Followers
   or My list if needed. Dated subscriber rolls use locally recorded events.
 - Twitch chat shows recent messages already received by the connected app and
-  new messages as they arrive. Deletes, bans, timeouts and chat clears update
-  the editor and OBS. **Content** has separate switches for username colors,
-  badges and emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ. The feed starts
-  when Groby’s Deck receives chat events from Twitch.
+  new messages as they arrive. It renders native Twitch emotes. Twitch EventSub
+  does not replay messages sent before the app began receiving chat.
 - **Test widgets** and **Preview a chat message** add a local sample with editable
   name and message. These never post chat, award XP, start an ad or reach OBS.
 - Chat's **Content** tab keeps removal mode, lifetime and bot filtering together.
@@ -48,30 +47,6 @@ needs to be available on the machine rendering the overlay. Select **Uploaded
 font** to use a WOFF, WOFF2, TTF or OTF file up to 5 MB that you can use on stream.
 The editor and local OBS output load the same file. Layout exports reference
 the file stored on this server.
-
-## Goals
-
-Open **Add widget → Goal**. Choose a goal setup for Followers, New subscriptions,
-Bits or Donations. Then open **Twitch Integration → Rewards & automations →
-Example commands & starter recipes → Goals** and load the matching automation.
-Review it, save it and use its row switch to enable it. The automation writes a
-named counter, and the widget reads it in the editor and OBS.
-
-Use **Set a goal target** and **Correct or reset goal progress** to change a goal
-through broadcaster-only commands such as `!goaltarget followers 20` and
-`!goalprogress followers 0`. A goal starts counting from when its automation is
-enabled. The donation recipe records amounts you enter using `!adddonation`. For
-example, `!adddonation 1250` adds 12.50 in a two-decimal currency. Choose the same
-currency throughout a cash goal. To build a new goal from scratch, give the
-widget and a recipe the same counter name, or enter amounts in the layer itself.
-
-Choose **Inline text**, **Stacked text** or **Progress card** in **Style &
-text** as an editable starting point. You can also show only the number or only
-the title, style a progress bar, or put the title and amount in separate layers
-bound to the same counter.
-
-The widget picker shows setup hints for unavailable live sources. Switch **Data**
-to **Sample** to design before connecting an account.
 
 ## Available widgets and their sources
 
@@ -115,7 +90,7 @@ provide visual text; there is no built-in alert audio/variation system.
 
 HTML, CSS, JS and Fields have separate editor views. Fields is a JSON object, for
 example `{"greeting":"Welcome!"}`. JavaScript can read it as
-`GrobyDeckOverlay.fields.greeting`. Subscribe to read-only data updates:
+`RaveLinkOverlay.fields.greeting`. Subscribe to read-only data updates:
 
 ```js
 addEventListener("overlay-data", ({ detail }) => {
@@ -159,7 +134,7 @@ actual provider methods and event definitions:
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [StreamElements overlay overview](https://docs.streamelements.com/overlays) and [canvas payload](https://docs.streamelements.com/websockets/topics/channel-overlay-update)                               | One transparent browser-source document with independent canvas dimensions and layers                                  |
 | [Editor shortcuts](https://docs.streamelements.com/overlays/overlay-editor-shortcuts)                                                                                                                    | Undo/redo, duplication, pixel nudging, selection and groups; independent fit/zoom                                      |
-| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly Groby’s Deck-specific read-only data API                                   |
+| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly RaveLink-specific read-only data API                                       |
 | [Alert variations](https://docs.streamelements.com/overlays/alertbox-variations) and [session data](https://docs.streamelements.com/overlays/session-data)                                               | Do not advertise advanced variations, imported session statistics or external event sources without implementing them  |
 | [OBS Browser Source](https://obsproject.com/kb/browser-source)                                                                                                                                           | Supply matching width/height and transparent output; browser codec and local-server lifetime are real dependencies     |
 | [Twitch channel events](https://dev.twitch.tv/docs/eventsub/reference/channel) and [subscription authorization](https://dev.twitch.tv/docs/eventsub/manage-subscriptions/)                               | Use existing authorized follow/sub/raid/cheer/poll/Hype Train events; do not invent data when authorization is missing |
@@ -244,3 +219,27 @@ Use **Pan**, hold Space while dragging, or drag with the middle mouse button to
 pan a zoomed canvas. This changes only the viewport and adds no undo entries.
 Ctrl/Cmd+wheel zooms around the pointer; Alt+F returns to Fit. Canvas settings stay
 in the top toolbar and selected widget sections remain in the left sidebar.
+
+### Broadcast typography and list spacing (0.8.1)
+
+Credits provide spacing between names, an optional separator, reverse direction,
+and a pause control. These settings work in horizontal tickers and vertical
+rolls, including the join between repeated groups. The optional label stays above
+the scrolling names.
+
+Text styles include broadcast headlines, lower thirds, caption strips, creator
+tags, section labels, scoreboards and outlined text. All remain editable: padding,
+vertical alignment, letter case, shadow color/blur/offset/opacity, outline width
+and accent edges are saved with the widget. A preset changes style, never the
+text or layer position. See the [style gallery](../assets/screenshots/overlay-text-styles.png).
+
+Leaderboard source controls are contextual. Custom stats show the saved stat
+name; watchtime offers seconds, minutes, hours, days, months, years or a readable
+duration. Months mean 30 days and years mean 365 days. Display formatting never
+changes stored watchtime or ranking. List rows offer spacing, value text size,
+rank-number visibility and inline or stacked values.
+
+Canvas settings includes **Overlay animations**: broadcast motion, device
+preference, or reduced motion. It applies equally to the designer and OBS output.
+Preview always fits the available canvas; returning to editing restores the
+chosen zoom and preserves the document.

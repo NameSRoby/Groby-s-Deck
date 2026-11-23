@@ -8,7 +8,7 @@ const createLightingProfileService = require("../src/domains/fixtures/lighting-p
 const createCoreServer = require("../src/app/core/create-core-server");
 
 function harness(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-profiles-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-profiles-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const fixtures = [
     {
@@ -123,7 +123,7 @@ test("shared profile applies one target to every routed brand", async (t) => {
 });
 
 test("lighting profile HTTP routes save and apply the selected default", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-profile-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-profile-http-"));
   const created = createCoreServer({ runtimeDir, dryRun: true });
   created.services.lightingCore.fixtureRegistry.upsertFixture({
     id: "wiz-http",

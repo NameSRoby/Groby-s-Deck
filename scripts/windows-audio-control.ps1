@@ -13,13 +13,13 @@ while($null -ne ($line=[Console]::ReadLine())){
     if($line.Length -gt 16384){throw 'audio_command_invalid'}
     $message=$line | ConvertFrom-Json
     if("$($message.id)" -notmatch '^\d{1,12}$'){throw 'audio_command_invalid'}
-    if($message.operation -eq 'audio.status'){$value=[GrobyDeck.WindowsAudio.Control]::Read()}
+    if($message.operation -eq 'audio.status'){$value=[RaveLink.WindowsAudio.Control]::Read()}
     elseif($message.operation -eq 'audio.set'){
       $payload=$message.payload
       if($payload.target -notmatch '^(system|microphone|(?:device|app):[a-f0-9]{64})$' -or $payload.action -notin @('volume','mute','toggle-mute')){throw 'audio_command_invalid'}
       if($payload.action -eq 'volume' -and ($payload.level -isnot [int] -or $payload.level -lt 0 -or $payload.level -gt 100)){throw 'audio_command_invalid'}
       if($payload.action -eq 'mute' -and $payload.muted -isnot [bool]){throw 'audio_command_invalid'}
-      $value=[GrobyDeck.WindowsAudio.Control]::Apply([string]$payload.target,[string]$payload.action,[int]$payload.level,[bool]$payload.muted)
+      $value=[RaveLink.WindowsAudio.Control]::Apply([string]$payload.target,[string]$payload.action,[int]$payload.level,[bool]$payload.muted)
     }else{throw 'audio_command_invalid'}
     Write-AudioResult @{id="$($message.id)";ok=$true;value=$value}
   }catch{

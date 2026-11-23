@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("shared chat response controls stay visible for all players and preserve edits during polling", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-provider-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-provider-chat-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

@@ -7,7 +7,7 @@
  */
 // Groby’s Deck's narrow main-world Redux facade. No plugin loader or cloud API.
 (function installHooks() {
-  if (globalThis.__grobyTidal) return;
+  if (globalThis.__ravelinkTidal) return;
   const creators = new Map(),
     listeners = new Map(),
     stores = [];
@@ -29,7 +29,7 @@
         return false;
       }
     });
-  globalThis.__grobyTidal = {
+  globalThis.__ravelinkTidal = {
     wrapAction(factory) {
       return function (...args) {
         const creator = factory.apply(this, args),
@@ -447,12 +447,12 @@ function createAdapter(redux, unloads, options = {}) {
  * must not schedule a new timer after an awaited operation settles.
  */
 (function startCompanion() {
-  if (globalThis.__grobyTidalPolling || !globalThis.__grobyTidalBridge) return;
-  globalThis.__grobyTidalPolling = true;
+  if (globalThis.__ravelinkTidalPolling || !globalThis.__ravelinkTidalBridge) return;
+  globalThis.__ravelinkTidalPolling = true;
   const unloads = new Set();
   let stopped = false,
     timer;
-  const adapter = createAdapter(globalThis.__grobyTidal.redux, unloads, {
+  const adapter = createAdapter(globalThis.__ravelinkTidal.redux, unloads, {
     isStopped: () => stopped,
   });
   const companionId = crypto.randomUUID();
@@ -465,10 +465,10 @@ function createAdapter(redux, unloads, options = {}) {
   async function tick() {
     let delay = 2000;
     try {
-      const reply = await globalThis.__grobyTidalBridge.call("next", {
+      const reply = await globalThis.__ravelinkTidalBridge.call("next", {
         companionId,
         waitMs: 1500,
-        ready: globalThis.__grobyTidal.ready(),
+        ready: globalThis.__ravelinkTidal.ready(),
         queueReady: adapter.ready(),
         moderationReady: adapter.canRemove(),
         volumeReady: adapter.canSetVolume(),
@@ -511,7 +511,7 @@ function createAdapter(redux, unloads, options = {}) {
           if (typeof error.writeAttempted === "boolean")
             result.writeAttempted = error.writeAttempted;
         }
-        if (!stopped) await globalThis.__grobyTidalBridge.call("result", result);
+        if (!stopped) await globalThis.__ravelinkTidalBridge.call("result", result);
       }
     } catch {
       /* Core offline or unpaired: stay isolated from TIDAL playback. */

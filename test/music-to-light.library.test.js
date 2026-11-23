@@ -21,7 +21,7 @@ const playback = (title = "First", positionMs = 0, status = "playing") => ({
 });
 
 test("any song can be saved without playback, edited, matched exactly and restored privately", (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-song-library-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-song-library-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const storePath = path.join(dir, "songs.json"),
     library = createLibrary({ storePath });

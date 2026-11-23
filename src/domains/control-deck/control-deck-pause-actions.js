@@ -153,7 +153,7 @@ module.exports = function pauseActions({ feature, getRewards, activeFeature }) {
             parameters: empty,
             defaults: {},
             description:
-              "Changes only this Groby’s Deck-managed reward. Song Request intake safety remains in charge.",
+              "Changes only this RaveLink-managed reward. Song Request intake safety remains in charge.",
             state: {
               text: !known
                 ? "State unavailable"

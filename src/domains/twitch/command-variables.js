@@ -116,6 +116,15 @@ function compile(source) {
     }
     const parts = args(body),
       name = parts.shift();
+    const goalArgs = args.goal(name, parts);
+    if (goalArgs) {
+      return call(
+        name,
+        goalArgs.map((part) =>
+          part.startsWith("${") ? walk(part) : literal(part) ? unquote(part) : part,
+        ),
+      );
+    }
     if (["addcount", "setcount"].includes(name) && parts.length === 2 && !body.includes("["))
       return call(name, [literal(parts[0]) ? unquote(parts[0]) : parts[0], value(parts[1])]);
     if (name === "random" && parts.length === 2) return call("random", parts.map(value));

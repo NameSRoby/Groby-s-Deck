@@ -113,7 +113,7 @@ async function flushSnapshot() {
     const snapshot = await profileStorage.prepare(queue.exportSnapshot({ includePlaylist: false }));
     snapshot.playlistPageCount = 0;
     const saved = await context.callCapability(
-      "groby.storage.v1",
+      "ravelink.storage.v1",
       "set",
       {
         key: "queue-state-v1",
@@ -125,7 +125,7 @@ async function flushSnapshot() {
     await profileStorage.committed(snapshot);
     for (let index = 0; index < persistedPlaylistPageCount; index += 1) {
       await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "remove",
         {
           key: `playlist-page-${String(index).padStart(6, "0")}`,
@@ -261,19 +261,15 @@ async function activate(nextContext) {
   });
   try {
     const stored = await context.callCapability(
-      "groby.storage.v1",
+      "ravelink.storage.v1",
       "get",
       { key: "queue-state-v1" },
       { timeoutMs: 1000 },
     );
+    require("./settings-restore-guard").read(stored);
     if (stored?.ok && stored.found) {
       const restored = queue.importSnapshot(await profileStorage.restore(stored.value));
-      if (!restored.ok)
-        optionalCall("diagnostics", {
-          owner: "song-request",
-          event: "snapshot_rejected",
-          ok: false,
-        });
+      if (!restored.ok) throw new Error("song_settings_snapshot_rejected");
       const pageCount =
         Number.isInteger(stored.value?.playlistPageCount) && stored.value.playlistPageCount >= 0
           ? Math.min(stored.value.playlistPageCount, 100000)
@@ -282,7 +278,7 @@ async function activate(nextContext) {
         const rows = [];
         for (let index = 0; index < pageCount; index += 1) {
           const page = await context.callCapability(
-            "groby.storage.v1",
+            "ravelink.storage.v1",
             "get",
             {
               key: `playlist-page-${String(index).padStart(6, "0")}`,
@@ -299,7 +295,11 @@ async function activate(nextContext) {
         schedulePersistence(0);
       }
     }
-  } catch {}
+  } catch (error) {
+    // Never start with defaults after a failed restore: a later write could
+    // replace the user's recoverable queue settings and overlay profiles.
+    require("./settings-restore-guard").failed(context, error);
+  }
   rewardOutcomes = require("./reward-outcomes")({ context });
   await rewardOutcomes.load();
   desktopChat = require("./desktop-chat-responses")({

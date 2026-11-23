@@ -17,7 +17,7 @@ and supports native resizing, DPI scaling, Back/Forward, Reload, F11 full screen
 clipboard actions, Save As downloads, and browser fallback. Window placement
 persists in `runtime/desktop-window.json`, checked against connected monitors.
 WebView profiles use an installation/port-specific folder under
-`%LOCALAPPDATA%/GrobysDeck/WebView2`, outside managed release files.
+`%LOCALAPPDATA%/RaveLink/Core/WebView2`, outside managed release files.
 
 Top-level browsing is restricted to the exact loopback origin. HTTP(S) external
 links open in the system browser. Short-lived child WebViews preserve the

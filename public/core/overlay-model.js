@@ -1,8 +1,9 @@
 /** Shared document validation for the designer, storage and OBS renderer. */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory();
-  else root.OverlayModel = factory();
-})(typeof globalThis === "object" ? globalThis : this, function () {
+  if (typeof module === "object" && module.exports)
+    module.exports = factory(require("./overlay-alert-rules"));
+  else root.OverlayModel = factory(root.OverlayAlertRules);
+})(typeof globalThis === "object" ? globalThis : this, function (alerts) {
   const presets = [
     ["1080p", 1920, 1080],
     ["720p", 1280, 720],
@@ -105,6 +106,40 @@
         : "",
       align: ["left", "center", "right"].includes(raw.align) ? raw.align : "left",
       bold: raw.bold === true,
+      lineHeight: number(raw.lineHeight, 1, 2.5, 1.35),
+      letterSpacing: number(raw.letterSpacing, -2, 20, 0),
+      paddingX: number(raw.paddingX, 0, 120, 8),
+      paddingY: number(raw.paddingY, 0, 120, 8),
+      verticalAlign: ["top", "middle", "bottom"].includes(raw.verticalAlign)
+        ? raw.verticalAlign
+        : "top",
+      textCase: ["none", "uppercase", "lowercase", "capitalize"].includes(raw.textCase)
+        ? raw.textCase
+        : "none",
+      shadowColor: color(raw.shadowColor, "#000000"),
+      shadowOpacity: number(raw.shadowOpacity, 0, 100, 75),
+      shadowBlur: number(raw.shadowBlur, 0, 40, 6),
+      shadowX: number(raw.shadowX, -20, 20, 0),
+      shadowY: number(raw.shadowY, -20, 20, 2),
+      outlineColor: color(raw.outlineColor, "#000000"),
+      outlineWidth: number(raw.outlineWidth, 0.5, 6, 1),
+      accentStyle: ["none", "left", "bottom"].includes(raw.accentStyle) ? raw.accentStyle : "none",
+      accentColor: color(raw.accentColor, "#38bdf8"),
+      accentWidth: number(raw.accentWidth, 1, 16, 4),
+      rowGap: number(raw.rowGap, 0, 80, 8),
+      valueSize: number(raw.valueSize, 40, 100, 65),
+      listLayout: raw.listLayout === "inline" ? "inline" : "stacked",
+      showRank: raw.showRank !== false,
+      textEffect: ["none", "shadow", "outline", "glow"].includes(raw.textEffect)
+        ? raw.textEffect
+        : "none",
+      chatLayout: raw.chatLayout === "stacked" ? "stacked" : "inline",
+      hideCommands: raw.hideCommands === true,
+      showTimestamps: raw.showTimestamps === true,
+      showArtwork: raw.showArtwork !== false,
+      showArtist: raw.showArtist !== false,
+      showRequester: raw.showRequester !== false,
+      showProgress: raw.showProgress !== false,
       chatMode: raw.chatMode === "scroll" ? "scroll" : "expire",
       showChatColors: raw.showChatColors !== false,
       showChatBadges: raw.showChatBadges !== false,
@@ -130,7 +165,20 @@
         : "all",
       scrollDirection: raw.scrollDirection === "horizontal" ? "horizontal" : "vertical",
       scrollSeconds: number(raw.scrollSeconds, 5, 600, 30),
-      entrance: ["none", "fade", "slide", "pop", "wipe"].includes(raw.entrance)
+      creditGap: number(raw.creditGap, 0, 240, 16),
+      creditSeparator: text(raw.creditSeparator, 8),
+      scrollReverse: raw.scrollReverse === true,
+      scrollPaused: raw.scrollPaused === true,
+      entrance: [
+        "none",
+        "fade",
+        "slide",
+        "slide-left",
+        "slide-right",
+        "pop",
+        "wipe",
+        "blur",
+      ].includes(raw.entrance)
         ? raw.entrance
         : "none",
       ambient: ["none", "float", "breathe"].includes(raw.ambient) ? raw.ambient : "none",
@@ -173,6 +221,17 @@
         ? raw.statSource
         : "stats",
       statField: /^[a-z][a-z0-9_]{0,23}$/i.test(raw.statField || "") ? raw.statField : "xp",
+      watchtimeFormat: [
+        "compact",
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "months",
+        "years",
+      ].includes(raw.watchtimeFormat)
+        ? raw.watchtimeFormat
+        : "compact",
       player: text(raw.player, 26)
         .trim()
         .replace(/^@/, "")
@@ -220,9 +279,13 @@
       loop: raw.loop !== false,
       duration: number(raw.duration, 1, 86400, 300),
       endsAt: number(raw.endsAt, 0, 9999999999999, 0),
+      countdownPaused: raw.countdownPaused === true,
+      pausedSeconds: number(raw.pausedSeconds, 0, 86400, 0),
       current: number(raw.current, 0, 1000000000, 0),
       target: number(raw.target, 0.01, 1000000000, 100),
-      goalSource: raw.goalSource === "counter" ? "counter" : "manual",
+      goalSource: ["counter", "events"].includes(raw.goalSource) ? raw.goalSource : "manual",
+      goalName: text(raw.goalName, 64).trim().toLowerCase() || "community",
+      goalTracking: text(raw.goalTracking, 40) || "followers",
       goalCounter: text(raw.goalCounter, 64).trim().toLowerCase(),
       goalTargetCounter: text(raw.goalTargetCounter, 64).trim().toLowerCase(),
       goalFormat: ["inline", "stacked", "amount", "title"].includes(raw.goalFormat)
@@ -244,10 +307,13 @@
           "channel.subscription.gift",
           "channel.raid",
           "channel.cheer",
+          "channel.charity_campaign.donate",
         ].includes(value),
       ),
       lingerSeconds: number(raw.lingerSeconds, 0, 60, 3),
       lifetime: number(raw.lifetime, 1, 300, 10),
+      alert: alerts.settings(raw.alert),
+      alertVariants: alerts.variants(raw.alertVariants),
       maxItems: Math.round(number(raw.maxItems, 1, 20, 6)),
       html: text(raw.html, 16000),
       css: text(raw.css, 16000),
@@ -276,6 +342,7 @@
     return {
       id: text(raw.id, 80),
       name: text(raw.name, 80) || "Untitled overlay",
+      motion: ["full", "system", "reduced"].includes(raw.motion) ? raw.motion : "full",
       width,
       height,
       widgets,
@@ -308,6 +375,8 @@
     ...(w.type === "goal"
       ? {
           goalSource: w.goalSource,
+          goalName: w.goalName,
+          goalTracking: w.goalTracking,
           goalCounter: w.goalCounter,
           goalTargetCounter: w.goalTargetCounter,
         }

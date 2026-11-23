@@ -545,7 +545,11 @@ function behaviors(input = {}) {
     !input ||
     typeof input !== "object" ||
     Array.isArray(input) ||
-    Object.keys(input).some((k) => !catalog.some((f) => f.id === k))
+    Object.keys(input).some(
+      (k) =>
+        !catalog.some((f) => f.id === k) &&
+        !require("./legacy-response.cjs").retiredBehaviors.includes(k),
+    )
   )
     throw Error("invalid_music_behaviors");
   const result = {};

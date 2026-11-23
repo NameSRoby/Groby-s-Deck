@@ -235,7 +235,8 @@ export function createDeckWidgets({
     }
     region.hidden = !(editing || (config.enabled && config.items.length));
     region.dataset.fullscreen = String(config.fullscreen);
-    minimize.hidden = editing || !config.enabled || !config.fullscreen || !config.items.length;
+    minimize.hidden = editing || !config.enabled || !config.items.length;
+    minimize.dataset.fullscreen = String(config.fullscreen);
     resize();
   }
   function resize() {
@@ -249,7 +250,7 @@ export function createDeckWidgets({
         cards.get(row.id).root.style.gridColumn = "span " + Math.min(columns, row.span);
   }
   function paint() {
-    if (!snapshot || (host.dataset.focus === "true" && region.dataset.collapsed === "true")) return;
+    if (!snapshot || (!editing && region.dataset.collapsed === "true")) return;
     for (const card of cards.values())
       card.update(snapshot.widgetData || {}, Date.now(), connected);
   }

@@ -50,14 +50,14 @@ export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
     awakeButton.dataset.state = awakeSwitch.checked ? (active ? "requesting" : "idle") : "off";
     if (awakeSwitch.checked !== awake.enabled) awake.toggle();
   };
-  home.append(awakeButton);
+  home.append(awakeButton, widgetToggle);
   function reset() {
     generation++;
     active = native = false;
     host.dataset.focus = "false";
     exit.hidden = true;
     chrome.hidden = true;
-    home.append(awakeButton);
+    home.append(awakeButton, widgetToggle);
     awake.leave();
     button.setAttribute("aria-pressed", "false");
     button.focus({ preventScroll: true });

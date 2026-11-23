@@ -97,7 +97,7 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     paint();
     if (latest !== previous)
       input.dispatchEvent(
-        new CustomEvent("groby-slider-change", {
+        new CustomEvent("ravelink-slider-change", {
           bubbles: true,
           detail: { value: latest, previous },
         }),
@@ -166,7 +166,12 @@ export function bindDeckSlider({ input, output, send, onError = () => {}, interv
     input.value = String(min + Math.round((value - min) / step) * step);
     changed();
   });
-  input.addEventListener("input", changed);
+  input.addEventListener("input", () => {
+    // Some browsers move a native range on touch-down even when its pointer
+    // event was canceled. Let the touch handler distinguish a tap from a swipe.
+    if (touch) input.value = String(latest);
+    else changed();
+  });
   input.addEventListener("keydown", (event) => {
     const increment = Number(input.dataset.increment) || Number(input.step) || 1;
     if (

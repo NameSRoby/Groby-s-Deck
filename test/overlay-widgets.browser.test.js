@@ -5,7 +5,7 @@ const test = require("node:test"),
   path = require("node:path"),
   express = require("express"),
   { chromium } = require("playwright");
-async function setup(t) {
+async function setup(t, getRecords) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widgets-ui-")),
     app = express();
   const provider = {
@@ -19,6 +19,7 @@ async function setup(t) {
   const service = require("../src/domains/overlays/stream-overlays.service")({
     runtimeDir: root,
     getProvider: () => provider,
+    ...(getRecords ? { getRecords } : {}),
   });
   app.use(express.json({ limit: "256kb" }));
   require("../src/app/core/register-stream-overlays.routes")(app, {
@@ -142,14 +143,24 @@ test("schedule rows and record source controls remain editable; every added widg
   await page.locator("#canvas").getByText("Weekend games", { exact: true }).waitFor();
   await add("Leaderboard");
   await page.getByLabel("Leaderboard source").selectOption("watchtime");
-  assert.equal(
-    await page.getByLabel("Saved stat name (for example xp or wins)").isDisabled(),
-    true,
-  );
+  assert.equal(await page.getByLabel("Saved stat name (for example xp or wins)").count(), 0);
+  await page.getByLabel("Watchtime display format").selectOption("years");
+  await page.getByLabel("Leaderboard source").selectOption("points");
+  assert.equal(await page.getByLabel("Watchtime display format").count(), 0);
+  assert.equal(await page.getByLabel("Saved stat name (for example xp or wins)").count(), 0);
   await page.getByLabel("Leaderboard source").selectOption("stats");
   assert.equal(
     await page.getByLabel("Saved stat name (for example xp or wins)").isDisabled(),
     false,
+  );
+  await page.getByLabel("Saved stat name (for example xp or wins)").fill("wins");
+  await page.getByLabel("Saved stat name (for example xp or wins)").press("Tab");
+  await page.getByLabel("Leaderboard source").selectOption("watchtime");
+  assert.equal(await page.getByLabel("Watchtime display format").inputValue(), "years");
+  await page.getByLabel("Leaderboard source").selectOption("stats");
+  assert.equal(
+    await page.getByLabel("Saved stat name (for example xp or wins)").inputValue(),
+    "wins",
   );
   const rendering = await page.evaluate(() => {
     const types = [
@@ -273,4 +284,250 @@ test("the full widget catalog keeps titles and permission hints inside scrollabl
   assert.equal(await catalog.evaluate((node) => node.scrollTop), 0);
   await catalog.getByRole("button", { name: "Text", exact: true }).click();
   assert.equal(await page.locator("#canvas .overlayLayer").count(), 1);
+});
+
+test("credits actually scroll on both axes in designer and OBS with Windows reduced motion, and edits preserve the track", async (t) => {
+  const { page, service, browser, base } = await setup(t);
+  const saved = service.save({
+    expectedRevision: 0,
+    document: {
+      widgets: [
+        {
+          id: "credits-motion",
+          type: "credits",
+          creditsSource: "manual",
+          items: ["Alice", "Bob"],
+          scrollDirection: "horizontal",
+          scrollSeconds: 5,
+          width: 600,
+          height: 90,
+        },
+      ],
+    },
+  });
+  const doc = saved.documents[0];
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  const output = await browser.newPage();
+  await output.emulateMedia({ reducedMotion: "reduce" });
+  output.setDefaultTimeout(8000);
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  const tracks = [page.locator("#canvas .creditsTrack"), output.locator("#output .creditsTrack")];
+  for (const track of tracks) {
+    await track.waitFor();
+    const handle = await track.elementHandle();
+    const before = await track.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
+    await page.waitForTimeout(650);
+    const after = await track.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
+    assert.ok(
+      Math.abs(after - before) > 2,
+      "horizontal credits must visibly move across live feed ticks",
+    );
+    assert.equal(await handle.evaluate((el) => el.isConnected), true);
+  }
+  await page.locator(".layerRow").first().click();
+  await page.getByLabel("Scroll direction", { exact: true }).selectOption("vertical");
+  const track = tracks[0],
+    handle = await track.elementHandle();
+  await page.getByLabel("Seconds per full scroll", { exact: true }).fill("10");
+  await page.getByLabel("Seconds per full scroll", { exact: true }).press("Tab");
+  assert.equal(await track.evaluate((el) => getComputedStyle(el).animationDuration), "10s");
+  assert.equal(await track.evaluate((el) => getComputedStyle(el).animationName), "creditsVertical");
+  const before = await track.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m42);
+  await page.waitForTimeout(650);
+  const after = await track.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m42);
+  assert.ok(
+    Math.abs(after - before) > 1,
+    "vertical credits must visibly move after changing direction",
+  );
+  assert.equal(await handle.evaluate((el) => el.isConnected), true);
+  await page.locator("#canvasOptions").click();
+  await page.getByLabel("Overlay animations", { exact: true }).selectOption("reduced");
+  await page.locator('[data-close="canvasDialog"]').click();
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  assert.equal(service.store.snapshot().documents[0].motion, "reduced");
+  for (const track of tracks) {
+    await page.waitForTimeout(600);
+    assert.equal(await track.evaluate((el) => getComputedStyle(el).animationName), "none");
+  }
+});
+
+test("wheel visibly rotates through designer redraws and OBS polling, then lands on its shared selected entry", async (t) => {
+  const { page, service, add, browser, base } = await setup(t);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await add("Wheel of names");
+  await page.locator("#previewSource").selectOption("sample");
+  await page.getByLabel("Spin duration (seconds)").fill("4");
+  await page.getByLabel("Spin duration (seconds)").press("Tab");
+  await page.getByRole("button", { name: "Spin wheel", exact: true }).click();
+  const disc = page.locator("#canvas .wheelDisc");
+  const handle = await disc.elementHandle();
+  await page.waitForTimeout(100);
+  const before = await disc.evaluate((el) => getComputedStyle(el).transform);
+  await page.waitForTimeout(1200);
+  assert.notEqual(await disc.evaluate((el) => getComputedStyle(el).transform), before);
+  assert.equal(
+    await handle.evaluate((el) => el.isConnected),
+    true,
+    "wheel SVG must survive redraws",
+  );
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const doc = service.store.snapshot().documents[0],
+    widget = doc.widgets[0];
+  const output = await browser.newPage();
+  await output.emulateMedia({ reducedMotion: "reduce" });
+  output.setDefaultTimeout(8000);
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  await output.locator(".wheelDisc").waitFor();
+  service.execute("overlay.game.spin", { widget: doc.id + "/" + widget.id });
+  const live = output.locator(".wheelDisc");
+  await output.getByText("Spinning...", { exact: true }).waitFor();
+  const liveHandle = await live.elementHandle();
+  const liveBefore = await live.evaluate((el) => getComputedStyle(el).transform);
+  await page.waitForTimeout(1100);
+  assert.notEqual(await live.evaluate((el) => getComputedStyle(el).transform), liveBefore);
+  assert.equal(await liveHandle.evaluate((el) => el.isConnected), true);
+  await output.getByText(/^Selected:/).waitFor();
+  const state = (await service.data()).games[doc.id][widget.id];
+  assert.equal(await output.locator(".overlayItem").textContent(), "Selected: " + state.winner);
+  assert.equal(
+    await liveHandle.evaluate((el) => el.isConnected),
+    true,
+    "revealing the result must retain the wheel",
+  );
+  const final = await live.evaluate((el) => getComputedStyle(el).transform);
+  await page.waitForTimeout(300);
+  assert.equal(await live.evaluate((el) => getComputedStyle(el).transform), final);
+});
+
+test("watchtime formatting and contextual controls match the saved OBS output without losing custom stat choices", async (t) => {
+  const model = require("../public/core/overlay-model");
+  const { page, add, service, browser, base } = await setup(t, (widgets) =>
+    Object.fromEntries(
+      widgets.map((w) => [
+        model.recordKey(w),
+        { entries: [{ player: "Viewer", value: 159515.6366 }] },
+      ]),
+    ),
+  );
+  await add("Leaderboard");
+  const stat = page.getByLabel("Saved stat name (for example xp or wins)");
+  await stat.fill("wins");
+  await stat.press("Tab");
+  await page.getByLabel("Leaderboard source").selectOption("watchtime");
+  assert.equal(await stat.count(), 0);
+  await page.getByLabel("Watchtime display format").selectOption("hours");
+  await page.locator("#canvas").getByText("2,658.59 hours watched", { exact: true }).waitFor();
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const doc = service.store.snapshot().documents[0];
+  assert.equal(doc.widgets[0].watchtimeFormat, "hours");
+  assert.equal(doc.widgets[0].statField, "wins");
+  const output = await browser.newPage();
+  output.setDefaultTimeout(8000);
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  await output.getByText("2,658.59 hours watched", { exact: true }).waitFor();
+  await page.reload();
+  await page.locator(".layerRow").first().click();
+  assert.equal(await page.getByLabel("Watchtime display format").inputValue(), "hours");
+  await page.getByLabel("Leaderboard source").selectOption("points");
+  assert.equal(await page.getByLabel("Watchtime display format").count(), 0);
+  assert.equal(await stat.count(), 0);
+  await page.getByLabel("Leaderboard source").selectOption("stats");
+  assert.equal(await stat.inputValue(), "wins");
+  await add("Supporter credits");
+  const names = page.locator('textarea[data-field="items"]');
+  await page.getByLabel("Credit names").selectOption("manual");
+  assert.equal(await names.isVisible(), true);
+  assert.equal(await page.getByLabel("Period", { exact: true }).isVisible(), false);
+  await page.getByLabel("Credit names").selectOption("followers");
+  assert.equal(await names.isVisible(), false);
+  assert.equal(await page.getByLabel("Period", { exact: true }).isVisible(), true);
+  await add("Twitch chat");
+  await page.getByLabel("Message removal").selectOption("scroll");
+  assert.equal(await page.getByLabel("Message lifetime (seconds)").isVisible(), false);
+  await page.getByLabel("Message removal").selectOption("expire");
+  assert.equal(await page.getByLabel("Message lifetime (seconds)").isVisible(), true);
+});
+
+test("credit spacing, separators and text presets persist, and preview uses the full available viewport", async (t) => {
+  const { page, add, service, browser, base } = await setup(t);
+  await add("Supporter credits");
+  await page.getByLabel("Credit names").selectOption("manual");
+  const names = page.locator('textarea[data-field="items"]');
+  await names.fill("Alice\nBob\nCarol");
+  await names.press("Tab");
+  await page.getByLabel("Scroll direction", { exact: true }).selectOption("horizontal");
+  await page.getByLabel("Pause credit scroll").check();
+  await page.getByLabel("Spacing between names (px)", { exact: true }).fill("48");
+  await page.getByLabel("Spacing between names (px)", { exact: true }).press("Tab");
+  await page.getByLabel("Separator between names (optional)").fill("�");
+  await page.getByLabel("Separator between names (optional)").press("Tab");
+  const spacing = await page
+    .locator(".creditsGroup")
+    .first()
+    .evaluate((group) => {
+      const names = group.querySelectorAll("div");
+      return {
+        gap: getComputedStyle(group).gap,
+        spacing: names[1].offsetLeft - (names[0].offsetLeft + names[0].offsetWidth),
+        separators: group.querySelectorAll(".creditSeparator").length,
+      };
+    });
+  assert.equal(spacing.gap, "48px");
+  assert.ok(spacing.spacing >= 96);
+  assert.equal(spacing.separators, 3);
+  await add("Text");
+  await page.getByLabel("Text", { exact: true }).fill("COMMUNITY NIGHT");
+  await page.getByLabel("Text", { exact: true }).press("Tab");
+  await page.locator('[data-inspector="style"]').click();
+  await page.getByLabel("Design preset", { exact: true }).selectOption("Lower third");
+  const text = page.locator('#canvas .overlayLayer[data-widget-type="text"]');
+  assert.equal(await text.evaluate((n) => getComputedStyle(n).borderLeftWidth), "5px");
+  assert.equal(
+    await text.locator(".widgetBody").evaluate((n) => getComputedStyle(n).paddingLeft),
+    "22px",
+  );
+  await page.getByLabel("Text effect", { exact: true }).selectOption("outline");
+  assert.equal(await page.getByLabel("Outline width (px)").isVisible(), true);
+  assert.equal(await page.getByLabel("Shadow / glow blur (px)").count(), 0);
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const doc = service.store.snapshot().documents[0];
+  assert.equal(doc.widgets[0].creditGap, 48);
+  assert.equal(doc.widgets[1].paddingX, 22);
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  await output.locator(".creditsGroup").first().waitFor();
+  assert.equal(
+    await output
+      .locator(".creditsGroup")
+      .first()
+      .evaluate((n) => getComputedStyle(n).gap),
+    "48px",
+  );
+  await page.locator("#zoom").selectOption("0.25");
+  await page.locator("#preview").click();
+  const geometry = await page.evaluate(() => {
+    const wrap = document.querySelector("#stageWrap").getBoundingClientRect(),
+      canvas = document.querySelector("#stageFrame").getBoundingClientRect();
+    return {
+      wrap: { x: wrap.x, y: wrap.y, width: wrap.width, height: wrap.height },
+      canvas: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height },
+      rows: getComputedStyle(document.querySelector(".workspace")).gridTemplateRows,
+    };
+  });
+  assert.ok(
+    geometry.canvas.y < geometry.wrap.y + 80,
+    "preview must not reserve an invisible sidebar row",
+  );
+  assert.ok(
+    geometry.canvas.width > geometry.wrap.width * 0.8 ||
+      geometry.canvas.height > geometry.wrap.height * 0.8,
+    "preview must fit the full available viewport",
+  );
+  await page.locator("#endPreview").click();
+  assert.equal(await page.locator("#zoom").inputValue(), "0.25");
 });

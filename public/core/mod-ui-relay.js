@@ -19,7 +19,7 @@ export function initModUiRelay(frame) {
       event.origin !== "null" ||
       !nonce ||
       value?.nonce !== nonce ||
-      value.type !== "groby.mod.call"
+      value.type !== "ravelink.mod.call"
     )
       return;
     if (!Number.isSafeInteger(value.id) || value.id < 1 || flights.size >= 8) return;
@@ -52,7 +52,7 @@ export function initModUiRelay(frame) {
     }
     if (nonce === current)
       frame.contentWindow.postMessage(
-        { type: "groby.mod.result", nonce, id: value.id, result },
+        { type: "ravelink.mod.result", nonce, id: value.id, result },
         "*",
       );
   });
@@ -61,7 +61,7 @@ export function initModUiRelay(frame) {
       close();
       nonce = globalThis.GrobyRandomId();
       modId = id;
-      frame.src = `/mods-ui/${encodeURIComponent(id)}/${encodeURIComponent(panel)}#grobyRelay=${encodeURIComponent(nonce)}`;
+      frame.src = `/mods-ui/${encodeURIComponent(id)}/${encodeURIComponent(panel)}#ravelinkRelay=${encodeURIComponent(nonce)}`;
     },
     close,
   };

@@ -45,16 +45,16 @@ test("every player replies to Twitch intake, failures and confirmed playback exa
       const harness = createFeatureRuntimeHarness(feature, {
         featureId: "song-request",
         providers: {
-          "groby.storage.v1/get": async ({ key }) => ({
+          "ravelink.storage.v1/get": async ({ key }) => ({
             ok: true,
             found: storage.has(key),
             value: structuredClone(storage.get(key)),
           }),
-          "groby.storage.v1/set": async ({ key, value }) => {
+          "ravelink.storage.v1/set": async ({ key, value }) => {
             storage.set(key, structuredClone(value));
             return { ok: true };
           },
-          "groby.storage.v1/remove": async ({ key }) => {
+          "ravelink.storage.v1/remove": async ({ key }) => {
             storage.delete(key);
             return { ok: true };
           },

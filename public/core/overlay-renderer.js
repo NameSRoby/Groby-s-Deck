@@ -27,6 +27,10 @@
         title: "Midnight City",
         artists: ["The Midnight Sessions"],
         requester: "Demo viewer",
+        durationMs: 240000,
+        positionMs: 65000,
+        observedAt: Date.now(),
+        status: "playing",
       },
       next: [{ title: "Electric Skyline", artists: ["Demo Artist"] }],
     },
@@ -76,12 +80,18 @@
     hype: { level: 2, total: 70, goal: 100 },
   });
   function content(w, data, now) {
+    if (w.type === "alerts" && root.OverlayAlertRenderer)
+      return root.OverlayAlertRenderer.content(w, data.events?.[0]);
     const extra = root.OverlayExtraRenderer?.render(w, data, now);
     if (extra) return extra;
     const body = el("div"),
       stream = data.twitch?.stream,
       music = data.music;
-    const label = (value) => body.append(el("span", w.label ? w.label + " " + value : value));
+    const label = (value) => {
+      const words = el("span", w.label ? w.label + " " + value : value);
+      words.className = "itemText";
+      body.append(words);
+    };
     if (w.type === "credits" && root.renderOverlayCredits)
       body.append(root.renderOverlayCredits(w, data, now));
     else if (["slideshow", "rotating-text"].includes(w.type)) {
@@ -117,9 +127,14 @@
         } else media.alt = w.name;
         body.append(media);
       }
-    } else if (w.type === "clock") label(new Date(now).toLocaleTimeString());
+    } else if (w.type === "clock")
+      label(new Date(now).toLocaleTimeString([], { timeZone: w.timezone }));
     else if (w.type === "countdown")
-      label(duration(w.endsAt ? (w.endsAt - now) / 1000 : w.duration));
+      label(
+        duration(
+          w.countdownPaused ? w.pausedSeconds : w.endsAt ? (w.endsAt - now) / 1000 : w.duration,
+        ),
+      );
     else if (w.type === "now-playing") {
       if (music?.current) {
         body.append(
@@ -166,6 +181,7 @@
         rows = rows.filter(
           (row) =>
             !(w.hideBotMessages && row.isAppMessage) &&
+            !(w.hideCommands && /^\s*!/.test(row.message || "")) &&
             !(w.hiddenAccounts || []).includes((row.login || row.name || "").toLowerCase()),
         );
       if (w.type === "alerts")
@@ -188,7 +204,11 @@
         item.dataset.itemKey = row.id;
         body.append(item);
       });
-    } else if (w.type === "poll" && data.poll && !data.poll.ended) {
+    } else if (
+      w.type === "poll" &&
+      data.poll &&
+      (!data.poll.ended || now - data.poll.at < w.lingerSeconds * 1000)
+    ) {
       body.append(el("strong", data.poll.title));
       const total = data.poll.choices.reduce((sum, row) => sum + row.votes, 0);
       data.poll.choices.forEach((row) => {
@@ -198,7 +218,11 @@
         bar.value = row.votes;
         body.append(bar);
       });
-    } else if (w.type === "hype-train" && data.hype && !data.hype.ended) {
+    } else if (
+      w.type === "hype-train" &&
+      data.hype &&
+      (!data.hype.ended || now - data.hype.at < w.lingerSeconds * 1000)
+    ) {
       label("Hype Train - Level " + data.hype.level);
       const bar = el("progress");
       bar.max = data.hype.goal || 1;
@@ -243,10 +267,18 @@
       if (!doc.widgets.some((w) => w.id === id && w.type === "alerts")) queue.delete(id);
     host.style.width = doc.width + "px";
     host.style.height = doc.height + "px";
+    host.dataset.reducedMotion = String(
+      doc.motion === "reduced" ||
+        (doc.motion === "system" && matchMedia("(prefers-reduced-motion: reduce)").matches),
+    );
     const widgets = new Set(doc.widgets.map((widget) => widget.id));
     const layers = new Map();
     for (const node of host.children) layers.set(node.dataset.widgetId, node);
-    for (const [id, node] of layers) if (!widgets.has(id)) node.remove();
+    for (const [id, node] of layers)
+      if (!widgets.has(id)) {
+        root.OverlayAlertRenderer?.stop(node);
+        node.remove();
+      }
     doc.widgets.forEach((w, index) => {
       let node = layers.get(w.id);
       if (!node) {
@@ -271,6 +303,8 @@
         fontSize: w.fontSize + "px",
         fontFamily: root.OverlayFonts.family(w),
         fontWeight: w.bold ? "700" : "400",
+        lineHeight: String(w.lineHeight),
+        letterSpacing: w.letterSpacing + "px",
         textAlign: w.align,
         backgroundColor:
           w.background +
@@ -280,7 +314,15 @@
         borderRadius: w.radius + "px",
       });
       node.dataset.locked = String(w.locked);
+      root.OverlayTextStyle.apply(node, w);
+      node.dataset.chatLayout = w.chatLayout;
+      node.dataset.simpleText = String(root.OverlayTextStyle.simple.has(w.type));
+      node.dataset.listLayout = w.listLayout;
       root.OverlayMotion?.apply(node, w);
+      if (!w.visible) {
+        root.OverlayAlertRenderer?.stop(node);
+        return;
+      }
       const body = node.firstElementChild;
       // An unchanged media widget keeps its element and playback across live feed ticks.
       if (w.type === "image" || w.type === "video") {
@@ -320,7 +362,10 @@
         }
         state.seen = state.seen.slice(-100);
         state.pending = state.pending.slice(0, 20);
-        if (state.current && now - state.started >= w.lifetime * 1000) state.current = null;
+        const duration = state.current
+          ? root.OverlayAlertRules.select(w, state.current).lifetime
+          : w.lifetime;
+        if (state.current && now - state.started >= duration * 1000) state.current = null;
         if (!state.current && state.pending.length) {
           state.current = state.pending.shift();
           state.started = now;
@@ -347,14 +392,38 @@
           if (!chatIds.has(row.dataset.itemKey)) row.remove();
         }
       if (node.contentSignature !== signature) {
-        if (["chat", "activity", "queue"].includes(w.type) && root.OverlayMotion)
+        if (["chat", "activity", "queue", "alerts"].includes(w.type) && root.OverlayMotion) {
+          body.className = next.className;
           root.OverlayMotion.reconcile(body, next, w);
-        else if (["clock", "countdown", "uptime", "goal", "poll", "hype-train"].includes(w.type))
-          body.replaceChildren(...next.childNodes);
-        else body.replaceWith(next);
+        } else if (
+          [
+            "clock",
+            "countdown",
+            "uptime",
+            "goal",
+            "poll",
+            "hype-train",
+            "now-playing",
+            "wheel",
+            "credits",
+          ].includes(w.type)
+        ) {
+          root.OverlayMotion.syncBody(body, next);
+        } else body.replaceWith(next);
         node.contentSignature = signature;
       }
+      // Viewport direction/speed/size can change without changing innerHTML.
+      root.OverlayMotion.syncAttributes(node.firstElementChild, next);
       root.OverlayExtraRenderer?.motion(node, w, view, now);
+      if (w.type === "alerts")
+        root.OverlayAlertRenderer?.sync(
+          node,
+          w,
+          view.events?.[0],
+          options.preview
+            ? options.audio === true && (view.sample === true || view.events?.[0]?.sample === true)
+            : !options.editor,
+        );
       if (options.editor && !hasContent && !["shape", "image", "video"].includes(w.type))
         node.dataset.empty = emptyMessage(w, data);
       else delete node.dataset.empty;
@@ -375,7 +444,22 @@
       if (source === "chat") return w.name + " - waiting for chat messages.";
       const credits = data.twitch?.credits?.[source];
       if (credits?.ok) return w.name + " - no matching " + source + " in this period.";
-      if (credits) return w.name + " - Twitch supporter list unavailable. Check your connection.";
+      if (credits) {
+        const messages = {
+          401: "reconnect Twitch to load " + source + ".",
+          403: "Twitch denied access to " + source + ". Check Twitch permissions.",
+          429: "Twitch rate limit reached. Retrying shortly.",
+        };
+        return (
+          w.name +
+          " - " +
+          (messages[credits.error === "twitch_reauthorization_required" ? 401 : credits.status] ||
+            "Twitch could not load " +
+              source +
+              (credits.status ? " (HTTP " + credits.status + ")" : "") +
+              ". Retrying shortly.")
+        );
+      }
       return w.name + " - loading " + source + " from Twitch.";
     }
     if (w.type === "goal" && w.goalSource === "counter")

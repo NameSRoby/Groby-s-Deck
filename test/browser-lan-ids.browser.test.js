@@ -57,7 +57,7 @@ test("plain HTTP browser controls and sandboxed Song Request work without random
 window.playerCalls=[];
 addEventListener('message',event=>{
  const frame=document.querySelector('#player'); const message=event.data;
- if(event.source!==frame.contentWindow||message?.channel!=='groby-feature-ui-v1'||message.type!=='call')return;
+ if(event.source!==frame.contentWindow||message?.channel!=='ravelink-feature-ui-v1'||message.type!=='call')return;
  playerCalls.push(message);
  let value;
  if(message.capability==='song.player.preferences.v1')value={ok:true,player:'youtube',youtubePlayback:'embed'};
@@ -72,7 +72,7 @@ addEventListener('message',event=>{
   });
   const browser = await chromium.launch({
     headless: true,
-    args: ["--host-resolver-rules=MAP groby-lan.test 127.0.0.1", "--no-proxy-server"],
+    args: ["--host-resolver-rules=MAP ravelink-lan.test 127.0.0.1", "--no-proxy-server"],
   });
   t.after(async () => {
     await browser.close();
@@ -82,7 +82,7 @@ addEventListener('message',event=>{
   const page = await browser.newPage(),
     errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  const base = `http://groby-lan.test:${server.address().port}`;
+  const base = `http://ravelink-lan.test:${server.address().port}`;
   await page.goto(base, { waitUntil: "domcontentloaded" });
   assert.equal(await page.evaluate(() => isSecureContext), false);
   assert.equal(await page.evaluate(() => typeof crypto.randomUUID), "undefined");

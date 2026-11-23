@@ -524,7 +524,7 @@ function createSystemWidgetEventController(deps = {}) {
     const config = normalizeWidgetConfig(payload);
     const eventEnvelope = unwrapEventEnvelope(payload);
     const meta = parseRedemptionEnvelope(eventEnvelope);
-    if (meta.listener === "groby-widget-ready") counters.ready += 1;
+    if (meta.listener === "ravelink-widget-ready") counters.ready += 1;
     const action = resolveRewardAction(meta, config);
     if (!action) {
       counters.irrelevant += 1;

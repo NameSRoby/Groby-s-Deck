@@ -162,7 +162,7 @@ module.exports = function createModNetworkService(options = {}) {
       return { ok: false, error: "network_request_invalid" };
     const headers = {
       accept: "application/json",
-      "user-agent": "GrobyDeck-Mod-Gateway/1",
+      "user-agent": "RaveLink-Mod-Gateway/1",
     };
     if (input.contentType === "application/json") headers["content-type"] = "application/json";
     let body = Buffer.alloc(0);

@@ -44,7 +44,7 @@ function build(destination = path.join(root, "dist/youtube-browser")) {
         ? {
             browser_specific_settings: {
               gecko: {
-                id: "youtube-browser@groby.local",
+                id: "youtube-browser@ravelink.local",
                 strict_min_version: "128.0",
                 data_collection_permissions: { required: ["none"] },
               },

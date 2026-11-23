@@ -2,6 +2,24 @@
 const ordinary = require("./command-context-variables");
 const rows = [
   [
+    "addgoal community bits 10000",
+    "Goals",
+    "Create or update a named Twitch goal: name, tracking preset and positive target. Keep this in broadcaster-only commands. Tracks real Twitch events; it does not create a Twitch-hosted Creator Goal.",
+    "community: Bits goal set to 10000.",
+  ],
+  [
+    "resetgoal community",
+    "Goals",
+    "Reset a named goal's progress while retaining its target, tracking source and deadline. Use in broadcaster-only commands.",
+    "community: progress reset; target kept.",
+  ],
+  [
+    "goal community",
+    "Goals",
+    "Read a named goal's progress and target. Suitable for a timer message or viewer command.",
+    "community: 2500 / 10000",
+  ],
+  [
     "resetstats xp",
     "Saved leaderboards",
     "Reset one numeric field for everyone in this broadcaster's player records. Defaults to zero; use resetstats rating 1000 for a different starting value. Other fields are preserved. Prints nothing.",
@@ -194,6 +212,6 @@ module.exports = [
     group,
     description,
     output,
-    changes: /^(addstat|setstat|resetstats|saveboard)/.test(syntax),
+    changes: /^(addstat|setstat|resetstats|saveboard|addgoal|resetgoal)/.test(syntax),
   })),
 ];

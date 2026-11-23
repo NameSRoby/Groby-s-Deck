@@ -1,5 +1,5 @@
 /** Main dashboard and editable libraries; one shared poll, no browser-owned audio. */
-globalThis.GrobyDeckMusicLibrary = {
+globalThis.RaveLinkMusicLibrary = {
   create({ $, request, action, call, renderView, getView, savedEffectsUI }) {
     let library = null,
       profiles = [],

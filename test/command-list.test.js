@@ -223,7 +223,7 @@ test("command list clipboard uses the active first-party host without reading cl
     res
       .type("html")
       .send(
-        `<iframe id="surface" sandbox="allow-scripts" data-src="/child" style="width:100%;height:1000px;border:0"></iframe><script>window.grobyFeatureEvents={subscribe:()=>()=>{}};window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.__copied.push(text)}});(${require("../src/capabilities/feature-platform/http/feature-ui-relay").toString()})(${JSON.stringify({ featureId: "twitch-integration", pageId: req.query.wrong ? "quotes" : "command-list", surface: "panel", capabilities: ["twitch.automations.v1"], pageIds: [] })});</script>`,
+        `<iframe id="surface" sandbox="allow-scripts" data-src="/child" style="width:100%;height:1000px;border:0"></iframe><script>window.ravelinkFeatureEvents={subscribe:()=>()=>{}};window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.__copied.push(text)}});(${require("../src/capabilities/feature-platform/http/feature-ui-relay").toString()})(${JSON.stringify({ featureId: "twitch-integration", pageId: req.query.wrong ? "quotes" : "command-list", surface: "panel", capabilities: ["twitch.automations.v1"], pageIds: [] })});</script>`,
       ),
   );
   const server = await new Promise((resolve) => {

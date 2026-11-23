@@ -1,6 +1,6 @@
 # Creating Groby’s Deck mods
 
-This guide covers the mod API shipped with Groby’s Deck 0.8. Start with the
+This guide covers the mod API shipped with Groby’s Deck 0.7.6. Start with the
 [runnable starter](../packages/mod-sdk/starter), then use the
 [complete mod API reference](MOD_API_REFERENCE.md) and
 [application API map](API_REFERENCE.md). The mod protocol is version 1; it is
@@ -10,8 +10,9 @@ versioned separately from the application and optional features.
 
 Keep a mod's manifest `id` and contributed action IDs stable when moving its
 folder, renaming its display label or updating its version. Saved deck buttons
-and automations refer to these IDs. You can move the package without changing
-its action IDs.
+and automations refer to these IDs, not the package's folder path. The 0.8
+upgrade repairs the clipping example's old rebrand reference once; permission
+approval and activation still follow the normal Mods workflow.
 
 | What you want                                                                                  | Where to start                                                                       |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -28,22 +29,24 @@ adapters. The SDK wraps the host context; it does not install privileges.
 ## Current availability and trust
 
 Groby's Deck includes mod discovery in its normal startup. Drop an extracted
-mod folder, `.grobydeckmod` or ZIP directly into **`mods/`**, open **More → Updates & packages → Mods**,
-and confirm **Activate**.
+mod folder or a ZIP directly into **`mods/`**, open **Mods**, and confirm **Activate**.
 No installer switch, special launch command, npm install or Core source edit is
 needed. Declared buttons appear in the Dashboard action library and declared UI
-panels appear in Mods. Place all packages in `mods/`.
+panels appear in Mods. The former `mod/` folder is still watched for compatibility;
+new installations create only `mods/`. Version 0.7.6 predates this change.
 Explicit Enable and Disable choices are remembered locally. On startup, only
 previously enabled mods are retried through the normal integrity, permission
 and runtime checks; discovering or approving a new mod does not enable it.
 The action picker explains when a disabled mod must be enabled in Mods.
-For a source checkout, `npm.cmd start` runs the normal profile and
-`npm.cmd run start:core` runs Core alone.
+A source checkout can also use `npm.cmd run start:mods`; strict Core
+uses `npm.cmd run start:core`. Do not run two servers on the same port.
 
-Windows Node cannot fully block undeclared network access by a community worker.
-The app asks the operator to accept reduced isolation during activation and remembers
-that decision for the exact reviewed package. A changed package requires review again.
-Approve code from a publisher you trust.
+On the bundled Windows runtime, full network denial for third-party Node workers
+is not available. Normal activation fails closed unless the operator explicitly
+accepts reduced isolation in the Mods review flow. That choice is per execution;
+it does not turn the SDK into a malware sandbox. Only run trusted packages.
+The bundled adapters have a separate, exact-inventory first-party exception.
+Do not copy that exception into community packages or enable an unsafe default.
 
 You can develop and test with fake providers without running a production worker.
 The standalone SDK is in `packages/mod-sdk`; no npm-registry publication is
@@ -61,8 +64,6 @@ Copy-Item packages/mod-sdk/starter runtime/my-first-mod -Recurse
 npm.cmd run mod:validate -- runtime/my-first-mod
 npm.cmd run mod:package -- runtime/my-first-mod runtime/my-first-mod.zip
 ```
-
-For a real provider example, see [Twitch Clip Button](../mods/twitch-clips). It declares and consumes the host clipping capability through the same review as other drop-in mods.
 
 The starter's button toggles its own in-memory boolean and reports that same
 state. It has no network, storage, credential or desktop permission. `status`
@@ -124,11 +125,11 @@ create Twitch subscriptions, global shortcuts or arbitrary event feeds.
 ## Call a host capability
 
 Declare both the consumed capability and its permission/resource budget. A storage
-example needs `consumes: ["groby.storage.v1"]`, `permissions.storage: true`
+example needs `consumes: ["ravelink.storage.v1"]`, `permissions.storage: true`
 and nonzero `resources.storageBytes`:
 
 ```js
-const reply = await context.callCapability("groby.storage.v1", "set", {
+const reply = await context.callCapability("ravelink.storage.v1", "set", {
   key: "preferences",
   value: { enabled: true },
 });
@@ -146,7 +147,7 @@ capability names without that suffix. Availability and provider compatibility
 still need checking. Do not infer availability merely because you declared it.
 
 The [reference](MOD_API_REFERENCE.md) lists every shipped host capability, its
-methods, payloads, bounds and limitations. Use `groby.controls.v1` for the app’s existing OBS, keyboard, audio, playback,
+methods, payloads, bounds and limitations. Use `ravelink.controls.v1` for the app’s existing OBS, keyboard, audio, playback,
 light and Twitch actions. The separate Core HTTP API remains for external clients;
 mods do not receive its tokens or direct service references.
 
@@ -185,14 +186,14 @@ script; the frame does not fetch third-party code or arbitrary HTTP resources.
 The panel can call its own mod or an approved consumed capability:
 
 ```js
-const result = await window.groby.call("example.settings.v1", "save", {
+const result = await window.ravelink.call("example.settings.v1", "save", {
   enabled: document.querySelector("input").checked,
 });
 ```
 
 Declare `example.settings.v1` in `provides` and implement `handleRequest` in your
 worker. Validate that payload before changing state. To use an app action instead,
-declare `groby.controls.v1` in `consumes`, read its catalog, and pass the selected
+declare `ravelink.controls.v1` in `consumes`, read its catalog, and pass the selected
 action's parameters to `execute`. The operator reviews that access during
 activation. A disabled mod cannot keep using APIs from a previously opened panel.
 
@@ -227,7 +228,7 @@ test("status is passive and toggle changes only owned state", async () => {
 
 Save this test at the source checkout root, adjust paths for your project, then
 run `node --test your-mod.test.cjs`. Fake host providers use keys such as
-`"groby.storage.v1/get"`. Test rejection, cancellation, missing providers,
+`"ravelink.storage.v1/get"`. Test rejection, cancellation, missing providers,
 restart/migration behavior, passive status and duplicate commands. The harness
 tests handler logic; it does not enforce OS isolation, package hashes, resource
 budgets or broker admission. Use production validators as a separate check.
@@ -240,7 +241,7 @@ exclude credentials, personal data, dependency caches and development output.
 Keep portable forward-slash paths. Links, traversal, duplicate/colliding names,
 undeclared files and mismatched hashes are rejected.
 
-For the unchanged starter inventory, update hashes explicitly:
+For the unchanged two-file starter layout, update hashes explicitly:
 
 ```powershell
 $modFolder = (Resolve-Path runtime/my-first-mod).Path
@@ -264,18 +265,18 @@ Removing an inbox ZIP does not uninstall its private installed copy.
 
 ## Troubleshooting and compatibility
 
-| Symptom                              | Check                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory.                          |
-| Integrity error                      | Recompute all changed file hashes after final formatting/building.                                     |
-| Approval required                    | Review the exact current fingerprint; permission or resource changes require renewed approval.         |
-| Network isolation unavailable        | Current runtime limitation; use the test harness or review reduced isolation in Mods for trusted code. |
-| Action missing                       | Mod active; `contributes.actions` valid; action capability present in `provides`.                      |
-| Provider unavailable/ambiguous       | Required provider active and compatible; explicitly select its `providerId` where needed.              |
-| Storage/network permission denied    | Declare capability, exact permission and a nonzero resource budget.                                    |
-| Quarantined or disabled              | Inspect lifecycle/error, frame size, timeouts, resource ceilings and repeated malformed requests.      |
-| UI panel cannot call Core            | Expected: panels have no direct API or network bridge. Use contributed actions.                        |
-| Wrong state after an external change | Read confirmed provider state; do not maintain a guessed copy of another app's toggle.                 |
+| Symptom                              | Check                                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory. Legacy `mod/` is also recognized. |
+| Integrity error                      | Recompute all changed file hashes after final formatting/building.                                              |
+| Approval required                    | Review the exact current fingerprint; permission or resource changes require renewed approval.                  |
+| Network isolation unavailable        | Current runtime limitation; use the test harness or explicitly review reduced isolation for trusted code.       |
+| Action missing                       | Mod active; `contributes.actions` valid; action capability present in `provides`.                               |
+| Provider unavailable/ambiguous       | Required provider active and compatible; explicitly select its `providerId` where needed.                       |
+| Storage/network permission denied    | Declare capability, exact permission and a nonzero resource budget.                                             |
+| Quarantined or disabled              | Inspect lifecycle/error, frame size, timeouts, resource ceilings and repeated malformed requests.               |
+| UI panel cannot call Core            | Expected: panels have no direct API or network bridge. Use contributed actions.                                 |
+| Wrong state after an external change | Read confirmed provider state; do not maintain a guessed copy of another app's toggle.                          |
 
 Keep older stored settings readable, separate state migrations from external
 effects, release all owned resources on shutdown and bound every cache/queue.

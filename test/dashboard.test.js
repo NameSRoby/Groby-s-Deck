@@ -163,7 +163,7 @@ test("managed reward toggle owns its read/change lock and respects closed song i
 });
 
 test("Core-only dashboard works with empty private state and rejects foreign readers", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-dashboard-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-dashboard-"));
   const created = createCoreServer({ runtimeDir, dryRun: true });
   t.after(async () => {
     await created.services.lifecycle.stopAll();
@@ -207,7 +207,7 @@ test("Core-only dashboard works with empty private state and rejects foreign rea
   );
 });
 test("oversized dashboard preferences fall back before reading unbounded local data", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-dashboard-limit-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-dashboard-limit-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, "system"));
   const file = path.join(root, "system/dashboard.json");
@@ -230,7 +230,7 @@ test("oversized dashboard preferences fall back before reading unbounded local d
 });
 test("dashboard quick actions remain usable on desktop and phone without running real rewards or lights", async (t) => {
   const { chromium } = require("playwright");
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-dashboard-browser-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-dashboard-browser-"));
   const created = createCoreServer({ runtimeDir, dryRun: true });
   const browser = await chromium.launch({ headless: true });
   t.after(async () => {

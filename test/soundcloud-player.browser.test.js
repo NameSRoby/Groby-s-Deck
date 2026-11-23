@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("SoundCloud player imports public playlists, confirms PLAY, preserves FIFO, and moderates active tracks", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-soundcloud-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-soundcloud-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

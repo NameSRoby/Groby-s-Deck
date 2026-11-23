@@ -438,7 +438,7 @@ dialog header button {
 .previewMode .layersPanel,
 .previewMode .inspectorPanel,
 .previewMode .canvasToolbar {
-  visibility: hidden;
+  display: none;
 }
 .previewMode #canvas .overlayLayer {
   outline: none;
@@ -827,6 +827,15 @@ dialog header button {
 }
 .previewMode .workspace {
   grid-template-columns: minmax(0, 1fr);
+}
+.previewMode #stageWrap {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.previewMode .canvasPanel {
+  min-height: 0;
+  padding-bottom: 64px;
 }
 @media (max-width: 760px) {
   .workspace,

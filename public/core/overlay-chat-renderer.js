@@ -28,6 +28,14 @@
   }
 
   root.renderOverlayChat = (parent, row, widget) => {
+    if (widget.showTimestamps && Number.isFinite(row.at)) {
+      const time = document.createElement("time");
+      time.className = "chatTimestamp";
+      time.dateTime = new Date(row.at).toISOString();
+      time.textContent =
+        new Date(row.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " ";
+      parent.append(time);
+    }
     if (widget.showChatBadges) {
       for (const badge of row.badges || []) {
         if (badgeUrl.test(badge.url)) parent.append(image("chatBadge", badge.title, badge.url));
@@ -38,7 +46,7 @@
     username.textContent = row.name;
     if (widget.showChatColors && /^#[a-f0-9]{6}$/i.test(row.color || ""))
       username.style.color = row.color;
-    parent.append(username, ": ");
+    parent.append(username, widget.chatLayout === "stacked" ? " " : ": ");
     const parts =
       row.fragments?.map((part) => part.text).join("") === row.message
         ? row.fragments

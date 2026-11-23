@@ -5,7 +5,7 @@
  */
 (() => {
   const api = globalThis.browser || globalThis.chrome;
-  const site = globalThis.GrobyDeckYouTubeSite.create(document, location);
+  const site = globalThis.RaveLinkYouTubeSite.create(document, location);
   let running = false,
     timer,
     result = null,

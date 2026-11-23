@@ -16,7 +16,7 @@ function body(id) {
 }
 
 test("widget authentication attempts are bounded by IP before token verification and independent intake admission", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-auth-bound-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-auth-bound-"));
   const { app, services } = createCoreServer({
     runtimeDir,
     dryRun: true,
@@ -53,7 +53,7 @@ test("widget authentication attempts are bounded by IP before token verification
 });
 
 test("widget intake authenticates before its independent rate bucket and emits Retry-After", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-v2-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-v2-http-"));
   const { app, services } = createCoreServer({
     runtimeDir,
     dryRun: true,
@@ -98,7 +98,7 @@ test("widget intake authenticates before its independent rate bucket and emits R
 });
 
 test("managed widget token enables hosted CORS immediately and preserves a rotation overlap", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-managed-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-managed-http-"));
   const generated = ["m".repeat(43), "n".repeat(43), "o".repeat(43)];
   const { app, services } = createCoreServer({
     runtimeDir,
@@ -182,7 +182,7 @@ test("managed widget token enables hosted CORS immediately and preserves a rotat
 });
 
 test("environment-owned widget token cannot be rotated through HTTP", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-env-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-env-http-"));
   const { app, services } = createCoreServer({
     runtimeDir,
     dryRun: true,
@@ -207,7 +207,7 @@ test("environment-owned widget token cannot be rotated through HTTP", async (t) 
 });
 
 test("core reports a missing targeted capability without falling through to light handling", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-target-http-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-target-http-"));
   const { app, services } = createCoreServer({ runtimeDir, dryRun: true });
   let handled = 0;
   const original = services.widgetController.handleWidgetEvent;
@@ -240,7 +240,7 @@ test("core reports a missing targeted capability without falling through to ligh
 });
 
 test("StreamElements Song Request intake reaches the supervised YouTube queue without Helix", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-song-http-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-song-http-"));
   const featuresRoot = path.join(root, "installed");
   fs.mkdirSync(featuresRoot, { recursive: true });
   fs.cpSync(

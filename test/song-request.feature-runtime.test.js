@@ -23,7 +23,7 @@ test("SoundCloud source uses confirmed local metadata without starting a Windows
   const harness = createFeatureRuntimeHarness(feature, {
     featureId: "song-request",
     providers: {
-      "groby.storage.v1/get": async (input) => ({
+      "ravelink.storage.v1/get": async (input) => ({
         ok: true,
         found: input.key === "queue-state-v1",
         value:
@@ -219,12 +219,12 @@ test("hosted mode restores and writes bounded snapshots without requiring respon
   const harness = createFeatureRuntimeHarness(feature, {
     featureId: "song-request",
     providers: {
-      "groby.storage.v1/get": async () => ({
+      "ravelink.storage.v1/get": async () => ({
         ok: true,
         found: false,
         value: null,
       }),
-      "groby.storage.v1/set": async (payload) => {
+      "ravelink.storage.v1/set": async (payload) => {
         if (payload.key === "queue-state-v1") saved = payload.value;
         return { ok: true };
       },
@@ -243,16 +243,16 @@ test("hosted mode restores and writes bounded snapshots without requiring respon
 test("completed chat requests are archived only when history is enabled and survive restart", async () => {
   const storage = new Map();
   const providers = {
-    "groby.storage.v1/get": async (payload) => ({
+    "ravelink.storage.v1/get": async (payload) => ({
       ok: true,
       found: storage.has(payload.key),
       value: storage.get(payload.key),
     }),
-    "groby.storage.v1/set": async (payload) => {
+    "ravelink.storage.v1/set": async (payload) => {
       storage.set(payload.key, structuredClone(payload.value));
       return { ok: true };
     },
-    "groby.storage.v1/remove": async (payload) => ({
+    "ravelink.storage.v1/remove": async (payload) => ({
       ok: true,
       removed: storage.delete(payload.key),
     }),
@@ -333,17 +333,17 @@ test("completed playlist imports transfer in bounded pages and survive restart",
     durationMs: 120000,
   }));
   const providers = {
-    "groby.storage.v1/get": async (payload) => ({
+    "ravelink.storage.v1/get": async (payload) => ({
       ok: true,
       found: storage.has(payload.key),
       value: storage.get(payload.key),
     }),
-    "groby.storage.v1/set": async (payload) => {
+    "ravelink.storage.v1/set": async (payload) => {
       writes.push(payload.key);
       storage.set(payload.key, structuredClone(payload.value));
       return { ok: true };
     },
-    "groby.storage.v1/remove": async (payload) => ({
+    "ravelink.storage.v1/remove": async (payload) => ({
       ok: true,
       removed: storage.delete(payload.key),
     }),
@@ -678,12 +678,12 @@ test("each unhealthy optional adapter is isolated from queue decisions", async (
   for (const target of optional) {
     await t.test(target, async () => {
       const providers = {
-        "groby.storage.v1/get": async () => ({
+        "ravelink.storage.v1/get": async () => ({
           ok: true,
           found: false,
           value: null,
         }),
-        "groby.storage.v1/set": async () => ({ ok: true }),
+        "ravelink.storage.v1/set": async () => ({ ok: true }),
       };
       for (const key of optional)
         providers[key] = async () =>

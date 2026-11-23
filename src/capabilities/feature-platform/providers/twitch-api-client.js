@@ -28,6 +28,8 @@ const ALLOWED_SCOPES = new Set([
   "channel:read:hype_train",
   "channel:read:polls",
   "channel:read:predictions",
+  "channel:read:goals",
+  "channel:read:charity",
 ]);
 
 function text(value, maximum = 512) {
@@ -699,7 +701,8 @@ function createTwitchApiClient(options = {}) {
           const id = text(row?.user_id, 80);
           if (id) ids.push(id);
         }
-        cursor = text(result.body?.pagination?.cursor, 160);
+        cursor =
+          typeof result.body?.pagination?.cursor === "string" ? result.body.pagination.cursor : "";
         if (!cursor) break;
       }
       return { ok: true, ids: [...new Set(ids)].slice(0, 1000) };

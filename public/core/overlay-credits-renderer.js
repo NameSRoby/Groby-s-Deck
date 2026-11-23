@@ -8,6 +8,9 @@ globalThis.renderOverlayCredits = (w, data, now) => {
   viewport.style.setProperty("--credit-seconds", w.scrollSeconds + "s");
   viewport.style.setProperty("--credit-width", w.width + "px");
   viewport.style.setProperty("--credit-height", w.height + "px");
+  viewport.style.setProperty("--credit-gap", w.creditGap + "px");
+  viewport.dataset.reverse = String(w.scrollReverse);
+  viewport.dataset.paused = String(w.scrollPaused);
   let names = w.items || [];
   const credits = data.twitch?.credits,
     source = credits?.[w.creditsSource];
@@ -35,9 +38,25 @@ globalThis.renderOverlayCredits = (w, data, now) => {
       const item = document.createElement("div");
       item.textContent = name;
       group.append(item);
+      if (w.creditSeparator) {
+        const separator = document.createElement("span");
+        separator.className = "creditSeparator";
+        separator.textContent = w.creditSeparator;
+        separator.setAttribute("aria-hidden", "true");
+        group.append(separator);
+      }
     }
     track.append(group);
   }
   viewport.append(track);
-  return viewport;
+  const wrap = document.createElement("div");
+  wrap.className = "creditsWidget";
+  if (w.label) {
+    const heading = document.createElement("strong");
+    heading.className = "creditsHeading";
+    heading.textContent = w.label;
+    wrap.append(heading);
+  }
+  wrap.append(viewport);
+  return wrap;
 };

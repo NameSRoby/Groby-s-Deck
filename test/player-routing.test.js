@@ -14,12 +14,12 @@ test("startup restores Automatic independently of the request player without lau
     const controls = [];
     const harness = createFeatureRuntimeHarness(feature, {
       providers: {
-        "groby.storage.v1/get": ({ key }) => ({
+        "ravelink.storage.v1/get": ({ key }) => ({
           ok: true,
           found: storage.has(key),
           value: storage.get(key),
         }),
-        "groby.storage.v1/set": ({ key, value }) => {
+        "ravelink.storage.v1/set": ({ key, value }) => {
           storage.set(key, value);
           return { ok: true };
         },
@@ -54,12 +54,12 @@ test("selected player exclusively owns shared intake and inactive player endpoin
     durationMs: 1000,
   });
   const providers = {
-    "groby.storage.v1/get": (input) => ({
+    "ravelink.storage.v1/get": (input) => ({
       ok: true,
       value: storage.get(input.key),
       found: storage.has(input.key),
     }),
-    "groby.storage.v1/set": (input) => {
+    "ravelink.storage.v1/set": (input) => {
       storage.set(input.key, input.value);
       return { ok: true };
     },

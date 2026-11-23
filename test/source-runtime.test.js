@@ -7,7 +7,7 @@ const { verify } = require("../scripts/verify-source-runtime");
 const { spawnSync } = require("node:child_process");
 
 test("source setup rejects a different runtime graph and missing production dependencies", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-runtime-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-runtime-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const source = path.join(root, "source");
   const runtime = path.join(root, "runtime");
@@ -50,7 +50,7 @@ test(
     skip: process.platform !== "win32",
   },
   (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby source setup "));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink source setup "));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     fs.mkdirSync(path.join(root, "scripts"));
     for (const name of ["setup-source.ps1", "source-runtime.json"]) {

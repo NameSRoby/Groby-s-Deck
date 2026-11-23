@@ -25,7 +25,7 @@ const files = new Map([
     "package.json",
     JSON.stringify(
       {
-        name: "groby-tidal-companion",
+        name: "ravelink-tidal-companion",
         version: "0.1.9",
         main: "injector.cjs",
         private: true,
@@ -41,6 +41,7 @@ for (const file of [
   "transform.cjs",
   "native-bridge.cjs",
   "LICENSE.TidaLuna",
+  "LICENSE.RaveLink",
   "LICENSE.GrobysDeck",
   "NOTICE.md",
 ])

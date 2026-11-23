@@ -7,7 +7,7 @@ const path = require("node:path");
 const createCoreServer = require("../src/app/core/create-core-server");
 
 test("widget template generation has independent rate-limited admission", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-template-limit-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-template-limit-"));
   const created = createCoreServer({
     runtimeDir,
     dryRun: true,
@@ -46,7 +46,7 @@ test("song request player restricts parent messaging to its serving origin", () 
 });
 
 test("invalid widget credentials are rate-limited before template authorization", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-template-auth-limit-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-template-auth-limit-"));
   const created = createCoreServer({ runtimeDir, dryRun: true });
   assert.equal(created.services.widgetTokenVault.rotate().ok, true);
   const server = await new Promise((resolve) => {

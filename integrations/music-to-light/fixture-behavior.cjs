@@ -18,7 +18,9 @@ function validate(row) {
     throw fault();
   if (
     row.assignedEffect !== undefined &&
-    !["pulse", "wave", "bounce", "handoff"].includes(row.assignedEffect)
+    !["pulse", "wave", "bounce", "handoff"].includes(
+      require("./legacy-response.cjs").effect(row.assignedEffect),
+    )
   )
     throw fault();
   if (

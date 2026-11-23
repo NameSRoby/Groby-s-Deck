@@ -50,7 +50,9 @@ globalThis.setupOverlayLivePreview = (a) => {
       if (session === client) {
         live = next;
         $("feedStatus").textContent =
-          live.gameStorageError || (live.connected ? "Live Twitch feed" : "Twitch disconnected");
+          live.goalStorageError ||
+          live.gameStorageError ||
+          (live.connected ? "Live Twitch feed" : "Twitch disconnected");
       }
     } catch (error) {
       if (session === client) {
@@ -128,11 +130,14 @@ globalThis.setupOverlayLivePreview = (a) => {
       id: globalThis.GrobyRandomId(),
       sequence: now,
       type,
+      sample: true,
       name: $("sampleName").value.trim() || "DemoViewer",
       login: ($("sampleName").value.trim() || "DemoViewer").toLowerCase(),
       isAppMessage: $("sampleBot").checked,
       color: "#c9a8ff",
-      amount: type === "channel.raid" ? 25 : 100,
+      amount: Math.max(0, Number($("sampleAmount").value) || 0),
+      tier: $("sampleTier").value,
+      currency: type === "channel.charity_campaign.donate" ? "USD" : "",
       message:
         type === "channel.chat.message"
           ? $("sampleMessage").value || "Hello from the sample chat!"

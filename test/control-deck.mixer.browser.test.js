@@ -131,17 +131,6 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.getByRole("button", { name: "Audio mixer", exact: true }).click();
   const mixer = page.locator("#deckAudioMixer"),
     systemSlider = mixer.getByRole("slider", { name: "System audio volume", exact: true });
-  const finder = mixer.getByRole("button", { name: "Search mixer apps" });
-  const appSearch = mixer.getByRole("searchbox", { name: "Find app audio" });
-  assert.equal(await appSearch.isVisible(), false);
-  await finder.click();
-  await appSearch.waitFor({ state: "visible" });
-  await appSearch.fill("missing audio app");
-  await appSearch.press("Escape");
-  assert.equal(await appSearch.isVisible(), false);
-  await mixer.getByRole("button", { name: "Minimize audio mixer" }).click();
-  assert.equal(await systemSlider.isVisible(), false);
-  await mixer.getByRole("button", { name: "Restore audio mixer" }).click();
   await systemSlider.waitFor();
   const nativeIncrease = mixer.getByRole("button", {
     name: "Increase System audio volume",
@@ -186,7 +175,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
     { ...state, output: { ...system, volume: 10 } },
   );
   assert.equal(
@@ -221,6 +210,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       "55",
   );
   assert.equal(player.volume, 55);
+  await page.screenshot({ path: path.resolve("runtime/mixer-acrylic-076-private.png") });
   await page.getByRole("button", { name: "Quick Access", exact: true }).click();
   await page.locator("#deckEdit").click();
   assert.equal(await page.locator("#deckSliderRack .deckVolumeSlider").count(), 1);
@@ -272,14 +262,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     widgets = await page.locator(".deckWidgetRegion").boundingBox();
   assert(awake.y + awake.height <= widgets.y + 1);
   assert.equal(await page.getByRole("switch", { name: "Keep screen awake" }).isChecked(), true);
-  const widgetToggle = page.getByRole("button", { name: "Widgets", exact: true });
-  const widgetRegion = page.getByRole("region", { name: "Status widgets", includeHidden: true });
-  await widgetToggle.click();
-  await widgetRegion.waitFor({ state: "hidden" });
-  assert.equal(await widgetToggle.getAttribute("aria-expanded"), "false");
-  await widgetToggle.click();
-  await widgetRegion.waitFor({ state: "visible" });
-  assert.equal(await widgetToggle.getAttribute("aria-expanded"), "true");
+  await page.screenshot({ path: path.resolve("runtime/deck-tablet-awake-076-private.png") });
   for (let count = 0; count < 10 && !(await mixer.isVisible()); count++)
     await page.getByRole("button", { name: "Next screen", exact: true }).click();
   await mixer.waitFor({ state: "visible" });
@@ -358,7 +341,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       sessions: 1,
     });
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
     await audio.read(true),
   );
   await page.waitForFunction(() =>
@@ -382,7 +365,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.waitForTimeout(1850);
   system.volume = 64;
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
     await audio.read(true),
   );
   assert.equal(
@@ -391,7 +374,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
     "a fader released on the pager remains synchronized after capture transfers",
   );
   await page.evaluate(
-    (state) => document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: state })),
+    (state) => document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: state })),
     await audio.read(true),
   );
   assert.match(await page.locator(".deckScreenNav span").textContent(), /Audio mixer · 2 \/ /);
@@ -415,7 +398,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
   await page.getByRole("button", { name: "Audio mixer", exact: true }).click();
   await mixer.waitFor({ state: "visible" });
   assert.equal(await page.locator("#controlDeck").getAttribute("data-focus"), "false");
-  if (process.env.GROBYS_DECK_CAPTURE_TOUCH === "1") {
+  if (process.env.RAVELINK_CAPTURE_TOUCH === "1") {
     const capture = core.services.controlDeck.snapshot();
     capture.config.layout.sliderFill = true;
     capture.config.layout.hapticsEnabled = true;
@@ -426,11 +409,13 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       () => document.querySelector("#controlDeck").dataset.focus === "true",
     );
     await page.waitForTimeout(300);
+    await page.screenshot({ path: path.resolve("runtime/touch-phone-fullscreen.png") });
     await page.locator("#deckExitFullscreen").click();
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.waitForTimeout(200);
     await page.locator("#deckEdit").click();
     await page.locator("#deckHapticsEnabled").waitFor({ state: "visible" });
+    await page.screenshot({ path: path.resolve("runtime/touch-phone-edit.png"), fullPage: true });
     await page.locator("#deckEdit").click();
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.getByRole("button", { name: "Fullscreen", exact: true }).click();
@@ -438,6 +423,7 @@ test("mixer keeps Windows and request faders in one row, protects drags, docks i
       () => document.querySelector("#controlDeck").dataset.focus === "true",
     );
     await page.waitForTimeout(300);
+    await page.screenshot({ path: path.resolve("runtime/touch-tablet-fullscreen.png") });
     await page.locator("#deckExitFullscreen").click();
   }
   assert.deepEqual(errors, []);

@@ -7,7 +7,7 @@ const tasks = require("./feature-task-navigation");
 const feedback = require("../../../../public/core/action-feedback");
 const choices = require("../../../../public/core/visible-choices");
 function contributionPresentation() {
-  const channel = "groby-feature-ui-v1";
+  const channel = "ravelink-feature-ui-v1";
   let observer,
     scheduled = false,
     lastHeight = 0;

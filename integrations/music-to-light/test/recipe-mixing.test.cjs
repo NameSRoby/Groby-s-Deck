@@ -85,7 +85,7 @@ test("new activations combine independent axes; audio cannot redraw the combinat
 });
 
 test("every spatial choice combines with every brightness response", () => {
-  for (const preset of ["pulse"])
+  for (const preset of ["ambient", "pulse", "bands"])
     for (const shape of recipe.axes[0].choices) {
       const m = create({
         preset,

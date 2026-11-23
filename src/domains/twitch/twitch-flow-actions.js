@@ -134,7 +134,7 @@ module.exports = ({
         return { ok: false, error: "twitch_action_unavailable" };
       if (
         ["twitch.action.chat", "twitch.action.announcement", "twitch.action.recipe"].includes(id) &&
-        !params[Symbol.for("groby.template.resolved")] &&
+        !params[Symbol.for("ravelink.template.resolved")] &&
         getAutomations()?.renderMessage
       ) {
         params = {
@@ -146,7 +146,7 @@ module.exports = ({
       if (id === "twitch.action.shoutout")
         return shoutouts.enqueue(
           params,
-          params[Symbol.for("groby.shoutout.guard")] || (() => !signal?.aborted),
+          params[Symbol.for("ravelink.shoutout.guard")] || (() => !signal?.aborted),
         );
       const kind = id.slice("twitch.action.".length),
         clean =

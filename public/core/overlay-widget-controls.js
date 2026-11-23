@@ -33,6 +33,7 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       const note = document.createElement("small");
       const sync = () => {
         time.disabled = w.chatMode === "scroll";
+        time.parentElement.hidden = w.chatMode === "scroll";
         note.textContent =
           w.chatMode === "scroll"
             ? "Messages stay until newer ones fill the box."
@@ -62,6 +63,12 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       }
       host.append(appearance);
       check("Hide app-sent bot messages", "hideBotMessages");
+      check("Hide chat commands", "hideCommands");
+      check("Show message timestamps", "showTimestamps");
+      select("Username layout", "chatLayout", [
+        ["inline", "Username beside message"],
+        ["stacked", "Username above message"],
+      ]);
       const label = document.createElement("label"),
         input = document.createElement("input");
       label.textContent = "Other accounts to hide (press Enter to add)";
@@ -122,6 +129,7 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       });
     };
     label.append(input);
+    label.hidden = w.type === "credits" && w.creditsSource !== "manual";
     host.append(label);
     if (w.type === "slideshow") {
       const uploadLabel = document.createElement("label"),
@@ -193,18 +201,23 @@ globalThis.OverlayWidgetControls = function (a, tools) {
         ["followers", "Followers"],
         ["subscribers", "Subscribers"],
       ]);
-      select("Period", "creditsPeriod", [
+      const period = select("Period", "creditsPeriod", [
         ["day", "Past day"],
         ["week", "Past 7 days"],
         ["month", "Past 30 days"],
         ["year", "Past 365 days"],
         ["all", "All available"],
       ]);
+      period.parentElement.hidden = w.creditsSource === "manual";
       select("Scroll direction", "scrollDirection", [
         ["vertical", "Vertical"],
         ["horizontal", "Horizontal"],
       ]);
       num("Seconds per full scroll", "scrollSeconds", 5, 600);
+      check("Reverse scroll direction", "scrollReverse");
+      check("Pause credit scroll", "scrollPaused");
+      num("Spacing between names (px)", "creditGap", 0, 240);
+      field("Separator between names (optional)", "creditSeparator", "text", { maxLength: 8 });
       const note = document.createElement("p");
       note.textContent =
         "All available subscribers means current subscribers. Dated subscriber credits use events recorded by Core; Twitch does not provide historical subscription dates. Follower dates come from Twitch. Lists are cached and limited to 1,000 fetched names.";
@@ -284,8 +297,11 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       ["none", "None"],
       ["fade", "Fade"],
       ["slide", "Slide up"],
+      ["slide-left", "Slide from left"],
+      ["slide-right", "Slide from right"],
       ["pop", "Pop in"],
       ["wipe", "Reveal from left"],
+      ["blur", "Soft focus reveal"],
     ]);
     num("Transition duration (ms)", "animationMs", 100, 2000);
     if (["chat", "activity", "queue", "alerts"].includes(w.type)) {
@@ -327,7 +343,7 @@ globalThis.OverlayWidgetControls = function (a, tools) {
     host.append(replay);
     const note = document.createElement("p");
     note.textContent = a.motionReady
-      ? "Motion respects your device's reduced-motion preference. Live data and message expiry still update."
+      ? "Motion uses Canvas settings > Overlay animations, shared with OBS. Broadcast animations run even if Windows animations are disabled."
       : "Preview is available. Restart Core before saving animated styles or the new widgets.";
     host.append(note);
   }

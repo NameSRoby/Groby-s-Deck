@@ -27,11 +27,21 @@ module.exports = function registerOverlays(app, { service, runtimeDir, express }
       catalog: service.catalog(),
       presentationEffects: true,
       livePreview: true,
+      designerVersion: 4,
     })),
   );
   app.get(
     "/api/stream-overlays/data",
     route((req) => service.data({ fast: req.query.fast === "1" })),
+  );
+  app.get(
+    "/api/stream-overlays/goals",
+    route(async () => ({ catalog: service.goals.catalog, goals: (await service.data()).goals })),
+  );
+  app.post(
+    "/api/stream-overlays/goals",
+    writes,
+    route((req) => service.goalControl(req.body)),
   );
   app.get("/api/stream-overlays/chat-feed", (_req, res) => {
     if (!service.subscribeChat(res)) res.sendStatus(503);
@@ -100,7 +110,7 @@ module.exports = function registerOverlays(app, { service, runtimeDir, express }
     app.post(
       "/api/stream-overlays/media",
       writes,
-      express.raw({ type: ["image/*", "video/*"], limit: "50mb" }),
+      express.raw({ type: ["image/*", "video/*", "audio/*"], limit: "50mb" }),
       route((req) => media.add(req.get("Content-Type"), req.body)),
     );
     app.get("/api/stream-overlays/media/:name", (req, res) => {

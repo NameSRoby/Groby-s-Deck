@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("Library starts SoundCloud cold/warm and standalone YouTube without a second click", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-library-start-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-library-start-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

@@ -8,7 +8,7 @@ The list includes custom saved commands and community built-ins only when Core a
 
 ## Destinations
 
-Discord offers a compact Markdown list or a layout with one copyable code block per command. Descriptions, reply examples and limits appear outside the code block. Standard output targets 2,000 characters, with an explicit 4,000-character Nitro option. Headings, Markdown escapes, neutralized mentions, separators and line endings count toward each part. Whole entries remain together where possible; oversized entries continue in another independently formatted part. Splitting never drops selected entries. No webhooks, posting, external accounts, or online services are involved.
+Discord uses bulleted bold command names. Standard output targets 2,000 characters, with an explicit 4,000-character Nitro option. Headings, Markdown escapes, neutralized mentions, separators and line endings count toward each part. Whole entries remain together where possible; oversized entries continue in another independently formatted part. Splitting never drops selected entries. No webhooks, posting, external accounts, or online services are involved.
 
 Twitch uses supported bold/list Markdown and hard line breaks. Its adjustable panel split target is a presentation preference, not an assertion of an official panel text cap. The 300-character profile bio is distinct from About panel descriptions. Copy each generated part into a separate panel description. Both destinations allow raw Markdown editing and provide an approximate safe preview; preview never executes HTML or inserts external media. Copy is disabled for manually edited parts that exceed their chosen limit; regeneration resplits the selected source entries.
 

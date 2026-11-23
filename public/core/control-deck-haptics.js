@@ -127,7 +127,7 @@ export function createDeckHaptics({ host, getConfig, save, explain }) {
     },
     true,
   );
-  host.addEventListener("groby-slider-change", (event) => {
+  host.addEventListener("ravelink-slider-change", (event) => {
     const input = event.target,
       value = event.detail.value;
     if (gesture?.step && !gesture.stepped) {

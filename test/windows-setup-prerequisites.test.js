@@ -25,7 +25,7 @@ test(
   "Offline Setup skips installed runtimes, installs missing ones, and blocks failed or tampered payloads",
   { skip: process.platform !== "win32" || !compiler },
   (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-setup-prereq-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-setup-prereq-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     const stub = path.join(root, spec.file),
       source = path.join(root, "stub.cs");
@@ -33,13 +33,13 @@ test(
       source,
       `using System; using System.IO; using Microsoft.Win32;
 class Stub { static int Main(string[] args) {
-  string id = Environment.GetEnvironmentVariable("GROBYS_DECK_PREREQ_FIXTURE_ID");
+  string id = Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_ID");
   if (id == null || id.Length != 32) return 90;
-  string key = "Software\\\\GrobyDeck\\\\SetupTests\\\\" + id;
+  string key = "Software\\\\RaveLink\\\\SetupTests\\\\" + id;
   using (var user = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry32)) {
     if (args.Length > 0 && args[0] == "--cleanup") { user.DeleteSubKeyTree(key, false); return 0; }
-    if (args.Length == 0 || args[0] != "--preinstall") File.WriteAllText(Environment.GetEnvironmentVariable("GROBYS_DECK_PREREQ_FIXTURE_MARKER"), "executed");
-    if (Environment.GetEnvironmentVariable("GROBYS_DECK_PREREQ_FIXTURE_FAIL") == "1") return 19;
+    if (args.Length == 0 || args[0] != "--preinstall") File.WriteAllText(Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_MARKER"), "executed");
+    if (Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_FAIL") == "1") return 19;
     using (var installed = user.CreateSubKey(key)) installed.SetValue("pv", "157.0.1.0");
   } return 0;
 } }`,
@@ -56,11 +56,11 @@ class Stub { static int Main(string[] args) {
       const id = crypto.randomBytes(16).toString("hex");
       const marker = path.join(directory, "executed.txt");
       const env = {
-        GROBYS_DECK_PREREQ_FIXTURE_ID: id,
-        GROBYS_DECK_PREREQ_FIXTURE_MARKER: marker,
-        GROBYS_DECK_PREREQ_FIXTURE_FAIL: mode === "failure" ? "1" : "0",
+        RAVELINK_PREREQ_FIXTURE_ID: id,
+        RAVELINK_PREREQ_FIXTURE_MARKER: marker,
+        RAVELINK_PREREQ_FIXTURE_FAIL: mode === "failure" ? "1" : "0",
       };
-      const fixtureKey = "Software\\GrobyDeck\\SetupTests\\" + id;
+      const fixtureKey = "Software\\RaveLink\\SetupTests\\" + id;
       try {
         if (mode === "existing") assert.equal(run(stub, ["--preinstall"], env).status, 0);
         const code = require("../scripts/installer-prerequisite-code")()
@@ -78,7 +78,7 @@ class Stub { static int Main(string[] args) {
         fs.writeFileSync(
           script,
           `[Setup]
-AppId=GrobyDeckPrerequisiteFixture${id}
+AppId=RaveLinkPrerequisiteFixture${id}
 AppName=Groby’s Deck prerequisite test
 AppVersion=1
 DefaultDirName=${directory}\\app

@@ -43,9 +43,9 @@ module.exports = function registerSpotifyOAuth(app, getCatalog) {
         "Spotify connected. Return to Groby’s Deck and refresh the account status. You can close this window.",
       spotify_oauth_denied: "Sign-in cancelled. Return to Groby’s Deck to try again.",
       spotify_oauth_state_invalid:
-        "This callback does not match the active sign-in. Start a new sign-in from Groby’s Deck.",
+        "This callback does not match the active sign-in. Start a new sign-in from RaveLink.",
       spotify_oauth_session_expired:
-        "Sign-in expired or already used. Start a new sign-in from Groby’s Deck.",
+        "Sign-in expired or already used. Start a new sign-in from RaveLink.",
       spotify_oauth_exchange_rejected:
         "Spotify rejected the sign-in exchange. Check the registered redirect URI, Premium subscription, and app allowlist.",
       spotify_oauth_scope_missing:

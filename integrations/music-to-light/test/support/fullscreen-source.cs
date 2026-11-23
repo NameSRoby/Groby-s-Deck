@@ -16,7 +16,7 @@ internal static class FullscreenSource
     private static void Main()
     {
         var source = new Form {
-            Text = "Groby’s Deck fullscreen capture regression",
+            Text = "RaveLink fullscreen capture regression",
             FormBorderStyle = FormBorderStyle.None,
             StartPosition = FormStartPosition.Manual,
             Bounds = Screen.PrimaryScreen.Bounds,

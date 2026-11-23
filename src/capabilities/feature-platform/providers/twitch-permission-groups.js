@@ -3,6 +3,18 @@
  * Sources: dev.twitch.tv/docs/authentication/scopes/ and /docs/chat/authenticating */
 const GROUPS = Object.freeze([
   {
+    id: "charity",
+    label: "Charity goals & donations",
+    description: "Track Twitch charity campaign totals and incoming donations.",
+    scopes: ["channel:read:charity"],
+  },
+  {
+    id: "goals",
+    label: "Twitch creator goals",
+    description: "Track your Twitch creator goal progress and completion.",
+    scopes: ["channel:read:goals"],
+  },
+  {
     id: "predictions",
     label: "Prediction widgets & events",
     description: "Display Twitch prediction choices, progress and results.",

@@ -19,6 +19,30 @@ function response(status, body) {
   };
 }
 
+test("every selectable Twitch permission survives OAuth scope normalization", async () => {
+  const {
+      GROUPS,
+      scopesForGroups,
+    } = require("../src/capabilities/feature-platform/providers/twitch-permission-groups"),
+    scopes = scopesForGroups(GROUPS.map((group) => group.id));
+  assert.deepEqual(normalizeScopes(scopes, []), scopes);
+  let requested;
+  const api = createTwitchApiClient({
+    fetch: async (_url, init) => {
+      requested = init.body.get("scopes").split(" ");
+      return response(200, {
+        device_code: "fixture-device",
+        user_code: "CODE",
+        verification_uri: "https://www.twitch.tv/activate",
+      });
+    },
+  });
+  await api.beginDeviceAuthorization({ clientId: "clientid12345", scopes });
+  assert.deepEqual(requested, scopes);
+  assert(!normalizeScopes(undefined).includes("channel:read:charity"));
+  assert(!normalizeScopes(undefined).includes("channel:read:goals"));
+});
+
 test("identity-only device authorization sends an explicit empty optional scope list", async () => {
   let body;
   const api = createTwitchApiClient({

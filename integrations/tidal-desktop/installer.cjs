@@ -8,15 +8,20 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const hash = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-const journalName = "groby-tidal-install.json";
-const previousBundle = require("../../src/shared/fs/upgrade-identifiers.json").tidalCompanion;
+const journalName = "ravelink-tidal-install.json";
+const previousBundle = {
+  journal: "groby-tidal-install.json",
+  archive: "groby-original.asar",
+  stage: ".groby-tidal-stage",
+  owner: "groby-tidal-companion",
+};
 function removalBundle(resources) {
   if (fs.existsSync(path.join(resources, journalName))) {
     return {
       journal: journalName,
-      archive: "groby-original.asar",
-      stage: ".groby-tidal-stage",
-      owner: "groby-tidal-companion",
+      archive: "ravelink-original.asar",
+      stage: ".ravelink-tidal-stage",
+      owner: "ravelink-tidal-companion",
     };
   }
   return previousBundle;
@@ -155,11 +160,11 @@ exports.install = function install({
   requireStopped(probe);
   const resources = resourcesPath(input);
   const original = path.join(resources, "app.asar"),
-    backup = path.join(resources, "groby-original.asar");
+    backup = path.join(resources, "ravelink-original.asar");
   const unpacked = original + ".unpacked",
     unpackedAlias = backup + ".unpacked";
   const app = path.join(resources, "app"),
-    stage = path.join(resources, ".groby-tidal-stage"),
+    stage = path.join(resources, ".ravelink-tidal-stage"),
     journal = path.join(resources, journalName);
   if (
     [
@@ -215,7 +220,7 @@ exports.install = function install({
       fs.readdirSync(stage).map((file) => [file, hash(path.join(stage, file))]),
     );
     const record = {
-      owner: "groby-tidal-companion",
+      owner: "ravelink-tidal-companion",
       version: inventory.version,
       originalHash: hash(original),
       unpackedAlias: hasUnpacked,
@@ -259,7 +264,7 @@ exports.install = function install({
 exports.repairPairing = function repairPairing({ resources: input, pairingFile }) {
   const resources = resourcesPath(input),
     target = path.resolve(pairingFile),
-    journal = path.join(resources, journalName),
+    journal = path.join(resources, removalBundle(resources).journal),
     configFile = path.join(resources, "app", "config.json");
   regular(journal);
   regular(configFile);
@@ -274,7 +279,7 @@ exports.repairPairing = function repairPairing({ resources: input, pairingFile }
     config = JSON.parse(originalConfig),
     record = JSON.parse(originalJournal);
   if (
-    record.owner !== "groby-tidal-companion" ||
+    record.owner !== removalBundle(resources).owner ||
     record.files?.["config.json"] !== hash(configFile) ||
     fs.lstatSync(path.join(resources, "app")).isSymbolicLink()
   )

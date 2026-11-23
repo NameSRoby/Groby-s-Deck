@@ -216,7 +216,7 @@ function installRequestSecurityMiddleware(app, options = {}) {
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,PUT,PATCH,OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, X-Requested-With, X-Mod-Key, X-Api-Key, Authorization",
+      "Content-Type, X-Requested-With, X-Ravelink-Mod-Key, X-Mod-Key, X-Api-Key, Authorization",
     );
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -235,7 +235,7 @@ function installRequestSecurityMiddleware(app, options = {}) {
       const overlayChatImages = ["/overlay-designer.html", "/stream-overlay.html"].includes(
         req.path,
       )
-        ? " https://static-cdn.jtvnw.net/emoticons/v2/ https://static-cdn.jtvnw.net/badges/v1/ https://cdn.7tv.app/emote/ https://cdn.betterttv.net/emote/ https://cdn.frankerfacez.com/emote/"
+        ? " https:"
         : "";
       res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
       res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
@@ -244,6 +244,8 @@ function installRequestSecurityMiddleware(app, options = {}) {
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
           "img-src 'self' data:" +
           overlayChatImages +
+          "; media-src 'self'" +
+          (overlayChatImages ? " https:" : "") +
           "; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
       );
     }

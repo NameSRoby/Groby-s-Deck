@@ -46,6 +46,9 @@ function plan(rows, config, rave, random = Math.random, history = null) {
   const original = rows.map((f) => ({
     ...f,
     raveBehavior: f.raveBehavior || "reactive",
+    ...(f.assignedEffect
+      ? { assignedEffect: require("./legacy-response.cjs").effect(f.assignedEffect) }
+      : {}),
   }));
   const eligible = original
     .map((f, i) => (f.raveBehavior === "reactive" ? i : -1))

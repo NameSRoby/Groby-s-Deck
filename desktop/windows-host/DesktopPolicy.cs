@@ -73,7 +73,7 @@ namespace Groby.Deck.WindowsHost
             if (String.IsNullOrEmpty(json) || json.Length > 512) return false;
             try {
                 var value = new JavaScriptSerializer { MaxJsonLength = 512 }.DeserializeObject(json) as Dictionary<string, object>;
-                if (value == null || value.Count != 4 || !value.ContainsKey("type") || !Object.Equals(value["type"], "groby-theme")) return false;
+                if (value == null || value.Count != 4 || !value.ContainsKey("type") || (!Object.Equals(value["type"], "groby-theme") && !Object.Equals(value["type"], "ravelink-theme"))) return false;
                 Color[] colors = new Color[3]; int i = 0;
                 foreach (string key in new[] { "background", "accent", "text" }) {
                     object item;

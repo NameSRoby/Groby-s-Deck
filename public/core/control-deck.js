@@ -773,7 +773,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
       audioUi.settle();
       if (changed) render();
       else display.scheduleFeedback();
-      document.dispatchEvent(new CustomEvent("groby-deck-state", { detail: next.windowsAudio }));
+      document.dispatchEvent(new CustomEvent("ravelink-deck-state", { detail: next.windowsAudio }));
     },
     offline() {
       statusConnected = false;

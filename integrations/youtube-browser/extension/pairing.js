@@ -5,7 +5,7 @@
     window.top !== window ||
     location.hostname !== "127.0.0.1" ||
     location.pathname !== "/connect.html" ||
-    document.querySelector('meta[name="groby-browser-pairing"]')?.content !== "v1"
+    document.querySelector('meta[name="ravelink-browser-pairing"]')?.content !== "v1"
   )
     return;
   const api = globalThis.browser || globalThis.chrome;
@@ -59,7 +59,7 @@
       })
       .catch(() => {
         status.textContent =
-          "The companion could not contact Groby’s Deck. Return to Setup and connect again.";
+          "The companion could not contact RaveLink. Return to Setup and connect again.";
       });
   }
   void findTabs();

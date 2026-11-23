@@ -173,8 +173,8 @@ test("a weak new onset cannot reverse the tail of an earlier strong dip", () => 
   assert(body.mix(0, 0, b, 0.5) < body.mix(0, 0, b, 0));
 });
 
-test("the Pulse response retains measured drum accents without replacing its sustained body", () => {
-  for (const preset of ["pulse"]) {
+test("every loudness-foundation preset retains measured drum accents without replacing its sustained body", () => {
+  for (const preset of ["ambient", "bands", "pulse"]) {
     for (const position of [0, 0.5, 1]) {
       const plain = mapper({ preset, behaviors: { accentDepth: 0.1, impactDepth: 0.35 } });
       const drums = mapper({ preset, behaviors: { accentDepth: 0.1, impactDepth: 0.35 } });
@@ -206,8 +206,8 @@ test("the Pulse response retains measured drum accents without replacing its sus
   }
 });
 
-test("the wave recipe retains strong pulses and respects disabled attacks and zero depth", () => {
-  for (const preset of ["pulse"])
+test("band-wave and wash recipes cannot erase strong pulses; disabled attacks and zero depth remain deliberate", () => {
+  for (const preset of ["ambient", "bands"])
     for (const behaviors of [{ attacksEnabled: false }, { accentDepth: 0, impactDepth: 0 }]) {
       const a = mapper({ preset, behaviors }),
         b = mapper({ preset, behaviors });
@@ -218,7 +218,7 @@ test("the wave recipe retains strong pulses and respects disabled attacks and ze
       assert.equal(update(a, 151, -23).brightness, update(b, 151, -23, 3).brightness);
     }
   const a = mapper({
-    preset: "pulse",
+    preset: "bands",
     recipeOptions: { shape: { mode: "fixed", value: "wave", allowed: ["wave"] } },
     behaviors: { accentDepth: 0.1, impactDepth: 0.35 },
   });

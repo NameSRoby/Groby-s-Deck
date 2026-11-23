@@ -1,5 +1,5 @@
 /** Additional widgets render the same public document/feed in the editor and OBS. */
-/* global OverlayModel, OverlayGameRules */
+/* global OverlayModel, OverlayGameRules, OverlayRecordFormat */
 (() => {
   const types = new Set([
     "prediction",
@@ -26,26 +26,39 @@
   };
   function goal(w, data) {
     const body = el("div");
-    const record = w.goalSource === "counter" && data.records?.[OverlayModel.recordKey(w)];
-    if (w.goalSource === "counter" && !record && !data.sample) return body;
-    const money = w.goalSource === "counter" && w.goalCurrency;
+    body.className = "goalWidget";
+    const tracked = w.goalSource === "events" && data.goals?.[w.goalName];
+    const record = tracked
+      ? { value: tracked.current, target: tracked.target }
+      : w.goalSource === "counter" && data.records?.[OverlayModel.recordKey(w)];
+    if (["counter", "events"].includes(w.goalSource) && !record && !data.sample) return body;
+    const currency = tracked?.currency || w.goalCurrency;
+    const money = Boolean(currency);
     const formatter = money
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency: w.goalCurrency })
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency })
       : new Intl.NumberFormat();
-    const scale = money ? 10 ** formatter.resolvedOptions().maximumFractionDigits : 1;
+    const scale =
+      money && w.goalSource === "counter"
+        ? 10 ** formatter.resolvedOptions().maximumFractionDigits
+        : 1;
     const target = record?.target > 0 ? record.target / scale : w.target;
     const current = Math.max(
       0,
       record
         ? record.value / scale
-        : data.sample && w.goalSource === "counter"
+        : data.sample && ["counter", "events"].includes(w.goalSource)
           ? target * 0.35
           : w.current,
     );
     const amount = formatter.format(current) + "/" + formatter.format(target);
     const title = w.text || "Goal";
-    if (w.goalFormat === "stacked") body.append(el("div", title), el("div", amount));
-    else
+    if (w.goalFormat === "stacked") {
+      const heading = el("div", title),
+        value = el("div", amount);
+      heading.className = "goalTitle";
+      value.className = "goalAmount";
+      body.append(heading, value);
+    } else
       body.append(
         el(
           "span",
@@ -63,8 +76,72 @@
       progress.setAttribute("aria-label", title);
       progress.style.height = w.goalBarHeight + "px";
       progress.style.accentColor = w.goalBarColor;
+      progress.style.setProperty("--goal-accent", w.goalBarColor);
       body.append(progress);
     }
+    const endsAt = tracked?.endsAt || w.endsAt;
+    if (endsAt) body.append(el("small", nowLabel(endsAt, data.at || Date.now())));
+    return body;
+  }
+  function nowLabel(endsAt, now) {
+    const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
+    if (!seconds) return "Goal ended";
+    const days = Math.floor(seconds / 86400),
+      hours = Math.floor(seconds / 3600) % 24;
+    return (
+      "Ends in " +
+      (days ? days + "d " : "") +
+      hours +
+      "h " +
+      (Math.floor(seconds / 60) % 60) +
+      "m " +
+      (seconds % 60) +
+      "s"
+    );
+  }
+  function music(w, data, now) {
+    const body = el("div");
+    body.className = "musicWidget";
+    const track = data.music?.current;
+    if (!track) return body;
+    if (w.showArtwork) {
+      const art = el(track.artwork ? "img" : "span", track.artwork ? undefined : "♪");
+      art.className = "musicArtwork";
+      if (track.artwork) {
+        art.src = track.artwork;
+        art.alt = "";
+        art.referrerPolicy = "no-referrer";
+      }
+      body.append(art);
+    }
+    const words = el("div");
+    words.className = "musicWords";
+    const title = el("strong", track.title);
+    title.className = "musicTitle";
+    words.append(title);
+    if (w.showArtist && track.artists?.length) words.append(el("small", track.artists.join(", ")));
+    if (w.showRequester && track.requester)
+      words.append(el("small", "Requested by " + track.requester));
+    if (w.showProgress && track.durationMs > 0) {
+      const position = Math.min(
+        track.durationMs,
+        Math.max(0, track.positionMs || 0) +
+          (track.status === "playing" && track.observedAt
+            ? Math.min(15000, Math.max(0, now - track.observedAt))
+            : 0),
+      );
+      const bar = el("progress");
+      bar.max = track.durationMs;
+      bar.value = position;
+      bar.className = "musicProgress";
+      bar.setAttribute("aria-label", "Track progress");
+      const duration = (ms) =>
+        Math.floor(ms / 60000) + ":" + String(Math.floor(ms / 1000) % 60).padStart(2, "0");
+      const time = el("small", duration(position) + " / " + duration(track.durationMs));
+      time.className = "musicTime";
+      words.append(bar, time);
+    }
+    body.append(words);
     return body;
   }
   const state = (w, data) =>
@@ -159,6 +236,7 @@
   }
   function render(w, data, now) {
     if (w.type === "goal") return goal(w, data);
+    if (w.type === "now-playing") return music(w, data, now);
     if (!types.has(w.type)) return null;
     const body = el("div");
     body.className = "extraWidget extra-" + w.type;
@@ -181,8 +259,11 @@
         .forEach((row, i) =>
           item(
             body,
-            `${i + 1}. ${row.player}`,
-            row.value + (w.statSource === "watchtime" ? " minutes watched" : ""),
+            `${w.showRank ? i + 1 + ". " : ""}${row.player}`,
+            w.statSource === "watchtime"
+              ? OverlayRecordFormat.watchtime(row.value, w.watchtimeFormat)
+              : new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(row.value) +
+                  (w.statSource === "points" ? " points" : " " + w.statField),
           ),
         );
     }
@@ -295,14 +376,16 @@
     const s = state(w, data),
       disc = node.querySelector(".wheelDisc");
     if (!disc || !s.spunAt) return;
-    const angle = s.angle || 0;
-    const signature = s.spunAt + ":" + angle;
+    const angle = s.angle || 0,
+      reduced = globalThis.OverlayMotion.reduced(node);
+    const signature = s.spunAt + ":" + angle + ":" + reduced;
     if (disc.dataset.spin === signature) return;
     disc.dataset.spin = signature;
+    for (const animation of disc.getAnimations()) animation.cancel();
     disc.style.transformOrigin = "200px 200px";
     disc.style.transform = `rotate(${angle}deg)`;
     const elapsed = Math.max(0, now - s.spunAt);
-    if (elapsed < s.spinSeconds * 1000 && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (elapsed < s.spinSeconds * 1000 && !reduced)
       disc.animate(
         [{ transform: `rotate(${s.startAngle || 0}deg)` }, { transform: `rotate(${angle}deg)` }],
         {
