@@ -191,7 +191,10 @@ module.exports = function createFeatureHostRegistry(options = {}) {
           retryable: false,
         },
       };
-    if (capability === "groby.storage.v1" && ["get", "set", "remove", "status"].includes(method)) {
+    if (
+      ["ravelink.storage.v1", "groby.storage.v1"].includes(capability) &&
+      ["get", "set", "remove", "status"].includes(method)
+    ) {
       const storagePayload = payload && typeof payload === "object" ? payload : {};
       const value =
         method === "set"

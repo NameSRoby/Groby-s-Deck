@@ -8,9 +8,12 @@ const fs = require("node:fs"),
   crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const { prepareArchive } = require("./archive.cjs");
-const JOURNAL = ".groby-spotify-install.json",
-  BACKUP = ".groby-spotify-original.spa";
-const previousBundle = require("../../src/shared/fs/upgrade-identifiers.json").spotifyCompanion;
+const JOURNAL = ".ravelink-spotify-install.json",
+  BACKUP = ".ravelink-spotify-original.spa";
+const previousBundle = {
+  journal: ".groby-spotify-install.json",
+  archive: ".groby-spotify-original.spa",
+};
 const digest = (data) => crypto.createHash("sha256").update(data).digest("hex");
 const exists = (file) => {
   try {
@@ -108,7 +111,7 @@ function bundleData(bundle, connection) {
       catalog,
     });
     renderer = Buffer.concat([
-      Buffer.from("globalThis.__grobySpotifyConfig=" + configuration + ";\n"),
+      Buffer.from("globalThis.__ravelinkSpotifyConfig=" + configuration + ";\n"),
       renderer,
     ]);
   }

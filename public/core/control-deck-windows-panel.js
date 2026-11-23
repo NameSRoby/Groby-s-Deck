@@ -112,7 +112,7 @@ export function createWindowsPanel({
       } else if (reading) {
         void reading.then(read);
       } else void read();
-      dialog.dispatchEvent(new CustomEvent("groby-deck-mixer-layout", { bubbles: true }));
+      dialog.dispatchEvent(new CustomEvent("ravelink-deck-mixer-layout", { bubbles: true }));
     });
     minimize.title = "Minimize audio mixer";
     minimize.setAttribute("aria-label", minimize.title);
@@ -331,7 +331,7 @@ export function createWindowsPanel({
       next.some((element, index) => element !== lastLayout[index])
     ) {
       lastLayout = next;
-      dialog.dispatchEvent(new CustomEvent("groby-deck-mixer-layout", { bubbles: true }));
+      dialog.dispatchEvent(new CustomEvent("ravelink-deck-mixer-layout", { bubbles: true }));
     }
   }
   function arrange() {
@@ -342,7 +342,7 @@ export function createWindowsPanel({
       nativeOrder.find((key) => {
         const name = cards.get(key)?.name.toLowerCase() || "";
         return ["youtube", "soundcloud"].includes(provider)
-          ? /groby|webview/.test(name)
+          ? /groby|ravelink|webview/.test(name)
           : provider === "apple-music"
             ? /apple.?music|amplibraryagent/.test(name)
             : name.includes(provider);
@@ -445,7 +445,7 @@ export function createWindowsPanel({
     });
     return reading;
   }
-  document.addEventListener("groby-deck-state", (event) => {
+  document.addEventListener("ravelink-deck-state", (event) => {
     if (!dialog.open || minimized || saving || !event.detail) return;
     render(event.detail);
     clearTimeout(timer);

@@ -718,6 +718,10 @@
   font-size: 12px;
   margin: 16px 0 10px;
 }
+.deckInlineMixer input[type="search"] {
+  max-width: 280px;
+  margin-bottom: 12px;
+}
 .controlDeck[data-paged="true"] .deckInlineMixer {
   max-height: none;
   min-height: 0;
@@ -2323,7 +2327,8 @@
   padding-top: 14px;
   border-top: 1px solid var(--edge);
 }
-.controlDeck[data-focus="true"] .deckWidgetRegion[data-collapsed="true"],
+.controlDeck:not([data-editing="true"]) .deckWidgetRegion[data-collapsed="true"],
+.controlDeck[data-focus="true"] .deckWidgetCollapse[data-fullscreen="false"],
 .controlDeck[data-focus="true"] .deckWidgetRegion[data-fullscreen="false"] {
   display: none;
 }
@@ -2818,10 +2823,23 @@
   z-index: 10;
   background: var(--bg);
 }
-.deckFullscreenBar .deckWidgetCollapse {
+.controlDeck .deckWidgetCollapse {
   flex: none;
   padding: 7px 10px;
   font-size: 13px;
+}
+.deckWidgetCollapse::after {
+  content: "";
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-inline-start: 0.6em;
+  border-inline-end: 1px solid currentColor;
+  border-block-end: 1px solid currentColor;
+  transform: translateY(-0.15em) rotate(45deg);
+}
+.deckWidgetCollapse[aria-expanded="true"]::after {
+  transform: translateY(0.06em) rotate(225deg);
 }
 .deckFullscreenBar .deckExitFullscreen {
   position: static;
@@ -3098,6 +3116,22 @@
   .deckMixerChannels
   > :is(.deckButton, .deckWindowsAudioCard) {
   flex: 1 0 280px;
+}
+.controlDeck[data-mixer-page="true"]
+  .deckInlineMixer[data-orientation="vertical"]
+  .deckMixerChannels
+  > :is(.deckButton, .deckWindowsAudioCard) {
+  flex: 1 0 96px;
+}
+.deckInlineMixer[data-orientation="vertical"] .deckWindowsAudioHeading {
+  text-align: center;
+}
+.controlDeck[data-mixer-page="true"]
+  .deckInlineMixer[data-orientation="horizontal"]
+  .deckMixerChannels
+  > :is(.deckButton, .deckWindowsAudioCard) {
+  flex: 1 0 min(280px, 100%);
+  max-width: none;
 }
 .controlDeck[data-slider-fill="true"][data-slider-orientation="horizontal"] .deckSliderRack {
   width: 100%;

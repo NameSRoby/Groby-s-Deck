@@ -17,7 +17,7 @@ function manifest(storage = true, storageBytes = 128) {
 }
 
 test("storage atomically isolates JSON values and reports metadata only", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-storage-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-storage-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const storage = createStorage({ dataRoot: root });
   assert.equal((await storage.get(manifest(), "prefs")).found, false);
@@ -33,7 +33,7 @@ test("storage atomically isolates JSON values and reports metadata only", async 
 });
 
 test("storage rejects missing grants, unsafe keys, quota overflow, and links", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-storage-deny-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-storage-deny-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const storage = createStorage({ dataRoot: root });
   assert.equal(

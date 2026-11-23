@@ -18,7 +18,7 @@ module.exports = function createDesktopChatResponses({
   const store = async () => {
     try {
       await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "set",
         { key, value: [...entries.values()] },
         { timeoutMs: 1000 },
@@ -28,7 +28,7 @@ module.exports = function createDesktopChatResponses({
   async function load() {
     try {
       const saved = await context.callCapability(
-        "groby.storage.v1",
+        "ravelink.storage.v1",
         "get",
         { key },
         { timeoutMs: 1000 },

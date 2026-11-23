@@ -2,10 +2,10 @@
 module.exports = function installModUiClient() {
   const pending = new Map();
   let sequence = 0;
-  const nonce = new URLSearchParams(location.hash.slice(1)).get("grobyRelay");
+  const nonce = new URLSearchParams(location.hash.slice(1)).get("ravelinkRelay");
   window.addEventListener("message", (event) => {
     const value = event.data;
-    if (event.source !== parent || value?.type !== "groby.mod.result" || value.nonce !== nonce)
+    if (event.source !== parent || value?.type !== "ravelink.mod.result" || value.nonce !== nonce)
       return;
     const call = pending.get(value.id);
     if (!call) return;
@@ -15,7 +15,7 @@ module.exports = function installModUiClient() {
     else
       call.reject(Error(value.result?.error?.code || value.result?.error || "mod_ui_call_failed"));
   });
-  window.groby = Object.freeze({
+  window.ravelink = Object.freeze({
     call(capability, method, payload = null) {
       if (!nonce || pending.size >= 8) return Promise.reject(Error("mod_ui_busy"));
       const id = ++sequence;
@@ -25,7 +25,10 @@ module.exports = function installModUiClient() {
           reject(Error("mod_ui_timeout"));
         }, 6000);
         pending.set(id, { resolve, reject, timer });
-        parent.postMessage({ type: "groby.mod.call", nonce, id, capability, method, payload }, "*");
+        parent.postMessage(
+          { type: "ravelink.mod.call", nonce, id, capability, method, payload },
+          "*",
+        );
       });
     },
   });

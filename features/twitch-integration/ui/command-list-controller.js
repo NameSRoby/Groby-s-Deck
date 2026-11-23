@@ -1,6 +1,6 @@
 /* global setupCommandList */
 (() => {
-  const CHANNEL = "groby-feature-ui-v1",
+  const CHANNEL = "ravelink-feature-ui-v1",
     pending = new Map();
   let sequence = 0,
     rows = [],

@@ -37,7 +37,7 @@ try {
         });
   console.log(JSON.stringify(result, null, 2));
   if (mode === "install")
-    console.log("Start TIDAL normally, then refresh the TIDAL Player status in Groby’s Deck.");
+    console.log("Start TIDAL normally, then refresh the TIDAL Player status in RaveLink.");
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

@@ -303,7 +303,7 @@ test("an old acknowledgement cannot swallow the first command from a new bridge 
         onMessage: { addListener: () => {} },
       },
     },
-    GrobyDeckYouTubeSite: {
+    RaveLinkYouTubeSite: {
       create: () => ({
         read: () => ({}),
         execute: async (command) => {

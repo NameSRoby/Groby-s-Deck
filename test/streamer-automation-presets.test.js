@@ -33,70 +33,92 @@ test("streamer presets save as inactive editable flows using supported actions w
   assert.equal(f.writes.length, 0);
   assert.equal(presets.find((row) => row.id === "raid-native").steps[0].params.target, "raider");
 });
-test("goal recipes handle live events, broadcaster updates and overlay reads through saved counters", async (t) => {
+
+const savePreset = async (f, name, id) => {
+  const preset = presets.find((row) => row.id === name);
+  await f.automations.save({
+    revision: f.automations.status().revision,
+    automation: {
+      id: id.toString(16).padStart(24, "0"),
+      name: preset.name,
+      enabled: true,
+      trigger: preset.trigger,
+      handler: "flow",
+      steps: preset.steps,
+      role: preset.role,
+      cooldownSeconds: preset.cooldownSeconds,
+      userCooldownSeconds: preset.userCooldownSeconds,
+    },
+  });
+};
+
+test("stream record presets enforce roles, share counters and require reset confirmation", async (t) => {
   const f = fixture(t);
-  const { until } = fixture;
-  const { widget, recordKey } = require("../public/core/overlay-model");
-  const goal = (name) =>
-    widget({
-      type: "goal",
-      goalSource: "counter",
-      goalCounter: "goal-" + name,
-      goalTargetCounter: "goal-" + name + "-target",
-    });
-  const followers = goal("followers"),
-    subs = goal("subscribers"),
-    bits = goal("bits"),
-    donations = goal("donations"),
-    widgets = [followers, subs, bits, donations];
-  const progress = (w) => f.automations.overlayRecords(widgets)[recordKey(w)];
-  for (const [index, preset] of presets.filter((row) => row.group === "Goals").entries()) {
-    const { name, trigger, steps, role } = preset;
-    await f.automations.save({
-      revision: f.automations.status().revision,
-      automation: {
-        id: (index + 1).toString(16).padStart(24, "0"),
-        name,
-        enabled: true,
-        trigger,
-        steps,
-        role,
-        handler: "flow",
-        cooldownSeconds: 0,
-        userCooldownSeconds: 0,
-      },
-    });
-  }
-  f.automations.setActive(true);
-  const event = { broadcaster_user_id: "123", user_id: "456", user_login: "demo" };
-  await Promise.all([
-    f.automations.event("channel.follow", event, { message_id: "follow-one" }),
-    f.automations.event("channel.follow", event, { message_id: "follow-one" }),
-    f.automations.event("channel.follow", event, { message_id: "follow-two" }),
-  ]);
-  await f.automations.event("channel.subscribe", event, { message_id: "sub-one" });
-  await f.automations.event("channel.cheer", { ...event, bits: 250 }, { message_id: "bits-one" });
-  await until(() => progress(bits)?.value === 250);
-  await until(() => progress(followers).value === 2);
-  assert.equal(progress(subs).value, 1);
-  assert.equal(f.calls.length, 0, "Event goals do not post chat");
-  const command = (text, id, chatter = "123") =>
-    f.automations.chat({
+  for (const [i, name] of ["win", "loss", "record", "resetrecord"].entries())
+    await savePreset(f, name, i + 1);
+  let serial = 0;
+  const send = async (text, role) => {
+    const result = await f.automations.chat({
       broadcaster_user_id: "123",
-      chatter_user_id: chatter,
-      chatter_user_login: "demo",
-      message_id: id,
+      broadcaster_user_login: "streamer",
+      chatter_user_id: role === "broadcaster" ? "123" : "456",
+      chatter_user_login: "chatter",
+      message_id: "record-" + ++serial,
       message: { text },
+      badges: role === "viewer" ? [] : [{ set_id: role }],
     });
-  await command("!adddonation 2500", "unprivileged", "456");
-  assert.equal(progress(donations).value, 0);
-  await command("!adddonation 1250", "operator");
-  await until(() => progress(donations).value === 1250);
-  await command("!goaltarget followers 20", "target");
-  await until(() => progress(followers).target === 20);
-  await command("!goalprogress followers 0", "reset");
-  await until(() => progress(followers).value === 0);
-  assert.equal(progress(followers).target, 20);
-  f.setOwner("789");
-  assert.equal(progress(donations).value, 0);
+    if (result.accepted) await fixture.until(() => f.automations.status().running.length === 0);
+    return result;
+  };
+  assert.equal((await send("!win", "viewer")).code, "twitch_automation_role_required");
+  assert.equal((await send("!win", "moderator")).accepted, true);
+  assert.equal((await send("!loss", "moderator")).accepted, true);
+  assert.equal((await send("!record", "viewer")).accepted, true);
+  assert.equal(f.calls.at(-1).twitch.params.message, "Wins: 1 | Losses: 1");
+  assert.equal(
+    (await send("!resetrecord confirm", "moderator")).code,
+    "twitch_automation_role_required",
+  );
+  const resetMessage = presets.find((row) => row.id === "resetrecord").steps[0].params.message;
+  const preview = await f.automations.preview({ template: resetMessage, arguments: "" });
+  assert.match(preview.text, /Type !resetrecord confirm/);
+  assert.equal((await send("!resetrecord", "broadcaster")).accepted, true);
+  assert.match(f.calls.at(-1).twitch.params.message, /Type !resetrecord confirm/);
+  // Reopen the owner to prove both the declined reset and saved totals survive restart.
+  f.automations.shutdown();
+  const reopened = require("../src/domains/twitch/twitch-automations.service")(f.options);
+  t.after(() => reopened.shutdown());
+  const recordMessage = presets.find((row) => row.id === "record").steps[0].params.message;
+  assert.equal((await reopened.preview({ template: recordMessage })).text, "Wins: 1 | Losses: 1");
+  // Preview runs the exact confirmation branch against a temporary transaction.
+  assert.equal(
+    (await reopened.preview({ template: resetMessage, arguments: "confirm" })).text,
+    "Record reset. Wins: 0 | Losses: 0",
+  );
+  assert.equal((await reopened.preview({ template: recordMessage })).text, "Wins: 1 | Losses: 1");
+});
+
+test("large cheer and gift presets only post at their thresholds, including anonymous events", async (t) => {
+  const f = fixture(t);
+  await savePreset(f, "bits-milestone", 1);
+  await savePreset(f, "gift-milestone", 2);
+  f.automations.setActive(true);
+  let completed = 0;
+  const send = async (type, values) => {
+    await f.automations.event(
+      type,
+      { broadcaster_user_id: "123", is_anonymous: true, ...values },
+      { message_id: "threshold-" + ++completed },
+    );
+    await fixture.until(() => f.automations.status().history.length === completed);
+  };
+  await send("channel.cheer", { bits: 999 });
+  assert.equal(f.calls.length, 0);
+  await send("channel.cheer", { bits: 1000 });
+  assert.match(f.calls.at(-1).twitch.params.message, /1000 Bits/);
+  await send("channel.subscription.gift", { total: 4 });
+  assert.equal(f.calls.length, 1);
+  await send("channel.subscription.gift", { total: 5 });
+  assert.match(f.calls.at(-1).twitch.params.message, /5 gifted subscriptions/);
+  assert.equal(f.calls.length, 2);
 });

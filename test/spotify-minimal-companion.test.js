@@ -47,18 +47,18 @@ test("standalone renderer captures the private player without loading Spicetify 
   const status = install(root, { onReady: (client) => clients.push(client) });
   const context = vm.createContext({
     native,
-    __grobySpotify: root.__grobySpotify,
+    __ravelinkSpotify: root.__ravelinkSpotify,
   });
   vm.runInContext(transform(source).code, context);
   assert.equal(status.status().captured, true);
   assert.equal(status.status().queueReadable, true);
   assert.equal(clients.length, 1);
   assert.equal(root.Spicetify, undefined);
-  assert.equal(root.__grobySpotify.capturePlatform, undefined);
-  assert.equal(root.__grobySpotify.platform, undefined);
-  assert.equal(root.__grobySpotify.Player, undefined);
+  assert.equal(root.__ravelinkSpotify.capturePlatform, undefined);
+  assert.equal(root.__ravelinkSpotify.platform, undefined);
+  assert.equal(root.__ravelinkSpotify.Player, undefined);
   assert.equal(JSON.stringify(status.status()).includes("private-token"), false);
-  root.__grobySpotify.capturePlatform = {
+  root.__ravelinkSpotify.capturePlatform = {
     getPlayerAPI() {
       throw Error("Replacement must be ignored");
     },
@@ -182,9 +182,9 @@ test("minimal companion bundle is deterministic, contains licenses and can be re
     assert.equal(renderer.includes(excluded), false, excluded);
   const context = vm.createContext({});
   vm.runInContext(renderer, context);
-  assert.equal(context.__grobySpotify.status().captured, false);
+  assert.equal(context.__ravelinkSpotify.status().captured, false);
   assert.equal(context.Spicetify, undefined);
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "groby-spotify-bundle-"));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-spotify-bundle-"));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   fs.cpSync(bundle, temporary, { recursive: true });
   execFileSync(process.execPath, [path.join(temporary, "build-spotify-desktop.js")], {

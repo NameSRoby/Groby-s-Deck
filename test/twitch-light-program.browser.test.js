@@ -153,7 +153,7 @@ test("Twitch fixture board moves exclusive members and previews request-local de
         ]),
     }));
     assert.equal(overflow.page[0] <= overflow.page[1] + 1, true, JSON.stringify(overflow));
-    if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+    if (process.env.RAVELINK_CAPTURE_UI === "1") {
       const output = path.join(__dirname, "../runtime/logs");
       fs.mkdirSync(output, { recursive: true });
       await page.screenshot({

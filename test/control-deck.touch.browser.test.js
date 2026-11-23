@@ -190,7 +190,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
     card.innerHTML =
       '<div class="deckWindowsAudioHeading"><strong>Demo native audio</strong><small>Demo output</small></div><div class="deckWindowsAudioValues"><div class="deckFaderTrack"><input type="range" min="0" max="100" value="50"></div><output>50%</output><button>Mute</button></div>';
     document.querySelector(".deckMixerChannels").append(card);
-    host.dispatchEvent(new Event("groby-deck-mixer-layout"));
+    host.dispatchEvent(new Event("ravelink-deck-mixer-layout"));
   });
   const native = page.locator(".deckWindowsAudioCard input");
   await page.waitForFunction(
@@ -205,7 +205,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
   }
   await page.evaluate(() => {
     document.querySelector(".deckWindowsAudioCard").hidden = true;
-    host.dispatchEvent(new Event("groby-deck-screen-change"));
+    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
   });
   await page.waitForFunction(
     () =>
@@ -215,7 +215,7 @@ test("filled native channels fit after async discovery and stay stable in a stre
   );
   await page.evaluate(() => {
     document.querySelector(".deckWindowsAudioCard").hidden = false;
-    host.dispatchEvent(new Event("groby-deck-screen-change"));
+    host.dispatchEvent(new Event("ravelink-deck-screen-change"));
   });
   await page.waitForFunction(
     () =>
@@ -256,11 +256,28 @@ test("haptics are opt-in, fullscreen/touch only, with persistent sensitivity and
   await page.waitForTimeout(150);
   await page.evaluate(() => {
     input.setPointerCapture = () => {};
-    input.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", pointerId: 23 }));
-    for (const value of [51, 52]) {
-      input.value = value;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    }
+    // Touch ranges intentionally ignore native input events until the gesture
+    // is a drag. Exercise the actual pointer movement past that dead zone.
+    const bounds = input.getBoundingClientRect(),
+      x = bounds.x + bounds.width / 2,
+      y = bounds.y + bounds.height / 2;
+    input.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        pointerType: "touch",
+        pointerId: 23,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+    for (const distance of [8, 12])
+      input.dispatchEvent(
+        new PointerEvent("pointermove", {
+          pointerType: "touch",
+          pointerId: 23,
+          clientX: x,
+          clientY: y - distance,
+        }),
+      );
     window.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 23 }));
   });
   assert.equal(

@@ -7,7 +7,6 @@ const probe = require("../../../integrations/music-to-light/probe.cjs");
 const fs = require("node:fs"),
   path = require("node:path");
 const { settings } = require("../../../integrations/music-to-light/mapping-settings.cjs");
-const upgrade = require("../../../integrations/music-to-light/upgrade-design.cjs");
 const fault = (code) => Object.assign(new Error(code), { code });
 module.exports = function createMusicToLightService({
   core,
@@ -24,13 +23,7 @@ module.exports = function createMusicToLightService({
       const stat = fs.lstatSync(designPath);
       if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16384)
         throw Error("invalid_design");
-      const stored = JSON.parse(fs.readFileSync(designPath, "utf8"));
-      const current = upgrade.design(stored);
-      saved = settings(current);
-      if (JSON.stringify(stored) !== JSON.stringify(current)) {
-        fs.writeFileSync(designPath + ".tmp", JSON.stringify(saved) + "\n", { mode: 0o600 });
-        fs.renameSync(designPath + ".tmp", designPath);
-      }
+      saved = settings(JSON.parse(fs.readFileSync(designPath, "utf8")));
     } catch {
       designRecovered = true;
     }
@@ -138,13 +131,10 @@ module.exports = function createMusicToLightService({
         permissions: value.permissions,
         source,
         sources,
-        fixtures: Array.isArray(value.fixtures)
-          ? value.fixtures.map(upgrade.assignment)
-          : value.fixtures,
+        fixtures: value.fixtures,
       };
       try {
         instance.operator.restore(restored);
-        if (JSON.stringify(value.fixtures) !== JSON.stringify(restored.fixtures)) saveOperator();
       } catch (error) {
         // A removed/disabled fixture must not discard an independently valid
         // remembered app and its grants. Re-select lights without losing music.

@@ -12,4 +12,4 @@ features/song-request/ui/player.html
 features/song-request/ui/server-playlist.html
 features/song-request/ui/overlay-editor.html
 features/song-request/ui/obs-overlay.html
-features/*/groby.feature.json
+features/*/ravelink.feature.json

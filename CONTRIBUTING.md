@@ -1,6 +1,6 @@
 # Contributing to Groby’s Deck
 
-Thanks for helping improve GrobyDeck. Useful contributions include reproducible
+Thanks for helping improve RaveLink. Useful contributions include reproducible
 bug reports, clearer setup instructions, fixture compatibility reports and
 focused fixes. You do not need lights or a Twitch account to run most tests.
 

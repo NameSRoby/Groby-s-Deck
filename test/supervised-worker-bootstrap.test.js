@@ -7,7 +7,7 @@ const { fork } = require("node:child_process");
 const { once } = require("node:events");
 
 async function startWorker(t, identityField) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-worker-expiry-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-worker-expiry-"));
   const entryPath = path.join(root, "main.cjs");
   fs.writeFileSync(
     entryPath,
@@ -25,7 +25,7 @@ module.exports = { handleRequest() { return { calls: ++calls }; } };\n`,
   ).toString("base64url");
   const worker = fork(
     path.join(__dirname, "../src/capabilities/supervised-runtime/runtime/worker-bootstrap.js"),
-    [`--groby-workload-config=${config}`],
+    [`--ravelink-workload-config=${config}`],
     { execArgv: [], windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"] },
   );
   t.after(async () => {

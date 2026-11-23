@@ -51,7 +51,7 @@ function parameters(id, params, context, signal) {
       return context.render(value.message, signal).then((message) => ({
         ...value,
         message,
-        [Symbol.for("groby.template.resolved")]: true,
+        [Symbol.for("ravelink.template.resolved")]: true,
       }));
     value.message = text(value.message, context);
   }
@@ -70,7 +70,7 @@ function parameters(id, params, context, signal) {
     value = { ...value, target: "login", login: context.raider };
   }
   if (id === "twitch.action.shoutout")
-    Object.defineProperty(value, Symbol.for("groby.shoutout.guard"), {
+    Object.defineProperty(value, Symbol.for("ravelink.shoutout.guard"), {
       value: () => !signal?.aborted && (!context?.isCurrent || context.isCurrent()),
       enumerable: false,
     });

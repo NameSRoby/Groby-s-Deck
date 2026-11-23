@@ -1,5 +1,15 @@
 /** Overlay readers share the provider's authorization and refresh boundary. */
 module.exports = ({ api, withAuthorization }) => ({
+  overlayCreatorGoals: () =>
+    withAuthorization(
+      (credentials) => api.overlayCreatorGoals({ credentials }),
+      ["channel:read:goals"],
+    ),
+  overlayCharity: () =>
+    withAuthorization(
+      (credentials) => api.overlayCharity({ credentials }),
+      ["channel:read:charity"],
+    ),
   overlaySupporters: (input) =>
     withAuthorization(
       (current) => api.overlaySupporters({ ...input, credentials: current }),

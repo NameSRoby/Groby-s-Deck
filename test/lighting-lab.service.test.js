@@ -6,7 +6,7 @@ const path = require("node:path");
 const createLightingLab = require("../src/domains/fixtures/lighting-lab.service");
 
 test("lighting lab persists bounded calibration, exclusions, presets, and session history", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-light-lab-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-light-lab-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const fixtureRegistry = {
     getFixtures: () => [{ id: "desk-hue" }, { id: "shelf-wiz" }],

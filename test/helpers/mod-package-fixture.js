@@ -17,7 +17,7 @@ async function createPackage(root, options = {}) {
     publisher: "example",
     license: "MIT",
     entry: "dist/main.js",
-    engine: { grobyModApi: "^1.0.0", node: ">=22" },
+    engine: { ravelinkModApi: "^1.0.0", node: ">=22" },
     activationEvents: ["onEnable"],
     consumes: [],
     provides: ["example.service.v1"],

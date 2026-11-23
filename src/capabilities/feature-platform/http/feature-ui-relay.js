@@ -8,7 +8,7 @@
 module.exports = function installFeatureRelay(config) {
   const frame = document.getElementById("surface");
   const allowed = new Set(config.capabilities);
-  const channel = "groby-feature-ui-v1";
+  const channel = "ravelink-feature-ui-v1";
   // These budgets match capability work, not HTTP transport defaults. Transfers
   // can page a provider; ordinary display reads should fail promptly. The abort
   // below adds 750 ms so the host can return its own timeout disposition first.
@@ -156,7 +156,7 @@ module.exports = function installFeatureRelay(config) {
       }
       window.open(
         "/features-ui/" + config.featureId + "/" + message.pageId,
-        "groby-" + config.featureId + "-" + message.pageId,
+        "ravelink-" + config.featureId + "-" + message.pageId,
         "noopener",
       );
       return;
@@ -242,7 +242,7 @@ module.exports = function installFeatureRelay(config) {
   let unsubscribeEvents;
   function connectEvents() {
     if (unsubscribeEvents) return;
-    unsubscribeEvents = window.grobyFeatureEvents.subscribe(
+    unsubscribeEvents = window.ravelinkFeatureEvents.subscribe(
       { featureId: config.featureId, capabilities: config.capabilities },
       (message) => {
         if (message.type === "feature" && allowed.has(message.value.capability))

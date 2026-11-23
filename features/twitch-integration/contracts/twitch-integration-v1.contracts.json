@@ -134,7 +134,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -152,7 +152,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -174,7 +176,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -206,7 +208,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {
@@ -269,7 +273,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -287,7 +291,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               }
@@ -417,7 +423,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -435,7 +441,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -457,7 +465,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -489,7 +497,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {
@@ -665,7 +675,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -683,7 +693,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -705,7 +717,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -737,7 +749,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {
@@ -811,7 +825,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -829,7 +843,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               }
@@ -959,7 +975,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -977,7 +993,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -999,7 +1017,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1031,7 +1049,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {
@@ -1207,7 +1227,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -1225,7 +1245,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -1247,7 +1269,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1279,7 +1301,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {
@@ -1455,7 +1479,7 @@
               },
               "selectedPermissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "enum": [
                     "predictions",
@@ -1473,7 +1497,9 @@
                     "shoutouts",
                     "bits",
                     "hype-train",
-                    "polls"
+                    "polls",
+                    "charity",
+                    "goals"
                   ]
                 }
               },
@@ -1495,7 +1521,7 @@
               },
               "permissionGroups": {
                 "type": "array",
-                "maxItems": 16,
+                "maxItems": 32,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1527,7 +1553,9 @@
                         "shoutouts",
                         "bits",
                         "hype-train",
-                        "polls"
+                        "polls",
+                        "charity",
+                        "goals"
                       ]
                     },
                     "label": {

@@ -7,7 +7,7 @@ const createFacade = require("./native-facade.cjs");
 const createAdapter = require("./desktop-adapter.cjs");
 const createConnection = require("./connection-worker.cjs");
 module.exports = function installSpotifyRuntime(root, options = {}) {
-  if (Object.hasOwn(root, "__grobySpotify")) throw Error("spotify_runtime_already_installed");
+  if (Object.hasOwn(root, "__ravelinkSpotify")) throw Error("spotify_runtime_already_installed");
   let captured = false,
     client = null,
     connection = null,
@@ -67,7 +67,7 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
       };
     },
   });
-  Object.defineProperty(root, "__grobySpotify", {
+  Object.defineProperty(root, "__ravelinkSpotify", {
     value: Object.freeze(bridge),
     configurable: false,
     enumerable: false,
@@ -80,5 +80,5 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
     },
     { once: true },
   );
-  return root.__grobySpotify;
+  return root.__ravelinkSpotify;
 };

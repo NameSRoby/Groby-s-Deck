@@ -1,5 +1,17 @@
 /** Official EventSub definitions. Optional scopes stay opt-in on Connection. */
 const EVENTS = [
+  ...["begin", "progress", "end"].map((suffix) => [
+    "channel.goal." + suffix,
+    "Creator goal " + suffix,
+    "channel:read:goals",
+    "1",
+  ]),
+  ...["start", "progress", "stop", "donate"].map((suffix) => [
+    "channel.charity_campaign." + suffix,
+    "Charity campaign " + suffix,
+    "channel:read:charity",
+    "1",
+  ]),
   ...["begin", "progress", "lock", "end"].map((suffix) => [
     "channel.prediction." + suffix,
     "Prediction " + suffix,

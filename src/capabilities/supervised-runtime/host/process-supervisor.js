@@ -69,7 +69,7 @@ module.exports = function createProcessSupervisor(options = {}) {
   const displayName = String(options.displayName || "Workload");
   const identityField = String(options.identityField || "workloadId");
   const statusIdentityField = String(options.statusIdentityField || identityField);
-  const configArgument = String(options.configArgument || "--groby-workload-config=");
+  const configArgument = String(options.configArgument || "--ravelink-workload-config=");
   const apiMajor = boundedInt(options.apiMajor, 1, 99, 1);
   const modRoot = path.resolve(String(options.modRoot || ""));
   const storageRoot = path.resolve(String(options.storageRoot || path.join(modRoot, ".data")));

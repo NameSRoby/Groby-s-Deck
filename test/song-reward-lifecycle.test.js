@@ -79,12 +79,12 @@ async function fixture(t) {
   let transactions, controller;
   const harness = createFeatureRuntimeHarness(feature, {
     providers: {
-      "groby.storage.v1/get": async ({ key }) => ({
+      "ravelink.storage.v1/get": async ({ key }) => ({
         ok: true,
         found: storage.has(key),
         value: structuredClone(storage.get(key)),
       }),
-      "groby.storage.v1/set": async ({ key, value }) => {
+      "ravelink.storage.v1/set": async ({ key, value }) => {
         storage.set(key, structuredClone(value));
         return { ok: true };
       },
@@ -307,7 +307,7 @@ test("durable outcomes retry after restart without reversing or repeating a deli
   let connected = false;
   const context = {
     callCapability: async (cap, method, payload) => {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "set") storage.set(payload.key, structuredClone(payload.value));
         return { ok: true, value: structuredClone(storage.get(payload.key)) };
       }
@@ -342,7 +342,7 @@ test("desktop handoff never fulfills; exact observed desktop occurrence does", a
   const createDesktop = require("../features/song-request/dist/desktop-chat-responses");
   const context = {
     callCapability: async (cap, method, payload) => {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "set") f.storage.set(payload.key, structuredClone(payload.value));
         return { ok: true, value: f.storage.get(payload.key) };
       }

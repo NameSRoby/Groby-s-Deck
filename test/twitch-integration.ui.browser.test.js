@@ -7,252 +7,269 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const createFeaturePlatformExtension = require("../src/app/optional/create-feature-platform-extension");
 
-test("Twitch Client ID administration is write-only and gated by HUD Developer Mode", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-twitch-ui-"));
-  const installed = path.join(root, "installed", "twitch-integration");
-  fs.cpSync(path.join(__dirname, "..", "features", "twitch-integration"), installed, {
-    recursive: true,
-  });
-  let pending = false;
-  let connected = false;
-  let invalidStatus = true;
-  let createFailure = false;
-  let recovery = {
-    reauthorizationRequired: false,
-    reason: "",
-    revocations: [],
-  };
-  let monitorConfig = {
-    intakeMode: "streamelements",
-    songRequestChatEnabled: false,
-  };
-  let roleDirectory = { moderators: 0, vips: 0, updatedAt: 0, refreshing: false, lastError: "" };
-  const managedRewards = [];
-  const reviews = [
-    {
-      broadcasterId: "123",
-      rewardId: "managed-song",
-      redemptionId: "interrupted",
-      phase: "review",
-      desiredStatus: "",
-      observedStatus: "",
-      error: "twitch_interrupted_transaction",
-      updatedAt: 1000,
-    },
-  ];
-  const reconciled = [];
-  const status = () => ({
-    ok: true,
-    configured: true,
-    connected,
-    authorizationRecovery: recovery,
-    login: connected ? "tester" : "",
-    userId: connected ? "123" : "",
-    scopes: connected
-      ? [
-          "channel:manage:redemptions",
-          "user:read:chat",
-          "user:write:chat",
-          "channel:read:vips",
-          "moderation:read",
-        ]
-      : [],
-    expiresAt: 0,
-    authorizationPending: pending,
-    userCode: pending ? "TEST-CODE" : "",
-    verificationUri: pending ? "https://www.twitch.tv/activate?device-code=TEST-CODE" : "",
-    nextPollAt: 0,
-    authorizationExpiresAt: 0,
-    requiredScopes: ["channel:manage:redemptions"],
-    roleDirectory,
-    managedRewards: structuredClone(managedRewards),
-    monitorConfig: { ...monitorConfig },
-    vault: "windows_dpapi",
-    lastError: "",
-  });
-  const created = createCoreServer({
-    rootDir: path.join(__dirname, ".."),
-    runtimeDir: path.join(root, "runtime"),
-    dryRun: true,
-    capabilities: { features: true },
-    extend: createFeaturePlatformExtension({
-      featuresRoot: path.join(root, "installed"),
-      runtimeRoot: path.join(root, "runtime", "features"),
-      allowUnsafeRuntime: true,
-      providers: {
-        "twitch.host.v1/review-transactions": () => ({
-          ok: true,
-          total: reviews.length,
-          entries: structuredClone(reviews),
-        }),
-        "twitch.host.v1/reconcile-transaction": (payload) => {
-          reconciled.push(payload);
-          reviews.splice(0);
-          return { ok: true, status: payload.status };
-        },
-        "twitch.host.v1/status": () => (invalidStatus ? { ok: true } : status()),
-        "twitch.host.v1/configure-monitor": (payload) => {
-          monitorConfig = { ...payload };
-          return status();
-        },
-        "twitch.host.v1/begin": () => {
-          pending = true;
-          return status();
-        },
-        "twitch.host.v1/poll": () => {
-          pending = false;
-          connected = true;
-          return status();
-        },
-        "twitch.host.v1/create-reward": (payload) => {
-          if (createFailure) return { ok: false, error: "twitch_reward_creation_in_progress" };
-          const reward = {
-            ok: true,
-            purpose: payload.purpose,
-            rewardId: `managed-${payload.purpose}`,
-            title: payload.title,
-            cost: payload.cost,
-            manageable: true,
-          };
-          managedRewards.push(reward);
-          return reward;
-        },
+for (const channel of ["ravelink-feature-ui-v1", "groby-feature-ui-v1"]) {
+  test(`Twitch Client ID administration is write-only and gated by HUD Developer Mode (${channel})`, async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-twitch-ui-"));
+    const installed = path.join(root, "installed", "twitch-integration");
+    fs.cpSync(path.join(__dirname, "..", "features", "twitch-integration"), installed, {
+      recursive: true,
+    });
+    if (channel === "groby-feature-ui-v1") {
+      const filename = path.join(installed, "ui", "connection.html");
+      const content = fs
+        .readFileSync(filename, "utf8")
+        .replaceAll("ravelink-feature-ui-v1", channel);
+      fs.writeFileSync(filename, content);
+      const manifestPath = path.join(installed, "groby.feature.json");
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      manifest.integrity.files["ui/connection.html"] = require("node:crypto")
+        .createHash("sha256")
+        .update(content)
+        .digest("hex");
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+    }
+    let pending = false;
+    let connected = false;
+    let invalidStatus = true;
+    let createFailure = false;
+    let recovery = {
+      reauthorizationRequired: false,
+      reason: "",
+      revocations: [],
+    };
+    let monitorConfig = {
+      intakeMode: "streamelements",
+      songRequestChatEnabled: false,
+    };
+    let roleDirectory = { moderators: 0, vips: 0, updatedAt: 0, refreshing: false, lastError: "" };
+    const managedRewards = [];
+    const reviews = [
+      {
+        broadcasterId: "123",
+        rewardId: "managed-song",
+        redemptionId: "interrupted",
+        phase: "review",
+        desiredStatus: "",
+        observedStatus: "",
+        error: "twitch_interrupted_transaction",
+        updatedAt: 1000,
       },
-    }),
-  });
-  await created.extension.startup;
-  const server = await new Promise((resolve) => {
-    const listener = created.app.listen(0, "127.0.0.1", () => resolve(listener));
-  });
-  let browser;
-  t.after(async () => {
-    if (browser) await browser.close();
-    await created.extension.shutdown();
-    await created.services.lifecycle.stopAll();
-    await new Promise((resolve) => server.close(resolve));
-    fs.rmSync(root, { recursive: true, force: true });
-  });
+    ];
+    const reconciled = [];
+    const status = () => ({
+      ok: true,
+      configured: true,
+      connected,
+      authorizationRecovery: recovery,
+      login: connected ? "tester" : "",
+      userId: connected ? "123" : "",
+      scopes: connected
+        ? [
+            "channel:manage:redemptions",
+            "user:read:chat",
+            "user:write:chat",
+            "channel:read:vips",
+            "moderation:read",
+          ]
+        : [],
+      expiresAt: 0,
+      authorizationPending: pending,
+      userCode: pending ? "TEST-CODE" : "",
+      verificationUri: pending ? "https://www.twitch.tv/activate?device-code=TEST-CODE" : "",
+      nextPollAt: 0,
+      authorizationExpiresAt: 0,
+      requiredScopes: ["channel:manage:redemptions"],
+      roleDirectory,
+      managedRewards: structuredClone(managedRewards),
+      monitorConfig: { ...monitorConfig },
+      vault: "windows_dpapi",
+      lastError: "",
+    });
+    const created = createCoreServer({
+      rootDir: path.join(__dirname, ".."),
+      runtimeDir: path.join(root, "runtime"),
+      dryRun: true,
+      capabilities: { features: true },
+      extend: createFeaturePlatformExtension({
+        featuresRoot: path.join(root, "installed"),
+        runtimeRoot: path.join(root, "runtime", "features"),
+        allowUnsafeRuntime: true,
+        providers: {
+          "twitch.host.v1/review-transactions": () => ({
+            ok: true,
+            total: reviews.length,
+            entries: structuredClone(reviews),
+          }),
+          "twitch.host.v1/reconcile-transaction": (payload) => {
+            reconciled.push(payload);
+            reviews.splice(0);
+            return { ok: true, status: payload.status };
+          },
+          "twitch.host.v1/status": () => (invalidStatus ? { ok: true } : status()),
+          "twitch.host.v1/configure-monitor": (payload) => {
+            monitorConfig = { ...payload };
+            return status();
+          },
+          "twitch.host.v1/begin": () => {
+            pending = true;
+            return status();
+          },
+          "twitch.host.v1/poll": () => {
+            pending = false;
+            connected = true;
+            return status();
+          },
+          "twitch.host.v1/create-reward": (payload) => {
+            if (createFailure) return { ok: false, error: "twitch_reward_creation_in_progress" };
+            const reward = {
+              ok: true,
+              purpose: payload.purpose,
+              rewardId: `managed-${payload.purpose}`,
+              title: payload.title,
+              cost: payload.cost,
+              manageable: true,
+            };
+            managedRewards.push(reward);
+            return reward;
+          },
+        },
+      }),
+    });
+    await created.extension.startup;
+    const server = await new Promise((resolve) => {
+      const listener = created.app.listen(0, "127.0.0.1", () => resolve(listener));
+    });
+    let browser;
+    t.after(async () => {
+      if (browser) await browser.close();
+      await created.extension.shutdown();
+      await created.services.lifecycle.stopAll();
+      await new Promise((resolve) => server.close(resolve));
+      fs.rmSync(root, { recursive: true, force: true });
+    });
 
-  browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({
-    viewport: { width: 1280, height: 900 },
-  });
-  await page.context().route("https://www.twitch.tv/**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "text/html",
-      body: "<title>Twitch authorization</title>",
-    }),
-  );
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`http://127.0.0.1:${server.address().port}`, {
-    waitUntil: "domcontentloaded",
-  });
-  const twitchTab = page.getByRole("button", { name: "TWITCH INTEGRATION" });
-  await twitchTab.waitFor();
-  await twitchTab.click();
-
-  const contribution = page.frameLocator("iframe.featurePageFrame").frameLocator("#surface");
-  const developerSection = contribution.locator("#developerApplication");
-  await developerSection.waitFor({ state: "attached" });
-  await contribution.locator("#state").filter({ hasText: "STATUS UNAVAILABLE" }).waitFor();
-  assert.equal(await developerSection.isHidden(), true);
-  const coreAccent = await page
-    .locator("html")
-    .evaluate((node) => getComputedStyle(node).getPropertyValue("--accent").trim());
-  const featureAccent = await contribution
-    .locator("html")
-    .evaluate((node) => getComputedStyle(node).getPropertyValue("--accent").trim());
-  assert.equal(featureAccent, coreAccent);
-
-  await page.locator("#themeButton").click();
-  await page.locator("#developerMode").check();
-  await developerSection.waitFor({ state: "visible" });
-  assert.equal(await contribution.locator("#clientId").getAttribute("type"), "password");
-  assert.equal(await contribution.getByText("SHOW CLIENT ID").count(), 0);
-  assert.equal(await contribution.locator("#clearClientId").isDisabled(), true);
-  await contribution.locator("#clientId").fill("syntheticclient123");
-  assert.equal(await contribution.locator("#save").isDisabled(), true);
-  await contribution.locator("#clientId").fill("");
-  invalidStatus = false;
-  await contribution.locator("#refresh").click();
-  await contribution.locator("#state").filter({ hasText: "READY TO AUTHORIZE" }).waitFor();
-  assert.equal(await contribution.locator("#clearClientId").isEnabled(), true);
-  const popupPromise = page.context().waitForEvent("page");
-  await contribution.locator("#begin").click();
-  const popup = await popupPromise;
-  await popup.waitForURL(/^https:\/\/www\.twitch\.tv\/activate\?device-code=TEST-CODE/);
-  assert.match(popup.url(), /^https:\/\/www\.twitch\.tv\/activate\?device-code=TEST-CODE/);
-  await popup.close();
-  await contribution.locator("#check").click();
-  await contribution.locator("#state").filter({ hasText: "CONNECTED" }).waitFor();
-  assert.equal(
-    await contribution
-      .locator(".task-navigation")
-      .getByRole("button", { name: "Event intake", exact: true })
-      .count(),
-    0,
-  );
-  assert.equal(
-    await contribution
-      .locator(".task-navigation")
-      .getByRole("button", { name: "Rewards", exact: true })
-      .count(),
-    0,
-  );
-  assert.match(await contribution.locator("#roleDirectory").textContent(), /synchronizing/);
-  roleDirectory = { moderators: 32, vips: 36, updatedAt: 1, refreshing: false, lastError: "" };
-  await contribution.locator("#refresh").click();
-  await contribution
-    .locator("#roleDirectory")
-    .filter({ hasText: "32 moderators / 36 VIPs" })
-    .waitFor({ state: "attached" });
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Review", exact: true })
-    .click();
-  await contribution.getByRole("button", { name: "REFUND POINTS", exact: true }).click();
-  await contribution
-    .locator("#transactionNotice")
-    .filter({ hasText: "Twitch confirms CANCELED." })
-    .waitFor();
-  assert.equal(reconciled[0].status, "CANCELED");
-  recovery = { reauthorizationRequired: true, reason: "authorization_revoked", revocations: [] };
-  connected = false;
-  await contribution
-    .locator(".task-navigation")
-    .getByRole("button", { name: "Connection", exact: true })
-    .click();
-  await contribution.locator("#refresh").click();
-  await contribution.locator("#state").filter({ hasText: "RECONNECT REQUIRED" }).waitFor();
-  assert.equal(await contribution.locator("#begin").isEnabled(), true);
-  for (const viewport of [
-    { width: 1280, height: 600 },
-    { width: 390, height: 844 },
-  ]) {
-    await page.setViewportSize(viewport);
-    assert.ok(
-      await contribution.locator("body").evaluate((el) => el.scrollWidth <= innerWidth + 1),
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({
+      viewport: { width: 1280, height: 900 },
+    });
+    await page.context().route("https://www.twitch.tv/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<title>Twitch authorization</title>",
+      }),
     );
-  }
-  await contribution.locator("body").evaluate((body) => {
-    const spacer = document.createElement("div");
-    spacer.id = "long-content-fixture";
-    spacer.style.height = "18000px";
-    body.append(spacer);
-  });
-  await page.waitForFunction(
-    () => document.querySelector("iframe.featurePageFrame").getBoundingClientRect().height > 18000,
-  );
-  assert.ok(
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${server.address().port}`, {
+      waitUntil: "domcontentloaded",
+    });
+    const twitchTab = page.getByRole("button", { name: "TWITCH INTEGRATION" });
+    await twitchTab.waitFor();
+    await twitchTab.click();
+
+    const contribution = page.frameLocator("iframe.featurePageFrame").frameLocator("#surface");
+    const developerSection = contribution.locator("#developerApplication");
+    await developerSection.waitFor({ state: "attached" });
+    await contribution.locator("#state").filter({ hasText: "STATUS UNAVAILABLE" }).waitFor();
+    assert.equal(await developerSection.isHidden(), true);
+    const coreAccent = await page
+      .locator("html")
+      .evaluate((node) => getComputedStyle(node).getPropertyValue("--accent").trim());
+    const featureAccent = await contribution
+      .locator("html")
+      .evaluate((node) => getComputedStyle(node).getPropertyValue("--accent").trim());
+    assert.equal(featureAccent, coreAccent);
+
+    await page.locator("#themeButton").click();
+    await page.locator("#developerMode").check();
+    await developerSection.waitFor({ state: "visible" });
+    assert.equal(await contribution.locator("#clientId").getAttribute("type"), "password");
+    assert.equal(await contribution.getByText("SHOW CLIENT ID").count(), 0);
+    assert.equal(await contribution.locator("#clearClientId").isDisabled(), true);
+    await contribution.locator("#clientId").fill("syntheticclient123");
+    assert.equal(await contribution.locator("#save").isDisabled(), true);
+    await contribution.locator("#clientId").fill("");
+    invalidStatus = false;
+    await contribution.locator("#refresh").click();
+    await contribution.locator("#state").filter({ hasText: "READY TO AUTHORIZE" }).waitFor();
+    assert.equal(await contribution.locator("#clearClientId").isEnabled(), true);
+    const popupPromise = page.context().waitForEvent("page");
+    await contribution.locator("#begin").click();
+    const popup = await popupPromise;
+    await popup.waitForURL(/^https:\/\/www\.twitch\.tv\/activate\?device-code=TEST-CODE/);
+    assert.match(popup.url(), /^https:\/\/www\.twitch\.tv\/activate\?device-code=TEST-CODE/);
+    await popup.close();
+    await contribution.locator("#check").click();
+    await contribution.locator("#state").filter({ hasText: "CONNECTED" }).waitFor();
+    assert.equal(
+      await contribution
+        .locator(".task-navigation")
+        .getByRole("button", { name: "Event intake", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await contribution
+        .locator(".task-navigation")
+        .getByRole("button", { name: "Rewards", exact: true })
+        .count(),
+      0,
+    );
+    assert.match(await contribution.locator("#roleDirectory").textContent(), /synchronizing/);
+    roleDirectory = { moderators: 32, vips: 36, updatedAt: 1, refreshing: false, lastError: "" };
+    await contribution.locator("#refresh").click();
     await contribution
-      .locator("body")
-      .evaluate((body) => body.getBoundingClientRect().height <= innerHeight + 1),
-  );
-  await contribution.locator("#long-content-fixture").evaluate((node) => node.remove());
-  assert.deepEqual(errors, []);
-});
+      .locator("#roleDirectory")
+      .filter({ hasText: "32 moderators / 36 VIPs" })
+      .waitFor({ state: "attached" });
+    await contribution
+      .locator(".task-navigation")
+      .getByRole("button", { name: "Review", exact: true })
+      .click();
+    await contribution.getByRole("button", { name: "REFUND POINTS", exact: true }).click();
+    await contribution
+      .locator("#transactionNotice")
+      .filter({ hasText: "Twitch confirms CANCELED." })
+      .waitFor();
+    assert.equal(reconciled[0].status, "CANCELED");
+    recovery = { reauthorizationRequired: true, reason: "authorization_revoked", revocations: [] };
+    connected = false;
+    await contribution
+      .locator(".task-navigation")
+      .getByRole("button", { name: "Connection", exact: true })
+      .click();
+    await contribution.locator("#refresh").click();
+    await contribution.locator("#state").filter({ hasText: "RECONNECT REQUIRED" }).waitFor();
+    assert.equal(await contribution.locator("#begin").isEnabled(), true);
+    for (const viewport of [
+      { width: 1280, height: 600 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      assert.ok(
+        await contribution.locator("body").evaluate((el) => el.scrollWidth <= innerWidth + 1),
+      );
+    }
+    await contribution.locator("body").evaluate((body) => {
+      const spacer = document.createElement("div");
+      spacer.id = "long-content-fixture";
+      spacer.style.height = "18000px";
+      body.append(spacer);
+    });
+    await page.waitForFunction(
+      () =>
+        document.querySelector("iframe.featurePageFrame").getBoundingClientRect().height > 18000,
+    );
+    assert.ok(
+      await contribution
+        .locator("body")
+        .evaluate((body) => body.getBoundingClientRect().height <= innerHeight + 1),
+    );
+    await contribution.locator("#long-content-fixture").evaluate((node) => node.remove());
+    assert.deepEqual(errors, []);
+  });
+}
 
 test("Twitch permission choices stay distinct from actual grants and identity-only authorization", async (t) => {
   const express = require("express");
@@ -282,7 +299,7 @@ test("Twitch permission choices stay distinct from actual grants and identity-on
     window.selected=groups.map(g=>g.id);window.granted=['user:read:chat'];
     function status(){return {ok:true,configured:true,connected,authorizationPending:pending,userCode:pending?'TEST-CODE':'',verificationUri:pending?'https://www.twitch.tv/activate?device-code=TEST-CODE':'',login:'fixture',grantedScopes:[...granted],selectedPermissionGroups:[...selected],requestedScopes:groups.filter(g=>selected.includes(g.id)).flatMap(g=>g.scopes),permissionGroups:groups.map(g=>({...g,selected:selected.includes(g.id),granted:g.scopes.every(s=>granted.includes(s)),available:connected&&g.scopes.every(s=>granted.includes(s)),missingScopes:g.scopes.filter(s=>!granted.includes(s))})),managedRewards:[],monitorConfig:{intakeMode:'native',songRequestChatEnabled:false}};}
     addEventListener('message',event=>{
-      if(event.source!==document.querySelector('#ui').contentWindow||event.data?.channel!=='groby-feature-ui-v1')return;
+      if(event.source!==document.querySelector('#ui').contentWindow||event.data?.channel!=='ravelink-feature-ui-v1')return;
       const m=event.data;
       if(m.type==='feature-height'){document.querySelector('#ui').style.height=m.height+'px';return;}
       if(m.type!=='call')return;calls.push({capability:m.capability,method:m.method,payload:m.payload});

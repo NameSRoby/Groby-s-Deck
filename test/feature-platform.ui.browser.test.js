@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const createFeaturePlatformExtension = require("../src/app/optional/create-feature-platform-extension");
@@ -10,11 +11,27 @@ const unicodeTitle =
   "美波 - カワキヲアメク — a deliberately long title that must keep scrolling without restarting";
 
 test("Features HUD lazy-loads integrity-checked Song Request player and overlay pages", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-feature-ui-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-feature-ui-"));
   const installed = path.join(root, "installed", "song-request");
   fs.cpSync(path.join(__dirname, "..", "features", "song-request"), installed, {
     recursive: true,
   });
+  // Reproduce installed packages whose rebrand changed the UI wire identifier.
+  const installedManifestPath = path.join(installed, "groby.feature.json");
+  const installedManifest = JSON.parse(fs.readFileSync(installedManifestPath, "utf8"));
+  for (const file of Object.keys(installedManifest.integrity.files)) {
+    if (!file.endsWith(".html") && !file.endsWith(".js")) continue;
+    const filename = path.join(installed, file);
+    const content = fs.readFileSync(filename, "utf8");
+    const updated = content.replaceAll("ravelink-feature-ui-v1", "groby-feature-ui-v1");
+    if (updated === content) continue;
+    fs.writeFileSync(filename, updated);
+    installedManifest.integrity.files[file] = crypto
+      .createHash("sha256")
+      .update(updated)
+      .digest("hex");
+  }
+  fs.writeFileSync(installedManifestPath, JSON.stringify(installedManifest));
   // Simulate an upgrade that preserved the former Music-to-Light package,
   // including one installed under a noncanonical folder name.
   const legacy = path.join(root, "installed", "old-music-facade");
@@ -214,6 +231,14 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   await popup.goto(`${base}/features-ui/song-request/player`);
   await popup.waitForLoadState("domcontentloaded");
   const playerSurface = popup.locator("#surface").contentFrame();
+  await playerSurface
+    .locator("#connection")
+    .filter({ hasText: /^CONNECTED$/ })
+    .waitFor();
+  await playerSurface
+    .locator("#playerProviderHint")
+    .filter({ hasText: "Embedded YouTube playback" })
+    .waitFor();
   await playerSurface.locator("#playerFrame").waitFor();
   const box = await playerSurface.locator("#playerFrame").boundingBox();
   assert.ok(box.width >= 480);
@@ -313,7 +338,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
     .filter({ hasText: "YOUTUBE is now the overlay source" })
     .waitFor();
   await sourcesPopup.close();
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "..", "runtime", "logs");
     fs.mkdirSync(output, { recursive: true });
     await queuePopup.screenshot({
@@ -442,7 +467,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
     1,
   );
   await editorPopup.waitForFunction(
-    () => sessionStorage.getItem("groby-ui-draft-v1:song-request:overlay-editor") !== null,
+    () => sessionStorage.getItem("ravelink-ui-draft-v1:song-request:overlay-editor") !== null,
   );
   editorPopup.once("dialog", (dialog) => dialog.accept());
   await editorPopup.reload();
@@ -457,7 +482,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
       ),
     true,
   );
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "..", "runtime", "logs");
     fs.mkdirSync(output, { recursive: true });
     await editorPopup.screenshot({
@@ -470,7 +495,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   await editorSurface.locator("#save").click();
   await editorSurface.locator("#status").filter({ hasText: "Overlay saved" }).waitFor();
   await page.locator('[data-tab="feature:song-request"]').click();
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "..", "runtime", "logs");
     await popup.screenshot({
       path: path.join(output, "song-request-player-desktop.png"),
@@ -670,9 +695,9 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   assert.notEqual(await timer.textContent(), timerBefore);
   assert.ok(Number.parseFloat(await progress.evaluate((el) => el.style.width)) > progressBefore);
   await progress.evaluate((el) => {
-    window.__grobyProgressNode = el;
-    window.__grobyMarqueeNode = document.querySelector(".marqueeTrack");
-    window.__grobyMarqueeTime = window.__grobyMarqueeNode.getAnimations()[0].currentTime;
+    window.__ravelinkProgressNode = el;
+    window.__ravelinkMarqueeNode = document.querySelector(".marqueeTrack");
+    window.__ravelinkMarqueeTime = window.__ravelinkMarqueeNode.getAnimations()[0].currentTime;
   });
   await featureCall("song.playback.driver.v1", "acknowledge", {
     driverId: "ui-test",
@@ -685,19 +710,19 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   assert.equal(
     await compactSurface
       .locator(".playbackProgress")
-      .evaluate((el) => el === window.__grobyProgressNode),
+      .evaluate((el) => el === window.__ravelinkProgressNode),
     true,
   );
   assert.equal(
     await compactSurface
       .locator(".marqueeTrack")
-      .evaluate((el) => el === window.__grobyMarqueeNode),
+      .evaluate((el) => el === window.__ravelinkMarqueeNode),
     true,
   );
   assert.equal(
     await compactSurface
       .locator(".marqueeTrack")
-      .evaluate((el) => el.getAnimations()[0].currentTime > window.__grobyMarqueeTime),
+      .evaluate((el) => el.getAnimations()[0].currentTime > window.__ravelinkMarqueeTime),
     true,
   );
   await compactOverlay.close();
@@ -712,7 +737,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
     .getByRole("button", { name: "Arrangement", exact: true })
     .click();
   await designer.locator("#addSegment").click();
-  const draftKey = "groby-ui-draft-v1:song-request:overlay-editor";
+  const draftKey = "ravelink-ui-draft-v1:song-request:overlay-editor";
   await page.waitForFunction((key) => sessionStorage.getItem(key) !== null, draftKey);
   await workspace.getByRole("button", { name: "Player", exact: true }).click();
   assert.equal(await embeddedPlayer.getAttribute("data-preserved"), "yes");
@@ -728,7 +753,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
     const frame = document.querySelector(".featurePageFrame:not([hidden])");
     return Number.parseInt(frame.style.height, 10) > 844;
   });
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1")
+  if (process.env.RAVELINK_CAPTURE_UI === "1")
     await page.screenshot({
       path: path.join(__dirname, "..", "runtime", "logs", "native-feature-mobile.png"),
       fullPage: true,
@@ -787,7 +812,7 @@ test("Features HUD lazy-loads integrity-checked Song Request player and overlay 
   await designer.locator("#save").click();
   await designer.locator("#status").filter({ hasText: "Overlay saved" }).waitFor();
   await page.waitForFunction((key) => sessionStorage.getItem(key) === null, draftKey);
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "..", "runtime", "logs");
     fs.mkdirSync(output, { recursive: true });
     const mobile = await context.newPage();

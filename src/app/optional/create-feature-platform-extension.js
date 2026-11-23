@@ -70,7 +70,7 @@ function createFeaturePlatformExtension(options = {}) {
           getAutomationEvents: (userId) => [
             ...new Set([
               ...automations.events(userId),
-              ...(context.streamOverlays?.events() || []),
+              ...(context.streamOverlays?.events(userId) || []),
               ...(automations.events(userId).includes("channel.raid")
                 ? ["channel.shoutout.create", "stream.offline"]
                 : []),
@@ -115,6 +115,7 @@ function createFeaturePlatformExtension(options = {}) {
         widgetController: context.widgetController,
       });
     const automations = require("../../domains/twitch/twitch-automations.service")({
+      getGoals: () => context.streamOverlays?.goals,
       file: path.join(context.runtimeDir, "system", "twitch-automations.json"),
       getProvider: twitchProvider,
       deck: {
@@ -198,7 +199,7 @@ function createFeaturePlatformExtension(options = {}) {
             current
               ? {
                   provider: "spotify",
-                  sourceId: "groby-companion",
+                  sourceId: "ravelink-companion",
                   available: true,
                   title: current.title || "Spotify",
                   artists: current.artists,
@@ -211,7 +212,7 @@ function createFeaturePlatformExtension(options = {}) {
                 }
               : {
                   provider: "spotify",
-                  sourceId: "groby-companion",
+                  sourceId: "ravelink-companion",
                   available: false,
                 },
             { timeoutMs: 1000 },
@@ -267,7 +268,7 @@ function createFeaturePlatformExtension(options = {}) {
       minimumVersions: options.packageRoots
         ? {}
         : Object.fromEntries(
-            OFFICIAL_FEATURE_SOURCES.map(({ id, minimumVersion }) => [id, minimumVersion]),
+            OFFICIAL_FEATURE_SOURCES.map((source) => [source.id, source.minimumVersion]),
           ),
       fetchImpl: options.featureFetch,
       runtimeRoot: featureRuntimeRoot,
@@ -471,7 +472,7 @@ function createFeaturePlatformExtension(options = {}) {
       tidalChoice = readJsonFile(tidalChoicePath, null),
       tidalEnabled =
         options.experimentalTidal === true ||
-        process.env.GROBYS_DECK_EXPERIMENTAL_TIDAL === "1" ||
+        process.env.RAVELINK_EXPERIMENTAL_TIDAL === "1" ||
         (tidalChoice?.version === 1 && tidalChoice.enabled === true);
     let tidalBridge;
     const manageTidalCompanion =

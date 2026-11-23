@@ -33,7 +33,7 @@ function readWidgetIntakeTokenFromRequest(req = {}, body = {}) {
   const headers = req.headers && typeof req.headers === "object" ? req.headers : {};
   return normalizeWidgetIntakeToken(
     extractBearerToken(headers.authorization || headers.Authorization) ||
-      headers["x-groby-deck-widget-token"] ||
+      headers["x-ravelink-widget-token"] ||
       headers["x-widget-token"] ||
       getByPath(body, "widgetIntakeToken") ||
       getByPath(body, "widgetConfig.widgetIntakeToken"),

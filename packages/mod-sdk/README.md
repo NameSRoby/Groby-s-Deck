@@ -2,7 +2,7 @@
 
 Standalone API helpers for isolated Groby’s Deck mods. The package has no runtime dependencies and imports no Groby’s Deck server implementation.
 
-This is SDK 1.0.0 for Mod API v1 in Groby’s Deck 0.8. Start with the included [runnable button starter](starter/README.md). The full
+Start with the included [runnable button starter](starter/README.md). The full
 [author guide](https://github.com/NameSRoby/Groby-s-Deck/blob/main/docs/MOD_AUTHOR_GUIDE.md)
 covers manifests, permissions, lifecycle, testing, packaging, installation and
 troubleshooting. The [API reference](https://github.com/NameSRoby/Groby-s-Deck/blob/main/docs/MOD_API_REFERENCE.md)
@@ -12,9 +12,9 @@ explains which interfaces belong to separate clients or optional features.
 
 This SDK is available from this repository; external npm publication is a separate
 release action. Use `npm.cmd pack ./packages/mod-sdk` from a source checkout for a
-local package. On Windows, the operator reviews reduced isolation when activating a community
-mod from **More → Updates & packages → Mods**. That approval is saved for the
-exact package. The deterministic test harness runs without starting a worker. Event publication has no subscriber-delivery acknowledgement.
+local package. Current Windows community activation requires explicit operator
+review of reduced network isolation; the deterministic test harness needs no such
+runtime override. Event publication has no subscriber-delivery acknowledgement.
 
 ```js
 const { defineMod, createCapabilityClient } = require("@grobys-deck/mod-sdk");
@@ -22,7 +22,7 @@ const { defineMod, createCapabilityClient } = require("@grobys-deck/mod-sdk");
 module.exports = defineMod({
   async activate(context) {
     const capabilities = createCapabilityClient(context);
-    await capabilities.call("groby.storage.v1", "set", {
+    await capabilities.call("ravelink.storage.v1", "set", {
       key: "settings",
       value: { enabled: true },
     });

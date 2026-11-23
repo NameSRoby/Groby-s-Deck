@@ -50,12 +50,13 @@ async function render(
     context = {},
     lookup = async () => null,
     counter = () => 0,
+    goals,
     random = Math.random,
     now = Date.now,
     preview = false,
   } = {},
 ) {
-  source = require("./command-variables").compile(source);
+  source = require("./command-variables").compile(require("./command-source").canonical(source));
   const tree = parse(source),
     memo = new Map(),
     lookups = new Map();
@@ -186,6 +187,14 @@ async function render(
       const start = arg === undefined ? 1 : num(arg);
       if (start < 1 || start > 20) fail("Arguments are numbered 1 to 20.");
       return (context.argv || []).slice(start - 1).join(" ");
+    }
+    if (["addgoal", "resetgoal", "goal"].includes(name)) {
+      if (!goals) fail("Goal controls are unavailable. Open Overlay Designer to check Core.");
+      return name === "goal"
+        ? goals.read(args[0])
+        : name === "resetgoal"
+          ? goals.reset(args[0])
+          : goals.create({ name: args[0], tracking: args[1], target: args[2] });
     }
     if (["count", "getcount", "addcount", "setcount"].includes(name)) {
       const key = (args[0] || "").trim().toLowerCase();

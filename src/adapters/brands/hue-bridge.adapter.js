@@ -840,13 +840,13 @@ module.exports = function createHueBridgeAdapter(options = {}) {
   }
 
   function normalizeDeviceType(value) {
-    const token = String(value || "groby#bridge")
+    const token = String(value || "ravelink#bridge")
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9#_-]/g, "");
-    if (!token.includes("#")) return `${token.slice(0, 19) || "groby"}#bridge`;
+    if (!token.includes("#")) return `${token.slice(0, 19) || "ravelink"}#bridge`;
     const [appRaw, deviceRaw] = token.split("#", 2);
-    const app = String(appRaw || "groby").slice(0, 19) || "groby";
+    const app = String(appRaw || "ravelink").slice(0, 19) || "ravelink";
     const device = String(deviceRaw || "bridge").slice(0, 19) || "bridge";
     return `${app}#${device}`;
   }
@@ -870,7 +870,7 @@ module.exports = function createHueBridgeAdapter(options = {}) {
     const pollMs = clampNumber(source.pollMs, 250, 10000, 1200);
     const deadline = Number(now() || Date.now()) + timeoutMs;
     const payload = {
-      devicetype: normalizeDeviceType(source.appName || "groby#bridge"),
+      devicetype: normalizeDeviceType(source.appName || "ravelink#bridge"),
       generateclientkey: true,
     };
 

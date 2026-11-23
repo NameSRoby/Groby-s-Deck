@@ -6,6 +6,7 @@ const ALERTS = [
   "channel.subscription.gift",
   "channel.cheer",
   "channel.raid",
+  "channel.charity_campaign.donate",
 ];
 const text = (v, n = 500) =>
   typeof v === "string" ? v.replace(/[\x00-\x1f]/g, " ").slice(0, n) : "";
@@ -59,6 +60,7 @@ module.exports = function overlayEvents(now = Date.now) {
             votes: Math.max(0, Number(row.votes) || 0),
           })),
           ended: type.endsWith(".end"),
+          at: now(),
         };
         return;
       }
@@ -68,6 +70,7 @@ module.exports = function overlayEvents(now = Date.now) {
           total: Number(event.total) || 0,
           goal: Number(event.goal) || 0,
           ended: type.endsWith(".end"),
+          at: now(),
         };
         return;
       }
@@ -90,13 +93,31 @@ module.exports = function overlayEvents(now = Date.now) {
               ? "cheered " + amount + " Bits"
               : type === "channel.subscription.gift"
                 ? "gifted " + amount + " subscriptions"
-                : "subscribed";
+                : type === "channel.charity_campaign.donate"
+                  ? "donated to charity"
+                  : type === "channel.subscription.message"
+                    ? "resubscribed for " + amount + " months"
+                    : "subscribed";
       rows.push({
         id: id || "overlay-" + ++sequence,
         sequence: ++sequence,
         type,
         name,
-        amount,
+        amount:
+          type === "channel.charity_campaign.donate"
+            ? Math.max(
+                0,
+                Number(event.amount?.value) /
+                  10 ** Math.min(6, Math.max(0, Number(event.amount?.decimal_places) || 0)) || 0,
+              )
+            : amount,
+        currency: /^[A-Z]{3}$/.test(event.amount?.currency || "") ? event.amount.currency : "",
+        tier: ["1000", "2000", "3000"].includes(event.tier) ? event.tier : "",
+        months: Math.max(0, Number(event.cumulative_months) || 0),
+        viewers: Math.max(0, Number(event.viewers) || 0),
+        bits: Math.max(0, Number(event.bits) || 0),
+        gifts: Math.max(0, Number(event.total) || 0),
+        isGift: event.is_gift === true,
         message,
         at: now(),
       });

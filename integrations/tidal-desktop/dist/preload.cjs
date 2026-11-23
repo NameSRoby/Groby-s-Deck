@@ -9,7 +9,7 @@ if (
   process.isMainFrame &&
   /^https:\/\/(?:desktop|listen)\.tidal\.com(?:\/|$)/.test(location.href)
 ) {
-  contextBridge.exposeInMainWorld("__grobyTidalBridge", {
-    call: (method, payload) => ipcRenderer.invoke("groby-tidal-command", method, payload),
+  contextBridge.exposeInMainWorld("__ravelinkTidalBridge", {
+    call: (method, payload) => ipcRenderer.invoke("ravelink-tidal-command", method, payload),
   });
 }

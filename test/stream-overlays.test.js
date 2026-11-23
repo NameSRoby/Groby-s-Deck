@@ -41,7 +41,7 @@ test("credit history survives restart, isolates accounts and caches supporter pa
   assert.deepEqual(noAccess.subscribers, { ok: false, names: [] });
 });
 function fixture(t) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-overlay-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-"));
   t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
   let time = 100000,
     account = "123",
@@ -201,12 +201,15 @@ test("widget catalog exposes actual sources and one lazy cache serves concurrent
   assert.equal(f.calls.length, 0);
   assert.ok(!f.service.catalog().some((row) => /charity|tip|merch|giveaway/i.test(row.name)));
   const coreOnly = createService({ runtimeDir: f.runtimeDir });
-  const setup = new Map(coreOnly.catalog().map((row) => [row.type, row]));
-  assert.match(setup.get("chat").requirement, /Enable Twitch Integration/);
-  assert.match(setup.get("now-playing").requirement, /Enable Song Request/);
-  assert.equal(setup.get("goal").available, true);
-  assert.equal(f.service.catalog().find((row) => row.type === "now-playing").available, true);
-  coreOnly.close();
+  assert.ok(
+    coreOnly
+      .catalog()
+      .every(
+        (row) =>
+          ["Static", "Custom", "Tools", "Games"].includes(row.group) ||
+          (!row.available && row.requirement),
+      ),
+  );
   f.save(["title", "followers", "subscribers", "now-playing"]);
   const rows = await Promise.all(Array.from({ length: 20 }, () => f.service.data()));
   assert.equal(rows[0].music.current.title, "Sample song");

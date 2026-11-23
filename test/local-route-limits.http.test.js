@@ -16,7 +16,7 @@ for (const [name, body, filename] of [
   ["navigation", { tabs: { widget: "hidden" } }, "navigation.json"],
 ]) {
   test(name + " limits writes, skips unchanged saves and leaves reads available", async (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-save-limit-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-save-limit-"));
     const app = express();
     app.use(express.json());
     require(

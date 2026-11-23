@@ -23,7 +23,7 @@ const entries = modules.map(
 const renderer =
   '(function(){"use strict";const modules={' +
   entries.join(",\n") +
-  '},cache={};function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw Error("spotify_bundle_module_missing");const module={exports:{}};cache[id]=module;modules[id](load,module,module.exports);return module.exports;}const config=globalThis.__grobySpotifyConfig;delete globalThis.__grobySpotifyConfig;load("./renderer-bootstrap.cjs")(globalThis,config?{connection:config}:{});})();\n';
+  '},cache={};function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw Error("spotify_bundle_module_missing");const module={exports:{}};cache[id]=module;modules[id](load,module,module.exports);return module.exports;}const config=globalThis.__ravelinkSpotifyConfig;delete globalThis.__ravelinkSpotifyConfig;load("./renderer-bootstrap.cjs")(globalThis,config?{connection:config}:{});})();\n';
 const files = new Map([
   ["renderer.js", renderer],
   [

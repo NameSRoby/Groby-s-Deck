@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("overlay designer presets, profiles, undo and shared app colors work through the supervised bridge", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-overlay-profiles-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-overlay-profiles-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),
@@ -116,7 +116,7 @@ test("overlay designer presets, profiles, undo and shared app colors work throug
       name + " fits without scrolling away from the preview",
     );
     assert.equal(await editor.locator(".style-panel:visible").count(), 1);
-    if (name === "Spacing" && process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+    if (name === "Spacing" && process.env.RAVELINK_CAPTURE_UI === "1") {
       const output = path.join(__dirname, "../runtime/logs");
       fs.mkdirSync(output, { recursive: true });
       await page.screenshot({
@@ -157,7 +157,7 @@ test("overlay designer presets, profiles, undo and shared app colors work throug
     thumbnails.every((t) => t.fits && t.width > 30 && t.height > 15),
     JSON.stringify(thumbnails),
   );
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "../runtime/logs");
     fs.mkdirSync(output, { recursive: true });
     await page.screenshot({
@@ -271,7 +271,7 @@ test("overlay designer presets, profiles, undo and shared app colors work throug
       "preset selection is local",
     );
   }
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     await editor
       .locator(".task-navigation")
       .getByRole("button", { name: "Presets", exact: true })
@@ -577,7 +577,7 @@ test("overlay designer presets, profiles, undo and shared app colors work throug
       .evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
     true,
   );
-  if (process.env.GROBYS_DECK_CAPTURE_UI === "1") {
+  if (process.env.RAVELINK_CAPTURE_UI === "1") {
     const output = path.join(__dirname, "../runtime/logs");
     fs.mkdirSync(output, { recursive: true });
     const view = await browser.newPage({

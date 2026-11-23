@@ -38,3 +38,10 @@ function args(text) {
   return values;
 }
 module.exports = args;
+// Goal calls have fixed authored argument boundaries, including quoted names.
+module.exports.goal = (name, parts) => {
+  if (!["addgoal", "resetgoal", "goal"].includes(name)) return null;
+  if (parts.length !== (name === "addgoal" ? 3 : 1))
+    throw Error("Use ${addgoal name tracking amount}, ${resetgoal name} or ${goal name}.");
+  return parts;
+};

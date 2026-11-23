@@ -47,7 +47,9 @@ module.exports = function dashboardApi({ request, text, base }) {
             name: text(row.user_name, 80),
             at: subscribers ? null : time(row.followed_at),
           });
-        const next = text(r.body.pagination?.cursor, 1024);
+        // Helix cursors are opaque. Subscriber cursors can exceed 2 KB;
+        // trimming or truncating one invalidates the next page request.
+        const next = typeof r.body.pagination?.cursor === "string" ? r.body.pagination.cursor : "";
         if (!next || next === cursor) {
           cursor = "";
           break;
@@ -130,7 +132,7 @@ module.exports = function dashboardApi({ request, text, base }) {
             views: count(row.view_count),
           });
         }
-        cursor = text(r.body.pagination?.cursor, 256);
+        cursor = typeof r.body.pagination?.cursor === "string" ? r.body.pagination.cursor : "";
         if (!cursor) break;
       }
       rows = [...new Map(rows.map((row) => [row.id, row])).values()].sort((a, b) => b.at - a.at);

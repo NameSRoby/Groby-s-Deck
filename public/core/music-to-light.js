@@ -6,7 +6,7 @@
   const workspace = document.querySelector("[data-music-controls]");
   if (!workspace) return;
   const $ = (id) => document.getElementById("music-" + id);
-  const workspaceUI = globalThis.GrobyDeckMusicWorkspace.create(workspace, $);
+  const workspaceUI = globalThis.RaveLinkMusicWorkspace.create(workspace, $);
   let view,
     busy = false,
     timer,
@@ -74,7 +74,7 @@
     }
     return result.value;
   }
-  const savedEffectsUI = window.GrobyDeckSavedEffects.create({ $, request });
+  const savedEffectsUI = window.RaveLinkSavedEffects.create({ $, request });
   const call = async (capability, method, payload = null, referenceEdit = false) => {
     if (capability === "music.styles.v1" && method === "configure" && payload) {
       const current = (await request("/api/music-to-light/operator")).design;
@@ -90,7 +90,7 @@
       payload,
     });
   };
-  const libraryUI = globalThis.GrobyDeckMusicLibrary.create({
+  const libraryUI = globalThis.RaveLinkMusicLibrary.create({
     $,
     request,
     action,
@@ -183,13 +183,13 @@
       "raveDurationMode",
     ])
       $(id).disabled = waiting || !behaviorCatalog;
-    globalThis.GrobyDeckMusicRecipe.controls(waiting || !behaviorCatalog, view?.design);
+    globalThis.RaveLinkMusicRecipe.controls(waiting || !behaviorCatalog, view?.design);
     $("fixtureChoices")
       .querySelectorAll("input,select")
       .forEach((input) => {
         input.disabled = waiting || !behaviorCatalog;
       });
-    globalThis.GrobyDeckMusicChoices.sync();
+    globalThis.RaveLinkMusicChoices.sync();
     workspaceUI.responseControls(view?.design, waiting, !!behaviorCatalog);
   }
   function renderStatus(status) {
@@ -324,12 +324,12 @@
         $(id).value = next.design[id];
       });
       renderPalette(next.design.palette);
-      globalThis.GrobyDeckMusicFixtures.render({ view, $, labels });
+      globalThis.RaveLinkMusicFixtures.render({ view, $, labels });
     }
     $("presetHelp").textContent = presetHelp[next.design.preset];
     renderStatus(next.status);
     libraryUI.syncDesign();
-    globalThis.GrobyDeckMusicChoices.sync();
+    globalThis.RaveLinkMusicChoices.sync();
     workspaceUI.paletteControls(view?.design, busy, initialized);
   }
   async function saveDesign(changedField = null) {
@@ -345,7 +345,7 @@
       design[id] = numeric.has(id) ? Number($(id).value) : $(id).value;
     });
     if (behaviorCatalog) {
-      Object.assign(design, globalThis.GrobyDeckMusicRecipe.read());
+      Object.assign(design, globalThis.RaveLinkMusicRecipe.read());
       design.scenarioMode = $("scenarioMode").value;
       design.raveEnabled = $("raveEnabled").checked;
       design.raveSeconds = Number($("raveSeconds").value);
@@ -387,7 +387,7 @@
     $("outputCeiling").value = design.maximumBrightness;
     $("outputCeilingValue").value = design.maximumBrightness + "%";
     if (!behaviorCatalog) return;
-    globalThis.GrobyDeckMusicRecipe.render(design);
+    globalThis.RaveLinkMusicRecipe.render(design);
     $("scenarioMode").value = design.scenarioMode || "manual";
     $("raveEnabled").checked = design.raveEnabled === true;
     $("raveSeconds").value = design.raveSeconds || 30;
@@ -412,7 +412,7 @@
   }
   function buildBehaviorControls(catalog) {
     behaviorCatalog = catalog;
-    globalThis.GrobyDeckMusicRecipe.build(catalog);
+    globalThis.RaveLinkMusicRecipe.build(catalog);
     const stages = {
       choreography: "Your choreography",
       choice: "Recipe variety",
@@ -516,7 +516,7 @@
   function renderPipeline(pipeline) {
     view.pipeline = pipeline;
     workspaceUI.randomPalette(pipeline);
-    globalThis.GrobyDeckMusicPipeline.render({ pipeline, view, behaviorCatalog, $ });
+    globalThis.RaveLinkMusicPipeline.render({ pipeline, view, behaviorCatalog, $ });
   }
   $("smoothing").oninput = () => {
     $("smoothingValue").value = $("smoothing").value + "%";
@@ -600,7 +600,7 @@
     });
   $("saveFixtures").onclick = () =>
     void action(async () => {
-      const selected = globalThis.GrobyDeckMusicFixtures.read($);
+      const selected = globalThis.RaveLinkMusicFixtures.read($);
       renderView(await request("/api/music-to-light/fixtures", "PUT", { value: selected }));
     });
   $("outputCeiling").onchange = () => void action(saveDesign);
@@ -616,7 +616,7 @@
     });
   $("autoAudioFollow").onchange = () => void action(saveDesign);
   $("fixtureRandomization").onchange = () => {
-    globalThis.GrobyDeckMusicRecipe.quickAssignments($("fixtureRandomization").value);
+    globalThis.RaveLinkMusicRecipe.quickAssignments($("fixtureRandomization").value);
     void action(saveDesign);
   };
   $("responseRange").onchange = () =>
@@ -761,7 +761,7 @@
     if (
       event.source === parent &&
       event.origin === location.origin &&
-      event.data?.channel === "groby-feature-ui-v1" &&
+      event.data?.channel === "ravelink-feature-ui-v1" &&
       event.data.type === "presentation"
     )
       theme(event.data.theme);

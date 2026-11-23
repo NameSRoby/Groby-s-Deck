@@ -11,7 +11,7 @@ const createModHostRegistry = require("../src/capabilities/mod-platform/host/mod
 const { createPackage } = require("./helpers/mod-package-fixture");
 
 async function fixture(t) {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-manager-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-manager-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const modsRoot = path.join(root, "mods");
   const runtimeRoot = path.join(root, "runtime", "mods");

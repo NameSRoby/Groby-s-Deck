@@ -187,21 +187,21 @@ test("generic recipes have lazy branches, local values, saved zero defaults and 
   const f = fixture(t),
     counter = f.store("owner", false, true);
   assert.equal(
-    await render("${set n random 1 20}${n}:${n}${if 0}${addstat hero wins 1}${else}safe${end}", {
-      counter,
-      random: () => 0,
-    }),
+    await render(
+      "${set[n|${random[1|20]}]}${get[n]}:${get[n]}${if[0|${addstat[hero|wins|1]}|safe]}",
+      { counter, random: () => 0 },
+    ),
     "1:1safe",
   );
   assert.equal(counter("player hero wins", "get"), 0);
   assert.equal(
-    await render("${stat hero rating 1000}${setstat hero rating 0}:${stat hero rating 1000}", {
+    await render("${stat[hero|rating|1000]}${setstat[hero|rating|0]}:${stat[hero|rating|1000]}", {
       counter,
     }),
     "1000:0",
   );
-  await render("${addstat hero wins 2}${addstat rival wins 3}", { counter });
-  assert.equal(await render("${top wins 2}", { counter }), "1. rival: 3 · 2. hero: 2");
+  await render("${addstat[hero|wins|2]}${addstat[rival|wins|3]}", { counter });
+  assert.equal(await render("${top[wins|2]}", { counter }), "1. rival: 3 · 2. hero: 2");
 });
 test("bounded arithmetic accepts formulas and rejects executable or unbounded expressions", () => {
   assert.equal(math("clamp(round(24*(1-0.25)),-20,20)"), 18);

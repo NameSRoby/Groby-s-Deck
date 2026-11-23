@@ -38,7 +38,7 @@ module.exports = function registerClientApiRoutes(app, { getHealth }) {
   });
   const local = (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
-    res.setHeader("X-Groby-Deck-Client-API", "1.0");
+    res.setHeader("X-RaveLink-Client-API", "1.0");
     if (!isLocalOrSameHostRequest(req))
       return res.status(403).json({ ok: false, error: "local_request_required" });
     if (req.headers.origin) {

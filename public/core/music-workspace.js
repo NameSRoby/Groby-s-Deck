@@ -142,7 +142,7 @@
           : custom
             ? "Choose 2–8 distinct colors."
             : "Colors come from your look or advanced pool. Choose Your colors to edit them.";
-      globalThis.GrobyDeckMusicChoices.sync();
+      globalThis.RaveLinkMusicChoices.sync();
     }
     function renderRandomPalette(pipeline) {
       const profile = profiles.get(pipeline?.effective?.behaviors.profileMotion);
@@ -348,7 +348,7 @@
         "Brightness follows measured musical energy. Rhythmic hits change colors with equal timing in quiet and loud passages.",
     };
     const errors = {
-      ...window.GrobyDeckSavedEffects.errors,
+      ...window.RaveLinkSavedEffects.errors,
       invalid_music_contract_response:
         "Lighting status could not update. Your lights may still be running; retrying the connection.",
       invalid_music_source_priorities:
@@ -536,5 +536,5 @@
       recovered,
     };
   }
-  globalThis.GrobyDeckMusicWorkspace = { create };
+  globalThis.RaveLinkMusicWorkspace = { create };
 })();

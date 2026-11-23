@@ -2,7 +2,7 @@
  * New first-party controls become available without a second mod action list.
  */
 const { validateValue } = require("../../../shared/contracts/bounded-json-schema");
-const capability = "groby.controls.v1";
+const capability = "ravelink.controls.v1";
 module.exports = function bindAppControls(registry, actions) {
   if (!actions) return;
   const empty = (v) =>
@@ -48,7 +48,7 @@ module.exports = function bindAppControls(registry, actions) {
     },
   });
   registry.registerHostCapability({
-    providerId: "groby.controls",
+    providerId: "ravelink.controls",
     capability,
     async invoke(_capability, method, payload, options = {}) {
       if (options.signal?.aborted) throw Error("request_cancelled");

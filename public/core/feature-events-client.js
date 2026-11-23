@@ -11,8 +11,8 @@
   function fallback(options, receive) {
     // Older embedded browsers share their top-level HUD connection without workers.
     try {
-      if (parent !== window && parent.grobyFeatureEvents)
-        return parent.grobyFeatureEvents.subscribe(options, receive);
+      if (parent !== window && parent.ravelinkFeatureEvents)
+        return parent.ravelinkFeatureEvents.subscribe(options, receive);
     } catch {}
     const listener = (message) => {
       if (message.type === "lifecycle" && !options.lifecycle) return;
@@ -50,7 +50,7 @@
       closed = false;
     try {
       const worker = new SharedWorker("/feature-events.worker.js", {
-        name: "groby-feature-events-v1",
+        name: "ravelink-feature-events-v1",
       });
       const port = worker.port;
       let failed = false;
@@ -87,5 +87,5 @@
     window.addEventListener("pagehide", dispose);
     return dispose;
   }
-  window.grobyFeatureEvents = Object.freeze({ subscribe });
+  window.ravelinkFeatureEvents = Object.freeze({ subscribe });
 })();

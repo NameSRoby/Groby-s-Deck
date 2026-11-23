@@ -75,7 +75,7 @@ internal static class DesktopHarness
         uint process = browser.CoreWebView2.BrowserProcessId;
         await browser.ExecuteScriptAsync("localStorage.setItem('desktop-test','retained');document.getElementById('themeBg').value='#101219';document.getElementById('themeAccent').value='#2474bf';document.getElementById('themeText').value='#eef2ff';document.getElementById('themeBg').dispatchEvent(new Event('input',{bubbles:true}));");
         await Until(delegate { return Task.FromResult(window.BackColor == ColorTranslator.FromHtml("#101219")); });
-        await browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", new JavaScriptSerializer().Serialize(new { expression = "window.desktopPopup=window.open('about:blank','groby-desktop-test'); Boolean(window.desktopPopup)", userGesture = true, returnByValue = true }));
+        await browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", new JavaScriptSerializer().Serialize(new { expression = "window.desktopPopup=window.open('about:blank','ravelink-desktop-test'); Boolean(window.desktopPopup)", userGesture = true, returnByValue = true }));
         await Until(async delegate { return await browser.ExecuteScriptAsync("Boolean(window.desktopPopup && !window.desktopPopup.closed)") == "true"; });
         await browser.ExecuteScriptAsync("window.desktopPopup.close()");
         await Until(async delegate { return await browser.ExecuteScriptAsync("window.desktopPopup.closed") == "true"; });
@@ -102,6 +102,14 @@ internal static class DesktopHarness
         await Until(async delegate { return await browser.ExecuteScriptAsync("document.readyState === 'complete' && Boolean(document.getElementById('themeButton')) && Boolean(document.getElementById('light-tab-music'))") == "true"; });
         string stored = await browser.ExecuteScriptAsync("localStorage.getItem('desktop-test')");
         string clipboard = await browser.ExecuteScriptAsync("Boolean(navigator.clipboard && navigator.clipboard.writeText)");
+        // Exercise the host's post-restart open path with the existing viewer.
+        // A server restart must replace stale scripts while preserving storage.
+        await browser.ExecuteScriptAsync("window.staleBeforeRestart = true");
+        var restartContext = (CoreApplicationContext)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(CoreApplicationContext));
+        typeof(CoreApplicationContext).GetField("launcher", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(restartContext, window);
+        typeof(CoreApplicationContext).GetMethod("OpenDashboardOnce", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(restartContext, new object[] { Int32.Parse(args[2]) });
+        await Until(async delegate { return await browser.ExecuteScriptAsync("!window.staleBeforeRestart && document.readyState === 'complete' && Boolean(document.getElementById('themeButton'))") == "true"; });
+        bool restartRefreshed = await browser.ExecuteScriptAsync("localStorage.getItem('desktop-test')") == stored;
         await browser.ExecuteScriptAsync("document.querySelector('[data-tab=lights]').click();document.querySelector('[data-light-tab=music]').click();");
         await Until(async delegate { return await browser.ExecuteScriptAsync("document.getElementById('music-fixtureRandomization') && !document.getElementById('music-fixtureRandomization').disabled") == "true"; });
         using (var file = File.Create(args[3])) await browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, file);
@@ -119,13 +127,13 @@ internal static class DesktopHarness
         browser = Browser(window);
         await Until(async delegate { return browser != null && !browser.IsDisposed && browser.CoreWebView2 != null && await browser.ExecuteScriptAsync("document.readyState === 'complete' && Boolean(document.getElementById('themeButton'))") == "true"; });
         bool retried = await browser.ExecuteScriptAsync("localStorage.getItem('desktop-test')") == stored;
-        Console.WriteLine(new JavaScriptSerializer().Serialize(new { rendered = true, popup = true, theme = true, chrome, retained, fullscreenKeys, blocked, stored, clipboard, retried, source = browser.CoreWebView2.Source }));
+        Console.WriteLine(new JavaScriptSerializer().Serialize(new { rendered = true, popup = true, theme = true, chrome, retained, fullscreenKeys, blocked, stored, clipboard, retried, restartRefreshed, source = browser.CoreWebView2.Source }));
     }
 
     private static void Policy()
     {
         Color background, accent, text;
-        string good = "{\"type\":\"groby-theme\",\"background\":\"#050507\",\"accent\":\"#8b001f\",\"text\":\"#eaeaea\"}";
+        string good = "{\"type\":\"ravelink-theme\",\"background\":\"#050507\",\"accent\":\"#8b001f\",\"text\":\"#eaeaea\"}";
         var denied = new[] { "https://127.0.0.1:5050/", "http://127.0.0.1:5051/", "http://127.0.0.1.evil.example:5050/", "file:///C:/Windows/win.ini", "http://evil@127.0.0.1:5050/" };
         bool blocked = true; foreach (string value in denied) blocked &= !DesktopPolicy.IsWorkspace(value, 5050);
         Console.WriteLine(new JavaScriptSerializer().Serialize(new {
@@ -133,7 +141,7 @@ internal static class DesktopHarness
             external = DesktopPolicy.IsExternalWeb("https://login.tidal.com/authorize"),
             schemes = !DesktopPolicy.IsExternalWeb("powershell:evil") && !DesktopPolicy.IsExternalWeb("file:///C:/Windows/win.ini"),
             theme = DesktopPolicy.ReadTheme(good, out background, out accent, out text),
-            extraDenied = !DesktopPolicy.ReadTheme(good.Replace("\"groby-theme\"", "\"groby-theme\",\"command\":\"exit\""), out background, out accent, out text),
+            extraDenied = !DesktopPolicy.ReadTheme(good.Replace("\"ravelink-theme\"", "\"ravelink-theme\",\"command\":\"exit\""), out background, out accent, out text),
             valueDenied = !DesktopPolicy.ReadTheme(good.Replace("#050507", "javascript:evil"), out background, out accent, out text),
             bounded = !DesktopPolicy.ReadTheme(new string('x', 513), out background, out accent, out text),
             profiles = DesktopPolicy.ProfilePath("C:\\Example",5050) != DesktopPolicy.ProfilePath("C:\\Example",5051)

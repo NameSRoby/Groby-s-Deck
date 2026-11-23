@@ -60,9 +60,7 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-clip-editor-"));
   const config = require("../src/domains/control-deck/control-deck-config").defaults();
   const clip = config.pages.flatMap((p) => p.buttons).find((b) => b.id === "twitch-clip");
-  const { actionIds } = require("../src/shared/fs/upgrade-identifiers.json");
-  const [retiredClip] = Object.keys(actionIds);
-  clip.steps[0].actionId = retiredClip;
+  clip.steps[0].actionId = "mod:ravelink.twitch-clips:create";
   fs.mkdirSync(path.join(runtimeDir, "system"), { recursive: true });
   fs.writeFileSync(
     path.join(runtimeDir, "system", "control-deck.json"),
@@ -80,6 +78,12 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
           id: manifest.id,
           name: manifest.name,
           lifecycle: enabled ? "active" : "installed-disabled",
+          actions: manifest.contributes.actions,
+        },
+        {
+          id: "ravelink.twitch-clips",
+          name: manifest.name,
+          lifecycle: "installed-disabled",
           actions: manifest.contributes.actions,
         },
       ],
@@ -129,7 +133,10 @@ test("moved clipping mod opens its normal parameter editor even beside hundreds 
   await page.locator("#deckEditor").waitFor();
   const duration = page.locator('#deckEditor [data-deck-parameter="duration"]');
   assert.equal(await duration.inputValue(), "30");
-  assert.equal(await page.locator(`#deckEditor option[value="${retiredClip}"]`).count(), 0);
+  assert.equal(
+    await page.locator('#deckEditor option[value="mod:ravelink.twitch-clips:create"]').count(),
+    0,
+  );
   assert.equal(
     await page.locator('#deckEditor option[value="mod:groby.twitch-clips:create"]').count(),
     1,
@@ -169,7 +176,7 @@ test("LAN deck edits safely, runs confirmed Discord actions, and preserves respo
   let muted = false,
     presses = 0;
   const mod = {
-    id: "groby.discord-controls",
+    id: "ravelink.discord-controls",
     name: "Discord microphone",
     lifecycle: "active",
     actions: [
@@ -219,7 +226,7 @@ test("LAN deck edits safely, runs confirmed Discord actions, and preserves respo
   });
   const initial = e.services.controlDeck.snapshot();
   initial.config.pages.flatMap((p) => p.buttons).find((b) => b.id === "discord-mic").steps = [
-    { actionId: "mod:groby.discord-controls:microphone", params: {}, delayMs: 0 },
+    { actionId: "mod:ravelink.discord-controls:microphone", params: {}, delayMs: 0 },
   ];
   e.services.controlDeck.save(initial.config, initial.revision);
   const server = await listen(e.app),

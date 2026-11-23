@@ -8,7 +8,7 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 
 test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-hud-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-hud-"));
   const { app, services } = createCoreServer({
     runtimeDir,
     dryRun: true,
@@ -82,7 +82,7 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
     await page.locator("#developerMode").check();
     assert.equal(await page.locator("html").getAttribute("data-developer-mode"), "true");
     assert.equal(
-      await page.evaluate(() => localStorage.getItem("groby.hud.developerMode")),
+      await page.evaluate(() => localStorage.getItem("ravelink.hud.developerMode")),
       "true",
     );
     await page.locator("#closeTheme").click();
@@ -206,7 +206,7 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
 });
 
 test("Viewer controls exposes and saves Rave permission without granting audio or starting lights", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-viewer-rave-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-viewer-rave-"));
   const { app, services } = createCoreServer({ runtimeDir, dryRun: true });
   const server = await new Promise((resolve) => {
     const listener = app.listen(0, "127.0.0.1", () => resolve(listener));

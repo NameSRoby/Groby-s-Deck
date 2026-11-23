@@ -13,6 +13,7 @@ module.exports = ({
   deck,
   legacy,
   getShoutouts = () => null,
+  getGoals = () => null,
   now = Date.now,
 }) => {
   let data = { version: 1, revision: 0, rows: [], detached: [], receipts: [] },
@@ -78,16 +79,19 @@ module.exports = ({
         const operation = async () => {
           if (signal?.aborted || account() !== owner) throw fault("control_deck_cancelled");
           const counter = counterOwner(owner, preview, true);
+          const goals = getGoals()?.transaction(owner, preview);
           if (playerMigrationError) throw Error(playerMigrationError);
           const text = await require("./command-template").render(source, {
             context,
             lookup,
             counter,
+            goals,
             preview,
             now,
           });
           if (signal?.aborted || account() !== owner) throw fault("control_deck_cancelled");
           counter.commit();
+          goals?.commit();
           return text;
         };
         const promise = templateChain.then(operation);

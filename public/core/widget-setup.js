@@ -42,7 +42,7 @@ globalThis.initWidgetSetup = ({
     byId("rotateIntakeToken").textContent = configured ? "ROTATE TOKEN" : "GENERATE TOKEN";
     byId("rotateIntakeToken").title = managed
       ? "Generate and reveal a server-managed intake token once"
-      : "Token is controlled by GROBYS_DECK_WIDGET_INTAKE_TOKEN";
+      : "Token is controlled by RAVELINK_WIDGET_INTAKE_TOKEN";
     updateWidgetReadiness();
   }
   function setupProblem() {
@@ -144,7 +144,7 @@ globalThis.initWidgetSetup = ({
           eventEnvelope: {
             detail: {
               listener: "message",
-              event: { text: "groby-intake-health-check" },
+              event: { text: "ravelink-intake-health-check" },
             },
           },
           widgetConfig: rewardIds(),

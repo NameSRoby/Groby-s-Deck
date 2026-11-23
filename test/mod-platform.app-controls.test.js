@@ -36,16 +36,16 @@ test("declared app controls discover dynamic actions and enforce availability, s
       },
     },
   );
-  const caller = (consumes = ["groby.controls.v1"]) => ({
+  const caller = (consumes = ["ravelink.controls.v1"]) => ({
     id: "example.controls",
     consumes,
     provides: [],
     resources: { inFlightCalls: 1 },
   });
   const invoke = (method, payload, options) =>
-    broker.callFromMod(caller(), "groby.controls.v1", method, payload, options);
+    broker.callFromMod(caller(), "ravelink.controls.v1", method, payload, options);
   assert.equal(
-    (await broker.callFromMod(caller([]), "groby.controls.v1", "catalog", null)).ok,
+    (await broker.callFromMod(caller([]), "ravelink.controls.v1", "catalog", null)).ok,
     false,
   );
   const catalog = await invoke("catalog", null);

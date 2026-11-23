@@ -3,6 +3,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const formats = {
+  "audio/mpeg": [
+    "mp3",
+    (b) => b.toString("ascii", 0, 3) === "ID3" || (b[0] === 255 && (b[1] & 224) === 224),
+  ],
+  "audio/wav": [
+    "wav",
+    (b) => b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WAVE",
+  ],
+  "audio/ogg": ["ogg", (b) => b.toString("ascii", 0, 4) === "OggS"],
+  "audio/mp4": ["m4a", (b) => b.toString("ascii", 4, 8) === "ftyp"],
   "image/png": [
     "png",
     (b) => b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
@@ -26,10 +36,10 @@ module.exports = function overlayMedia(runtimeDir) {
     add(type, body) {
       const format = formats[type];
       if (!format || !Buffer.isBuffer(body) || body.length < 12 || !format[1](body))
-        throw Error("Choose a valid image, video or supported font file.");
+        throw Error("Choose a valid image, video, MP3/WAV/OGG/M4A sound or supported font file.");
       const limit = type.startsWith("font/") ? 5 : type.startsWith("image/") ? 8 : 50;
       if (body.length > limit * 1024 * 1024)
-        throw Error("Fonts can be up to 5 MB, images up to 8 MB and videos up to 50 MB.");
+        throw Error("Fonts can be up to 5 MB, images up to 8 MB and audio/video up to 50 MB.");
       fs.mkdirSync(dir, { recursive: true });
       const files = fs.readdirSync(dir);
       const used = files.reduce((sum, name) => sum + fs.statSync(path.join(dir, name)).size, 0);
@@ -40,7 +50,8 @@ module.exports = function overlayMedia(runtimeDir) {
       return { url: "/api/stream-overlays/media/" + name };
     },
     locate(name) {
-      if (!/^[a-f0-9-]{36}\.(png|jpg|webp|gif|mp4|webm|woff2?|otf|ttf)$/.test(name)) return null;
+      if (!/^[a-f0-9-]{36}\.(png|jpg|webp|gif|mp4|webm|mp3|wav|ogg|m4a|woff2?|otf|ttf)$/.test(name))
+        return null;
       const type = Object.entries(formats).find(([, row]) => row[0] === name.split(".").pop())?.[0];
       const file = path.join(dir, name);
       return fs.existsSync(file) ? { file, type } : null;

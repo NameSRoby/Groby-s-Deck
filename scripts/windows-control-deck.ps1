@@ -7,7 +7,7 @@ $null = Add-Type -TypeDefinition @'
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-public static class GrobyDeckDeckInput {
+public static class RaveLinkDeckInput {
   [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public UNION data; }
   [StructLayout(LayoutKind.Explicit)] struct UNION { [FieldOffset(0)] public KEYBDINPUT key; [FieldOffset(0)] public MOUSEINPUT mouse; }
   [StructLayout(LayoutKind.Sequential)] struct KEYBDINPUT { public ushort vk, scan; public uint flags, time; public UIntPtr extra; }
@@ -52,7 +52,7 @@ public static class GrobyDeckDeckInput {
 function Write-Result($Value) { [Console]::WriteLine(($Value | ConvertTo-Json -Depth 8 -Compress)) }
 if ($SelfTest) {
   # Verify the input ABI without injecting keyboard input.
-  Write-Result @{ok=$true;inputSize=[GrobyDeckDeckInput]::InputSize();pointerSize=[IntPtr]::Size}
+  Write-Result @{ok=$true;inputSize=[RaveLinkDeckInput]::InputSize();pointerSize=[IntPtr]::Size}
   exit 0
 }
 Write-Result @{ready=$true}
@@ -64,8 +64,8 @@ while ($null -ne ($line = [Console]::ReadLine())) {
     if ("$($message.id)" -notmatch '^\d{1,12}$') { throw 'desktop_request_invalid' }
     $value = @{ok=$true}
     switch ($message.operation) {
-      'keys' { [GrobyDeckDeckInput]::Keys([uint16[]]$message.payload.keys) }
-      'text' { [GrobyDeckDeckInput]::Text([string]$message.payload.text) }
+      'keys' { [RaveLinkDeckInput]::Keys([uint16[]]$message.payload.keys) }
+      'text' { [RaveLinkDeckInput]::Text([string]$message.payload.text) }
       'open' {
         $target = [string]$message.payload.target
         if ($target.Length -gt 2048 -or $target -match '[\x00-\x1f]' -or ($target -notmatch '^https?://' -and $target -notmatch '^[a-zA-Z]:[\\/]')) { throw 'desktop_target_invalid' }

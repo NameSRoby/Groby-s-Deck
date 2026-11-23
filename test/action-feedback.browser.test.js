@@ -42,7 +42,7 @@ test("action feedback follows actual asynchronous results and ignores background
         origin: "https://evil.example",
         source: document.querySelector("iframe").contentWindow,
         data: {
-          channel: "groby-feature-ui-v1",
+          channel: "ravelink-feature-ui-v1",
           type: "action-feedback",
           state: "success",
           message: "forged",

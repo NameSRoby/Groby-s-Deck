@@ -38,7 +38,7 @@ if (/\*\*hue-sync\*\*[^\n]+MIT License/i.test(notices))
   errors.push("hue-sync is incorrectly labelled MIT; its installed metadata declares Apache-2.0");
 const tidalRoot = path.join(root, "integrations/tidal-desktop");
 for (const directory of [tidalRoot, path.join(tidalRoot, "dist")]) {
-  for (const file of ["LICENSE.TidaLuna", "LICENSE.GrobysDeck", "NOTICE.md"])
+  for (const file of ["LICENSE.TidaLuna", "LICENSE.RaveLink", "NOTICE.md"])
     if (!fs.existsSync(path.join(directory, file))) errors.push(`TIDAL companion missing ${file}`);
   const license = path.join(directory, "LICENSE.TidaLuna");
   if (

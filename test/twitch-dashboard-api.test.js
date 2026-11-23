@@ -28,6 +28,49 @@ test("credits fetch bounded official pages and expose names without subscriber I
   assert.equal(value.truncated, false);
   assert.doesNotMatch(JSON.stringify(value), /private-/);
 });
+for (const kind of ["followers", "subscribers"]) {
+  test(`${kind} credits preserve long opaque Twitch cursors through the final empty page`, async () => {
+    // A real response returned 21 names and a 2,279-character cursor.
+    // Truncation made the next request fail and discarded the entire list.
+    const cursor = "opaque+/=".repeat(300),
+      calls = [],
+      api = make({
+        fetch: async (url) => {
+          const after = new URL(url).searchParams.get("after");
+          calls.push(after);
+          if (after !== null && after !== cursor) return response({}, 400);
+          return response({
+            data: after ? [] : [{ user_name: "Supporter", followed_at: "2026-01-01T00:00:00Z" }],
+            pagination: after ? {} : { cursor },
+          });
+        },
+      });
+    const value = await api.overlaySupporters({ credentials, kind });
+    assert.equal(value.ok, true);
+    assert.equal(value.names[0].name, "Supporter");
+    assert.equal(value.truncated, false);
+    assert.deepEqual(calls, [null, cursor]);
+  });
+}
+
+test("clip and moderator/VIP lists preserve opaque pagination tokens", async () => {
+  const cursor = "opaque+/=".repeat(300),
+    pages = new Map(),
+    api = make({
+      fetch: async (url) => {
+        const query = new URL(url),
+          route = query.pathname,
+          after = query.searchParams.get("after");
+        assert.equal(after, pages.has(route) ? cursor : null);
+        pages.set(route, (pages.get(route) || 0) + 1);
+        return response({ data: [], pagination: after ? {} : { cursor } });
+      },
+    });
+  assert.equal((await api.dashboardClips({ credentials })).complete, true);
+  assert.equal((await api.listRequesterRoles({ credentials })).ok, true);
+  assert.deepEqual([...pages.values()], [2, 2, 2]);
+});
+
 test("official dashboard queries normalize totals without forwarding user tokens or subscriber identities", async () => {
   const calls = [],
     api = make({

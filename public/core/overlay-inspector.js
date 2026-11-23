@@ -1,6 +1,6 @@
 /** Contextual controls: content, appearance and placement are separate views. */
 /* exported setupOverlayInspector */
-/* global OverlayWidgetControls, OverlayFonts */
+/* global OverlayWidgetControls, OverlayFonts, OverlayGoalSources, OverlayTextStyle, setupOverlayAlertControls */
 globalThis.setupOverlayInspector = function (a) {
   const $ = a.$,
     host = $("widgetFields");
@@ -103,7 +103,7 @@ globalThis.setupOverlayInspector = function (a) {
               : type === "number" || type === "range"
                 ? Number(input.value)
                 : input.value;
-      }, ["font", "goalSource", "goalTargetCounter", "goalBar"].includes(key));
+      }, ["font", "goalSource", "goalTracking", "goalTargetCounter", "goalBar", "statSource", "creditsSource", "chatMode", "textEffect", "accentStyle"].includes(key));
     };
     input.oninput = () => input.setCustomValidity("");
     row.append(input);
@@ -116,6 +116,12 @@ globalThis.setupOverlayInspector = function (a) {
   const widgetTools = OverlayWidgetControls(a, { host, num, select, check, field });
   function content(w) {
     widgetTools.content(w);
+    if (w.type === "now-playing") {
+      check("Show album artwork", "showArtwork");
+      check("Show artist", "showArtist");
+      check("Show requester", "showRequester");
+      check("Show playback progress", "showProgress");
+    }
     if (["text", "goal", "alerts"].includes(w.type))
       field(
         w.type === "goal"
@@ -161,23 +167,37 @@ globalThis.setupOverlayInspector = function (a) {
       button.onclick = () =>
         a.change(() => {
           w.endsAt = Date.now() + w.duration * 1000;
+          w.countdownPaused = false;
         });
       host.append(button);
+      const pause = document.createElement("button");
+      pause.textContent = w.countdownPaused ? "Resume countdown" : "Pause countdown";
+      pause.disabled = !w.countdownPaused && !w.endsAt;
+      pause.onclick = () =>
+        a.change(() => {
+          if (w.countdownPaused) {
+            w.endsAt = Date.now() + w.pausedSeconds * 1000;
+            w.countdownPaused = false;
+          } else {
+            w.pausedSeconds = Math.max(0, (w.endsAt - Date.now()) / 1000);
+            w.countdownPaused = true;
+          }
+        });
+      host.append(pause);
       const reset = document.createElement("button");
       reset.textContent = "Reset to duration";
       reset.onclick = () =>
         a.change(() => {
           w.endsAt = 0;
+          w.countdownPaused = false;
         });
       host.append(reset);
     }
+    if (w.type === "clock") field("Clock timezone", "timezone");
+    if (["poll", "prediction", "hype-train"].includes(w.type))
+      num("Show final result for (seconds)", "lingerSeconds", 0, 60);
     if (w.type === "goal") {
-      const setups = [
-        ["followers", "Followers", 20, ""],
-        ["subscribers", "New subscriptions", 10, ""],
-        ["bits", "Bits", 1000, ""],
-        ["donations", "Donations", 100, "USD"],
-      ];
+      const setups = OverlayGoalSources.sources.map((s) => [s.id, s.name, s.target, ""]);
       const setup = document.createElement("select");
       setup.setAttribute("aria-label", "Goal setup");
       setup.append(new Option("Choose a goal setup", ""));
@@ -190,7 +210,9 @@ globalThis.setupOverlayInspector = function (a) {
           Object.assign(w, {
             text: title,
             target,
-            goalSource: "counter",
+            goalSource: "events",
+            goalName: id,
+            goalTracking: id,
             goalCounter: "goal-" + id,
             goalTargetCounter: "goal-" + id + "-target",
             goalCurrency: currency,
@@ -201,12 +223,61 @@ globalThis.setupOverlayInspector = function (a) {
       row.append("Goal setup", setup);
       host.append(row);
       select("Progress source", "goalSource", [
+        ["events", "Named Twitch goal (events & timer)"],
         ["manual", "Edit in this overlay"],
         ["counter", "Automation counters"],
       ]);
+      if (w.goalSource === "events") {
+        field("Goal name", "goalName", "text", { maxLength: 64 });
+        select(
+          "Track",
+          "goalTracking",
+          OverlayGoalSources.sources.map((s) => [s.id, s.name]),
+        );
+        const source = OverlayGoalSources.find(w.goalTracking);
+        const note = document.createElement("p");
+        note.textContent =
+          "Save this overlay to create or update its named goal. " +
+          (source?.scope ? "Twitch access required: " + source.scope + ". " : "") +
+          (source?.currency
+            ? "Tracks Twitch charity donations, not third-party tips. Currency is taken from Twitch; different currencies are never combined."
+            : source?.mode === "current"
+              ? "Shows Twitch's current reading."
+              : "Counts new events after the goal is created.");
+        const end = document.createElement("input"),
+          label = document.createElement("label");
+        end.type = "datetime-local";
+        label.textContent = "Goal end time (optional)";
+        end.value = w.endsAt
+          ? new Date(w.endsAt - new Date(w.endsAt).getTimezoneOffset() * 60000)
+              .toISOString()
+              .slice(0, 16)
+          : "";
+        end.onchange = () =>
+          a.change(() => {
+            w.endsAt = end.value ? new Date(end.value).getTime() : 0;
+          }, false);
+        label.append(end);
+        const reset = document.createElement("button");
+        reset.textContent = "Reset named goal progress";
+        reset.onclick = async () => {
+          try {
+            const result = await a.request("/goals", "POST", {
+              operation: "reset",
+              name: w.goalName,
+            });
+            a.notice(result.message);
+          } catch (error) {
+            a.notice(error.message);
+          }
+        };
+        host.append(note, label, reset);
+      }
       if (w.goalSource === "counter") {
         field("Progress counter", "goalCounter", "text", { maxLength: 64 });
         field("Target counter (optional)", "goalTargetCounter", "text", { maxLength: 64 });
+      }
+      if (w.goalSource !== "events") {
         select("Amount format", "goalCurrency", [
           ["", "Number"],
           ["USD", "USD"],
@@ -220,7 +291,8 @@ globalThis.setupOverlayInspector = function (a) {
             ? [[w.goalCurrency, w.goalCurrency]]
             : []),
         ]);
-      } else num("Current amount", "current", 0, 1000000000).step = "any";
+      }
+      if (w.goalSource === "manual") num("Current amount", "current", 0, 1000000000).step = "any";
       num(
         w.goalSource === "counter" && w.goalTargetCounter ? "Starting target" : "Target amount",
         "target",
@@ -231,6 +303,7 @@ globalThis.setupOverlayInspector = function (a) {
     if (!["shape", "text", "image", "video", "custom", "goal"].includes(w.type))
       field("Optional label", "label");
     if (w.type === "alerts") num("Alert duration (seconds)", "lifetime", 1, 300);
+    if (w.type === "alerts") setupOverlayAlertControls(a, host, w);
     if (["queue", "activity", "chat"].includes(w.type))
       num("Maximum visible items", "maxItems", 1, 20);
     if (["alerts", "activity"].includes(w.type)) {
@@ -244,6 +317,7 @@ globalThis.setupOverlayInspector = function (a) {
         ["channel.subscription.gift", "Gift subscriptions"],
         ["channel.raid", "Raids"],
         ["channel.cheer", "Bits"],
+        ["channel.charity_campaign.donate", "Twitch charity donations"],
       ]) {
         const label = document.createElement("label"),
           input = document.createElement("input");
@@ -386,7 +460,7 @@ globalThis.setupOverlayInspector = function (a) {
             font: "system",
           },
         ],
-      ];
+      ].map(([name, values]) => [name, { ...OverlayTextStyle.defaults, ...values }]);
       if (w.type === "goal") {
         looks.unshift(
           ["Inline text", { goalFormat: "inline", goalBar: false, backgroundOpacity: 0 }],
@@ -416,6 +490,68 @@ globalThis.setupOverlayInspector = function (a) {
           num("Progress bar height", "goalBarHeight", 2, 80);
         }
       }
+      if (OverlayTextStyle.simple.has(w.type)) looks.unshift(...OverlayTextStyle.looks);
+      if (w.type === "chat")
+        looks.unshift(
+          [
+            "Chat bubbles",
+            {
+              backgroundOpacity: 0,
+              color: "#f8fafc",
+              fontSize: 25,
+              bold: false,
+              lineHeight: 1.4,
+              chatLayout: "stacked",
+              itemBackground: "#111827",
+              itemOpacity: 92,
+              itemRadius: 14,
+              itemPadding: 14,
+              itemGap: 10,
+              entrance: "slide",
+              animationMs: 280,
+              exitAnimation: true,
+              textEffect: "none",
+            },
+          ],
+          [
+            "Broadcast chat",
+            {
+              backgroundOpacity: 0,
+              color: "#f8fafc",
+              fontSize: 26,
+              bold: false,
+              lineHeight: 1.35,
+              chatLayout: "inline",
+              itemBackground: "#101827",
+              itemOpacity: 85,
+              itemRadius: 4,
+              itemPadding: 10,
+              itemGap: 6,
+              entrance: "slide-left",
+              animationMs: 300,
+              exitAnimation: true,
+              textEffect: "none",
+            },
+          ],
+          [
+            "Minimal chat",
+            {
+              backgroundOpacity: 0,
+              color: "#ffffff",
+              fontSize: 26,
+              bold: false,
+              lineHeight: 1.4,
+              chatLayout: "inline",
+              itemOpacity: 0,
+              itemPadding: 4,
+              itemGap: 8,
+              entrance: "fade",
+              animationMs: 220,
+              exitAnimation: true,
+              textEffect: "shadow",
+            },
+          ],
+        );
       if (!["image", "video", "custom"].includes(w.type)) {
         const label = document.createElement("label"),
           picker = document.createElement("select");
@@ -452,6 +588,15 @@ globalThis.setupOverlayInspector = function (a) {
         ["right", "Right"],
       ]);
       check("Bold", "bold");
+      num("Line height", "lineHeight", 1, 2.5).step = "0.05";
+      num("Letter spacing (px)", "letterSpacing", -2, 20).step = "0.1";
+      select("Text effect", "textEffect", [
+        ["none", "None"],
+        ["shadow", "Readable shadow"],
+        ["outline", "Dark outline"],
+        ["glow", "Soft glow"],
+      ]);
+      OverlayTextStyle.controls(a, w, { num, select, field });
       field("Background color", "background", "color");
       num("Background opacity (%)", "backgroundOpacity", 0, 100);
       num("Corner radius", "radius", 0, 500);

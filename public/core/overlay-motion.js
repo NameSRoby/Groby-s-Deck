@@ -1,12 +1,16 @@
 /** CSS presentation and stable item reconciliation; no animation polling loop. */
 (function (root) {
+  const moves = new WeakMap();
+  const reduced = (node) => node.closest("[data-reduced-motion]")?.dataset.reducedMotion === "true";
   function reconcile(body, next, w) {
     const previous = new Map([...body.children].map((row) => [row.dataset.itemKey, row]));
+    const positions = new Map(
+      [...body.children].filter((row) => !row.dataset.leaving).map((row) => [row, row.offsetTop]),
+    );
     const wanted = new Map([...next.children].map((row) => [row.dataset.itemKey, row.innerHTML]));
     for (const item of [...body.children])
       if (wanted.get(item.dataset.itemKey) !== item.innerHTML && !item.dataset.leaving) {
-        if (!w.exitAnimation || matchMedia("(prefers-reduced-motion: reduce)").matches)
-          item.remove();
+        if (!w.exitAnimation || reduced(body)) item.remove();
         else {
           const top = item.offsetTop,
             left = item.offsetLeft,
@@ -41,6 +45,20 @@
             .find((entry) => !entry.dataset.leaving) || null;
       else body.insertBefore(row, position);
     }
+    if (!reduced(body))
+      for (const row of body.children) {
+        if (!positions.has(row) || row.dataset.leaving) continue;
+        const delta = positions.get(row) - row.offsetTop;
+        if (!delta) continue;
+        moves.get(row)?.cancel();
+        moves.set(
+          row,
+          row.animate([{ translate: "0 " + delta + "px" }, { translate: "0 0" }], {
+            duration: w.animationMs || 350,
+            easing: "cubic-bezier(.22,1,.36,1)",
+          }),
+        );
+      }
   }
 
   function apply(node, w) {
@@ -61,5 +79,34 @@
     node.style.setProperty("--item-padding", (w.itemPadding || 0) + "px");
     node.style.setProperty("--item-gap", (w.itemGap || 0) + "px");
   }
-  root.OverlayMotion = { reconcile, apply };
+  function syncAttributes(body, next) {
+    for (const attribute of next.attributes)
+      if (body.getAttribute(attribute.name) !== attribute.value)
+        body.setAttribute(attribute.name, attribute.value);
+  }
+  function syncBody(body, next) {
+    syncAttributes(body, next);
+    if (!body.children.length && !next.children.length) {
+      if (body.textContent !== next.textContent) body.textContent = next.textContent;
+      return;
+    }
+    const old = [...body.children],
+      fresh = [...next.children];
+    if (
+      old.length !== fresh.length ||
+      !old.every((child, i) => child.tagName === fresh[i].tagName)
+    ) {
+      body.replaceChildren(...next.childNodes);
+      return;
+    }
+    old.forEach((child, i) => {
+      const updated = fresh[i];
+      if (child.tagName === "PROGRESS") {
+        child.max = updated.max;
+        child.value = updated.value;
+        child.style.cssText = updated.style.cssText;
+      } else syncBody(child, updated);
+    });
+  }
+  root.OverlayMotion = { reconcile, apply, syncAttributes, syncBody, reduced };
 })(globalThis);

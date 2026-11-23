@@ -55,7 +55,7 @@ const REQUIRED_TOP_LEVEL_KEYS = [
   "resources",
   "integrity",
 ];
-const ENGINE_KEYS = new Set(["grobyModApi", "node"]);
+const ENGINE_KEYS = new Set(["ravelinkModApi", "node"]);
 const PERMISSION_KEYS = new Set(["network", "storage", "secrets", "ui", "process", "hardware"]);
 const CONTRIBUTES_KEYS = new Set(["panels", "actions"]);
 const PANEL_KEYS = new Set(["id", "title", "entry"]);
@@ -243,7 +243,7 @@ function validateManifestV1(input, options = {}) {
 
   let engine = {};
   if (checkClosedObject(input.engine, "$.engine", ENGINE_KEYS, errors)) {
-    const apiRange = checkString(input.engine.grobyModApi, "$.engine.grobyModApi", errors, {
+    const apiRange = checkString(input.engine.ravelinkModApi, "$.engine.ravelinkModApi", errors, {
       min: 1,
       max: 40,
     });
@@ -254,14 +254,14 @@ function validateManifestV1(input, options = {}) {
     if (!isCompatibleModApiRange(apiRange, Number(options.modApiMajor || MOD_API_MAJOR))) {
       addError(
         errors,
-        "$.engine.grobyModApi",
+        "$.engine.ravelinkModApi",
         "incompatible_api",
         `must accept mod API major ${Number(options.modApiMajor || MOD_API_MAJOR)}`,
       );
     }
     if (!/^[0-9A-Za-z.*^~<>=| -]+$/.test(nodeRange))
       addError(errors, "$.engine.node", "invalid_range", "contains unsupported range characters");
-    engine = { grobyModApi: apiRange, node: nodeRange };
+    engine = { ravelinkModApi: apiRange, node: nodeRange };
   }
 
   const activationEvents = checkUniqueStringList(

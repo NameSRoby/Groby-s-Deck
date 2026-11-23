@@ -104,7 +104,7 @@ export function createDeckPanels({ request, save, getConfig, getPageId, refresh,
       all,
       node(
         "p",
-        "Control Groby’s Deck-managed rewards below, or add individual toggles to your deck. Song rewards follow request-intake availability.",
+        "Control RaveLink-managed rewards below, or add individual toggles to your deck. Song rewards follow request-intake availability.",
         "deckEditorHint",
       ),
     );

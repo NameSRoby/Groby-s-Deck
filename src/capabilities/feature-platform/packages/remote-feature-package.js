@@ -82,7 +82,7 @@ async function fetchBuffer(url, maximumBytes, options = {}) {
       signal: controller.signal,
       headers: {
         accept: "application/octet-stream",
-        "user-agent": "Grobys-Deck-Feature-Installer/1",
+        "user-agent": "RaveLink-Core-Feature-Installer/1",
       },
     });
     if (!response?.ok) throw new Error(`remote_feature_http_${Number(response?.status) || 0}`);

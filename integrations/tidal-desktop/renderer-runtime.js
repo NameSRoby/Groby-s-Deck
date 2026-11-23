@@ -7,7 +7,7 @@
  */
 // Groby’s Deck's narrow main-world Redux facade. No plugin loader or cloud API.
 (function installHooks() {
-  if (globalThis.__grobyTidal) return;
+  if (globalThis.__ravelinkTidal) return;
   const creators = new Map(),
     listeners = new Map(),
     stores = [];
@@ -29,7 +29,7 @@
         return false;
       }
     });
-  globalThis.__grobyTidal = {
+  globalThis.__ravelinkTidal = {
     wrapAction(factory) {
       return function (...args) {
         const creator = factory.apply(this, args),

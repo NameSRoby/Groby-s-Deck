@@ -22,7 +22,7 @@ function fixture(t) {
   ]);
   const context = {
     callCapability: async (cap, method, payload) => {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "get")
           return {
             ok: true,

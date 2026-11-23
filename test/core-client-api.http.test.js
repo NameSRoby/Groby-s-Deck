@@ -61,7 +61,7 @@ async function listen(t, app) {
   return request;
 }
 async function core(t) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "grobys-deck-contract-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-core-contract-"));
   const created = createCoreServer({
     runtimeDir,
     dryRun: true,

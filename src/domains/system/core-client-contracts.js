@@ -332,7 +332,7 @@ const error = object(
 );
 const document = {
   schemaVersion: 1,
-  protocol: "groby.core.client",
+  protocol: "ravelink.core.client",
   apiVersion: { major: 1, minor: 0 },
   limits: {
     requestBytes: 65536,

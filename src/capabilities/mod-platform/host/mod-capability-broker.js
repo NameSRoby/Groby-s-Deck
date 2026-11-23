@@ -197,7 +197,7 @@ module.exports = function createModCapabilityBroker(options = {}) {
     const contract = contracts.get(capability);
     const methodContract = contract?.methods.get(method);
     const consumed = (requester?.manifest?.consumes || []).map((value) => value.replace(/\?$/, ""));
-    if (requesterId !== "groby.core" && !consumed.includes(capability))
+    if (requesterId !== "ravelink.core" && !consumed.includes(capability))
       return failure("capability_not_declared", "Mod did not declare this consumed capability");
     if (!methodContract)
       return failure(
@@ -330,7 +330,7 @@ module.exports = function createModCapabilityBroker(options = {}) {
   }
 
   function callFromCore(capability, method, payload, callOptions) {
-    return dispatch({ id: "groby.core" }, capability, method, payload, callOptions);
+    return dispatch({ id: "ravelink.core" }, capability, method, payload, callOptions);
   }
 
   function callFromMod(manifest, capability, method, payload, callOptions) {
@@ -345,7 +345,7 @@ module.exports = function createModCapabilityBroker(options = {}) {
   }
 
   async function publishFromCore(capability, eventName, payload) {
-    return await publish("groby.core", capability, eventName, payload);
+    return await publish("ravelink.core", capability, eventName, payload);
   }
 
   async function publish(publisherId, capability, eventName, payload) {

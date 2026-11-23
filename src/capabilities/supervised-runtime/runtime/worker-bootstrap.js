@@ -18,7 +18,7 @@ const { AsyncLocalStorage } = require("node:async_hooks");
 const { parseBrokerFrameV1 } = require("../contracts/broker-envelope-v1");
 
 function readBootConfig() {
-  const prefix = "--groby-workload-config=";
+  const prefix = "--ravelink-workload-config=";
   const argument = process.argv.slice(2).find((value) => value.startsWith(prefix));
   if (!argument) throw new Error("workload_boot_config_missing");
   const parsed = JSON.parse(

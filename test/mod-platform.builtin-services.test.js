@@ -10,11 +10,11 @@ const createBroker = require("../src/capabilities/mod-platform/host/mod-capabili
 const createServices = require("../src/capabilities/mod-platform/host/mod-builtin-services");
 
 test("built-in storage, network, and secrets stay behind declared broker capabilities", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-mod-services-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-mod-services-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const manifest = {
     id: "example.services",
-    consumes: ["groby.storage.v1", "groby.network.v1", "groby.secrets.v1"],
+    consumes: ["ravelink.storage.v1", "ravelink.network.v1", "ravelink.secrets.v1"],
     provides: [],
     permissions: {
       storage: true,
@@ -43,17 +43,17 @@ test("built-in storage, network, and secrets stay behind declared broker capabil
       },
     },
   });
-  let response = await broker.callFromMod(manifest, "groby.storage.v1", "set", {
+  let response = await broker.callFromMod(manifest, "ravelink.storage.v1", "set", {
     key: "prefs",
     value: { enabled: true },
   });
   assert.equal(response.value.ok, true);
-  response = await broker.callFromMod(manifest, "groby.network.v1", "request", {
+  response = await broker.callFromMod(manifest, "ravelink.network.v1", "request", {
     host: "api.example.com:443",
     path: "/status",
   });
   assert.equal(response.value.data.public, true);
-  response = await broker.callFromMod(manifest, "groby.secrets.v1", "invoke", {
+  response = await broker.callFromMod(manifest, "ravelink.secrets.v1", "invoke", {
     handle: "provider.signing",
     operation: "sign",
     payload: {},

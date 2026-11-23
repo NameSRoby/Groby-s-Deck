@@ -228,7 +228,7 @@ fader updates TIDAL's saved native volume, which survives track changes, and con
 the observed Windows mixer level. The enabled companion bridge reconnects after
 Core restarts without requiring the Player page to be open. Other app faders use
 their Windows mixer owner.
-For responsive TIDAL faders, update to the bundled TIDAL companion in Player
+For responsive TIDAL faders, update its bundled companion to **0.1.8** in Player
 Setup. Its authenticated local connection waits for commands and wakes immediately,
 instead of adding the previous two-second polling delay. Close TIDAL for the
 companion update, then reopen it; ordinary playback remains owned by TIDAL.
@@ -481,10 +481,6 @@ up to 8 MiB, or a muted MP4/WebM up to 16 MiB. Choose fit and brightness, then s
 One media surface spans the button faces and respects rounded corners and gaps.
 Video pauses when hidden and releases playback when removed. This media remains
 local runtime data and is excluded from source and release archives.
-
-## Bingo
-
-Add and save a Bingo board in the main **Overlay designer**, then open **Dashboard → Button deck → Bingo**. Marking a cell changes the same board shown in OBS. Configure its rows, columns and labels in the overlay widget. [Bingo setup](OVERLAY-DESIGNER.md#available-widgets-and-their-sources)
 
 ## Soundboard actions
 

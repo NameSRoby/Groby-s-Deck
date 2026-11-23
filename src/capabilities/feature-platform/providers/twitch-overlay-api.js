@@ -12,6 +12,40 @@ module.exports = ({ request, text, base }) => {
     });
   }
   return {
+    async overlayCreatorGoals(input = {}) {
+      const r = await read(input, "/goals");
+      return !r.ok
+        ? { ok: false }
+        : {
+            ok: true,
+            goals: (r.body.data || []).slice(0, 20).map((row) => ({
+              id: text(row.id, 100),
+              type: text(row.type, 40),
+              current_amount: Math.max(0, Number(row.current_amount) || 0),
+              target_amount: Math.max(0, Number(row.target_amount) || 0),
+            })),
+          };
+    },
+    async overlayCharity(input = {}) {
+      const r = await read(input, "/charity/campaigns");
+      if (!r.ok) return { ok: false };
+      const row = r.body.data?.[0];
+      const money = (v = {}) => ({
+        value: Math.max(0, Number(v.value) || 0),
+        decimal_places: Math.min(6, Math.max(0, Number(v.decimal_places) || 0)),
+        currency: /^[A-Z]{3}$/.test(v.currency || "") ? v.currency : "",
+      });
+      return {
+        ok: true,
+        campaign: row
+          ? {
+              id: text(row.id, 100),
+              current_amount: money(row.current_amount),
+              target_amount: money(row.target_amount),
+            }
+          : null,
+      };
+    },
     async overlayChatBadges(input = {}) {
       const [global, channel] = await Promise.all([
         read(input, "/chat/badges/global", {}, false),

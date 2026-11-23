@@ -295,7 +295,7 @@ test("Actions and Appearance tabs retain drafts, support keyboard navigation and
   await page.keyboard.press("End");
   assert.equal(await appearance.getAttribute("aria-selected"), "true");
   assert.equal(await editor.locator("#deckButtonColor").inputValue(), "#456789");
-  if (process.env.GROBYS_DECK_CAPTURE_EDITOR === "1")
+  if (process.env.RAVELINK_CAPTURE_EDITOR === "1")
     await editor.screenshot({
       path: path.join(__dirname, "../runtime/deck-editor-appearance-private.png"),
     });
@@ -309,7 +309,7 @@ test("Actions and Appearance tabs retain drafts, support keyboard navigation and
   await actions.click();
   assert.equal(await editor.locator(".deckAppearanceEditor").isVisible(), false);
   assert.deepEqual(calls, []);
-  if (process.env.GROBYS_DECK_CAPTURE_EDITOR === "1")
+  if (process.env.RAVELINK_CAPTURE_EDITOR === "1")
     await editor.screenshot({
       path: path.join(__dirname, "../runtime/deck-editor-phone-private.png"),
     });

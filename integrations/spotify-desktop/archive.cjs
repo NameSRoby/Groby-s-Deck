@@ -171,7 +171,7 @@ async function writeArchive(rows) {
   return Buffer.concat([...local, directory, end]);
 }
 function injectHtml(text) {
-  if (/groby-spotify|spicetify/i.test(text) || /<base\b/i.test(text))
+  if (/ravelink-spotify|spicetify/i.test(text) || /<base\b/i.test(text))
     throw Error("spotify_html_modified");
   const script = /<script\b/i.exec(text);
   if (!script) throw Error("spotify_html_bootstrap_unavailable");
@@ -191,13 +191,13 @@ function injectHtml(text) {
   }
   return (
     text.slice(0, script.index) +
-    '<script src="/groby-spotify.js"></script>' +
+    '<script src="/ravelink-spotify.js"></script>' +
     text.slice(script.index)
   );
 }
 async function prepareArchive(original, renderer, options = {}) {
   const rows = await readArchive(original);
-  if (rows.some((row) => /^groby-spotify\.js$/i.test(row.name)))
+  if (rows.some((row) => /^ravelink-spotify\.js$/i.test(row.name)))
     throw Error("spotify_asset_already_patched");
   const html = rows.find((row) => row.name === "index.html");
   if (!html) throw Error("spotify_html_missing");
@@ -242,16 +242,16 @@ async function prepareArchive(original, renderer, options = {}) {
   html.data = Buffer.from(patchedHtml);
   hook.row.data = Buffer.from(hook.result.code);
   rows.push({
-    name: "groby-spotify.js",
+    name: "ravelink-spotify.js",
     rawName: rows.some((row) => row.rawName?.startsWith("/"))
-      ? "/groby-spotify.js"
-      : "groby-spotify.js",
+      ? "/ravelink-spotify.js"
+      : "ravelink-spotify.js",
     data: Buffer.from(renderer),
     compression: 8,
   });
   return {
     archive: await writeArchive(rows),
-    changes: ["index.html", hook.row.name, "groby-spotify.js"],
+    changes: ["index.html", hook.row.name, "ravelink-spotify.js"],
     platformAsset: hook.row.name,
     snapshotExtracted: extracted,
   };

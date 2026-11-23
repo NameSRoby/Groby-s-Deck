@@ -121,7 +121,7 @@ body{margin:0;padding:24px;color-scheme:dark;background:var(--surface,#0b101b);c
 <!-- QUOTE_PARSER_END -->
 <script>
 /* global QuoteImport */
-const $=id=>document.getElementById(id), channel="groby-feature-ui-v1", pending=new Map();
+const $=id=>document.getElementById(id), channel="ravelink-feature-ui-v1", pending=new Map();
 let sequence=0, sourceDirty=true, records=[], reviewed="", rich=false, busy=false;
 new ResizeObserver(()=>parent.postMessage({channel,type:"feature-height",height:document.documentElement.scrollHeight},"*")).observe(document.body);
 addEventListener("message",event=>{

@@ -12,7 +12,7 @@
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 8px;
+  padding: var(--widget-padding-y, 8px) var(--widget-padding-x, 8px);
   white-space: pre-wrap;
   overflow: hidden;
 }
@@ -21,7 +21,27 @@
   display: block;
 }
 .overlayLayer small {
-  font-size: 0.65em;
+  font-size: var(--value-size, 65%);
+}
+.overlayLayer[data-simple-text="true"] > .widgetBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: var(--text-vertical, flex-start);
+}
+.overlayLayer[data-simple-text="true"] .itemText {
+  white-space: var(--text-white-space, pre-wrap);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+.overlayLayer[data-list-layout="inline"] .extra-leaderboard .overlayItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.overlayLayer[data-list-layout="inline"] .extra-leaderboard .overlayItem small {
+  flex-shrink: 0;
 }
 .overlayLayer img,
 .overlayLayer video,
@@ -37,9 +57,10 @@
   height: 18px;
   accent-color: currentColor;
 }
-.overlayLayer:has(img) .widgetBody,
-.overlayLayer:has(video) .widgetBody,
-.overlayLayer:has(iframe) > div {
+.overlayLayer[data-widget-type="image"] .widgetBody,
+.overlayLayer[data-widget-type="video"] .widgetBody,
+.overlayLayer[data-widget-type="slideshow"] .widgetBody,
+.overlayLayer[data-widget-type="custom"] > div {
   padding: 0;
   width: 100%;
   height: 100%;
@@ -48,7 +69,7 @@
 .overlayLayer .extraWidget {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--row-gap, 8px);
 }
 .overlayLayer .extraWidget .overlayItem {
   padding: var(--item-padding, 8px);
@@ -91,4 +112,155 @@
 .overlayLayer img.chatBadge {
   height: 0.9em;
   margin-inline-end: 0.22em;
+}
+.overlayLayer .itemText {
+  overflow-wrap: anywhere;
+}
+.overlayLayer[data-chat-layout="stacked"] .chatUsername {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 700;
+  margin-bottom: 0.2em;
+}
+.chatTimestamp {
+  font-size: 0.65em;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+.overlayLayer .alertBody {
+  padding: 0;
+}
+.alertCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.overlayLayer .alertMedia {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  max-height: 75%;
+}
+.alertText {
+  flex-shrink: 0;
+  text-align: center;
+  animation: overlayFade 220ms ease-out var(--text-delay) both;
+}
+.alertCard[data-layout="beside"] {
+  flex-direction: row;
+}
+.alertCard[data-layout="beside"] .alertMedia {
+  width: 42%;
+  max-height: 100%;
+  height: 100%;
+  flex: 0 1 42%;
+}
+.alertCard[data-layout="beside"] .alertText {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+}
+.alertCard[data-layout="background"] {
+  position: relative;
+}
+.alertCard[data-layout="background"] .alertMedia {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+.alertCard[data-layout="background"] .alertText {
+  z-index: 1;
+  padding: 16px;
+  text-shadow: 0 2px 8px #000;
+}
+.goalWidget {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.overlayLayer .musicWidget {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.overlayLayer .musicArtwork {
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #ffffff14;
+  font-size: 36px;
+  object-fit: cover;
+}
+.musicWords {
+  min-width: 0;
+  flex: 1;
+}
+.musicTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.musicWords .musicTitle {
+  font-size: 0.9em;
+  line-height: 1.15;
+}
+.musicWords small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.55em;
+  line-height: 1.25;
+}
+.overlayLayer .musicProgress {
+  height: 4px;
+  margin-top: 7px;
+  accent-color: currentColor;
+}
+.musicWords .musicTime {
+  font-size: 0.5em;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.goalTitle {
+  font-size: 0.8em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.goalAmount {
+  font-size: 1.25em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.goalWidget progress {
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+}
+.goalWidget progress::-webkit-progress-bar {
+  background: #ffffff24;
+  border-radius: 999px;
+}
+.goalWidget progress::-webkit-progress-value {
+  background: var(--goal-accent, #c55ff4);
+  border-radius: 999px;
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reduced-motion="true"] .alertText {
+  animation: none;
+}
+[data-reduced-motion="true"] .goalWidget progress::-webkit-progress-value {
+  transition: none;
 }

@@ -86,7 +86,7 @@ test("installer fails clearly instead of accepting an unavailable official selec
 });
 
 test("a clean installation installs both bundled features offline and preserves existing versions", async (t) => {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-offline-setup-"));
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-offline-setup-"));
   t.after(() => fs.rmSync(rootDir, { recursive: true, force: true }));
   const { stageOfflineFeatures } = require("../scripts/stage-offline-features");
   await stageOfflineFeatures(

@@ -21,7 +21,7 @@ async function waitFor(check) {
   }
 }
 async function environment(t, sourceRows, readPlayback, entertainment = false) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-music-wiring-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-music-wiring-"));
   let at = 0,
     captures = 0,
     stops = 0,
@@ -270,7 +270,7 @@ test("native lighting shutdown awaits capture and fixture restoration", async (t
 
 test("Core-only lifecycle owns capture cleanup without any optional feature loader", async (t) => {
   const createCore = require("../src/app/core/create-core-server");
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-native-owner-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-native-owner-"));
   let stopped = 0,
     finish;
   const core = createCore({
@@ -322,7 +322,7 @@ test("Core-only lifecycle owns capture cleanup without any optional feature load
 });
 
 test("portable design persists without grants/bindings and invalid stored data is rejected", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-music-design-")),
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-music-design-")),
     file = path.join(root, "design.json");
   t.after(() => {
     const relative = path.relative(os.tmpdir(), root);
@@ -355,7 +355,7 @@ test("portable design persists without grants/bindings and invalid stored data i
 });
 
 test("a missing saved light cannot erase the remembered application on restart", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-source-restore-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-source-restore-"));
   const file = path.join(root, "operator.json");
   t.after(() => {
     const relative = path.relative(os.tmpdir(), root);
@@ -423,7 +423,7 @@ test("large source response fails with a bounded error and leaves native control
 });
 
 test("all three source slots persist privately across restart, including an unselected main slot", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-source-slots-")),
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-source-slots-")),
     operatorPath = path.join(root, "operator.json");
   t.after(() => {
     const relative = path.relative(os.tmpdir(), root);
@@ -1506,7 +1506,7 @@ test("contrast HTTP edits are local, persist in bindings and do not interrupt li
 });
 
 test("contrast survives private operator persistence without entering the portable design", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-contrast-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-contrast-"));
   t.after(() => {
     const relative = path.relative(os.tmpdir(), root);
     assert(relative && !relative.startsWith("..") && !path.isAbsolute(relative));

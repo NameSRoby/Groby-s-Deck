@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://groby.local/contracts/widget-events-v2.schema.json",
-  "title": "Groby’s Deck Widget Event v2",
+  "$id": "https://ravelink.local/contracts/widget-events-v2.schema.json",
+  "title": "RaveLink Widget Event v2",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract", "source", "eventEnvelope"],

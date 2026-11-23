@@ -6,7 +6,7 @@ const test = require("node:test"),
 const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 test("tab placement saves locally, survives reload and supports moving tabs back from More or Hidden", async (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-navigation-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-navigation-"));
   const created = createCore({ runtimeDir, dryRun: true });
   const server = await new Promise((resolve) => {
     const s = created.app.listen(0, "127.0.0.1", () => resolve(s));

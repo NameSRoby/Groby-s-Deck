@@ -6,7 +6,7 @@ const path = require("node:path");
 const createLayout = require("../src/domains/fixtures/lighting-layout.service");
 
 test("lighting layout persists bounded coordinates and resolves spatial offsets", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-layout-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-layout-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const options = {
     storePath: path.join(root, "layout.json"),

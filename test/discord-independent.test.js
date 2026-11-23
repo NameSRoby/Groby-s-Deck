@@ -1,9 +1,6 @@
 const test = require("node:test"),
   assert = require("node:assert/strict");
 test("retiring extra Discord controls preserves button appearance, order and unrelated macro work", () => {
-  const { removedActions, nativeShortcuts } = require("../src/shared/fs/upgrade-identifiers.json");
-  const [microphone, deafen] = Object.keys(nativeShortcuts);
-  const [camera, , open] = removedActions;
   const step = (actionId) => ({ actionId, params: {} });
   const config = {
     pages: [
@@ -12,15 +9,15 @@ test("retiring extra Discord controls preserves button appearance, order and unr
         buttons: [
           {
             id: "mute",
-            steps: [step(microphone)],
+            steps: [step("mod:ravelink.discord-controls:microphone")],
             appearance: { color: "#123456" },
           },
-          { id: "camera", steps: [step(camera)] },
+          { id: "camera", steps: [step("mod:ravelink.discord-controls:camera")] },
           {
             id: "macro",
-            steps: [step(open), step("native.hotkey")],
+            steps: [step("mod:ravelink.discord-controls:open"), step("native.hotkey")],
           },
-          { id: "deafen", steps: [step(deafen)] },
+          { id: "deafen", steps: [step("mod:ravelink.discord-controls:deafen")] },
         ],
       },
     ],

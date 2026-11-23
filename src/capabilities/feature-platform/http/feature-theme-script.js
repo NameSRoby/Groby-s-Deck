@@ -5,7 +5,7 @@
  */
 function overlayThemeHost() {
   const frame = document.getElementById("surface"),
-    channel = "groby-feature-ui-v1";
+    channel = "ravelink-feature-ui-v1";
   let theme = null,
     timer = null,
     closed = false;

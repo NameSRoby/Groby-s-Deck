@@ -6,7 +6,7 @@ const fs = require("node:fs"),
 const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 async function environment(t) {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-hue-area-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-hue-area-"));
   let failure = false;
   const { app, services } = createCore({
     runtimeDir,

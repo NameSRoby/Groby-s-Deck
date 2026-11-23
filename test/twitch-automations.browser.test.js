@@ -7,7 +7,7 @@ const test = require("node:test"),
 const { chromium } = require("playwright"),
   fixture = require("./support/twitch-automation-fixture.cjs"),
   { until } = fixture;
-async function setup(t, syntax = false, quotes = false, category = "reward") {
+async function setup(t, syntax = false, quotes = false, category = "reward", installed = false) {
   const f = fixture(t),
     errors = [],
     html = fs.readFileSync(
@@ -21,7 +21,9 @@ async function setup(t, syntax = false, quotes = false, category = "reward") {
               ? "../features/twitch-integration/ui/quotes.html"
               : syntax
                 ? "../features/twitch-integration/ui/syntax.html"
-                : "../features/twitch-integration/ui/automations.html",
+                : installed
+                  ? "../features/installed/twitch-integration/ui/automations.html"
+                  : "../features/twitch-integration/ui/automations.html",
       ),
     );
   const server = http.createServer(async (req, res) => {
@@ -129,9 +131,11 @@ test("Syntax page searches functions and previews messages, random choices and c
   await f.page.evaluate(() =>
     document
       .querySelector("iframe")
-      .contentWindow.postMessage({ channel: "groby-feature-ui-v1", type: "theme" }, "*"),
+      .contentWindow.postMessage({ channel: "ravelink-feature-ui-v1", type: "theme" }, "*"),
   );
-  await panel.locator("#template").fill("${sender}: ${countdeaths} / ${game user} / ${link user}");
+  await panel
+    .locator("#template")
+    .fill("${sender}: ${count[deaths]} / ${target.game} / ${target.link}");
   await panel.locator("#preview").click();
   await panel
     .locator("#result")
@@ -139,10 +143,10 @@ test("Syntax page searches functions and previews messages, random choices and c
     .waitFor();
   assert.equal(fs.existsSync(f.file.replace(".json", ".counters.json")), false);
   assert.equal(f.calls.length, 0);
-  await panel.locator("#template").fill('${chance 100 "Guaranteed" "No"}');
+  await panel.locator("#template").fill("${chance[100|Guaranteed|No]}");
   await panel.locator("#preview").click();
   await panel.locator("#result").filter({ hasText: "Guaranteed" }).waitFor();
-  await panel.locator("#template").fill('${chance 999 "a" "b"}');
+  await panel.locator("#template").fill("${chance[999|a|b]}");
   await panel.locator("#preview").click();
   await panel.locator("#result").filter({ hasText: "Chance must be" }).waitFor();
   await f.page.setViewportSize({ width: 390, height: 844 });
@@ -157,7 +161,7 @@ test("Syntax page searches functions and previews messages, random choices and c
   assert.equal(await panel.locator("#variablesTab").getAttribute("aria-selected"), "true");
   assert.equal(await panel.locator("#examplesPanel").isVisible(), false);
   await panel.locator("#variablesTab").press("End");
-  assert.equal(await panel.locator("#template").inputValue(), '${chance 999 "a" "b"}');
+  assert.equal(await panel.locator("#template").inputValue(), "${chance[999|a|b]}");
 });
 
 test("the language manual explains operators, fits a phone and previews both sides of a worked condition", async (t) => {
@@ -623,7 +627,7 @@ test("automation list searches and filters compact rows, expands inline, and pre
     await panel.locator("#name").evaluate((node) => node === document.activeElement),
     true,
   );
-  if (process.env.GROBYS_DECK_CAPTURE_AUTOMATIONS === "1")
+  if (process.env.RAVELINK_CAPTURE_AUTOMATIONS === "1")
     await f.page.screenshot({
       path: path.join(__dirname, "../runtime/automation-list-private.png"),
       fullPage: true,
@@ -859,7 +863,7 @@ test("a chat automation uses the shared builder, saves/reopens its restore flow,
     .locator(".automationRowTitle")
     .filter({ hasText: "Temporary microphones" })
     .click();
-  if (process.env.GROBYS_DECK_CAPTURE_AUTOMATIONS === "1")
+  if (process.env.RAVELINK_CAPTURE_AUTOMATIONS === "1")
     await f.page.screenshot({
       path: path.join(__dirname, "../runtime/twitch-automations-private.png"),
       fullPage: true,
@@ -1420,3 +1424,36 @@ test("sound-file actions in the opaque automation editor reuse saved files and m
   assert.equal(await panel.locator('[data-deck-parameter="volume"]').isVisible(), false);
   assert.ok((await panel.locator("#editor").textContent()).includes("Choose a saved audio file"));
 });
+for (const installed of [false, true].filter(
+  (installed) =>
+    !installed ||
+    fs.existsSync(
+      path.join(__dirname, "../features/installed/twitch-integration/groby.feature.json"),
+    ),
+)) {
+  test(`${installed ? "installed" : "source"} utility presets open and save as editable inactive timer, event and command flows`, async (t) => {
+    const f = await setup(t, false, false, "command", installed),
+      { panel } = f;
+    await panel.getByText("Example commands & starter recipes", { exact: true }).click();
+    for (const id of ["discord-reminder", "bits-milestone", "resetrecord"]) {
+      await panel.locator("#commandExamples").selectOption(id);
+      await panel.locator("#useCommandExample").click();
+      const preset = require("../src/domains/twitch/streamer-automation-presets").find(
+        (row) => row.id === id,
+      );
+      assert.equal(await panel.locator("#triggerType").inputValue(), preset.trigger.type);
+      if (id === "resetrecord")
+        assert.equal(await panel.locator("#role").inputValue(), "broadcaster");
+      if (id === "discord-reminder")
+        assert.equal(await panel.locator("#timerMessages").inputValue(), "10");
+      await panel.locator("#save").click();
+      await panel.locator("#notice").filter({ hasText: "Automation saved." }).waitFor();
+      const stored = f.automations.status().rows.find((row) => row.name === preset.name);
+      assert.equal(stored.enabled, false);
+      assert.deepEqual(stored.trigger, preset.trigger);
+      assert.deepEqual(stored.steps, preset.steps);
+    }
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.writes.length, 0);
+  });
+}

@@ -87,7 +87,7 @@ test("feature manifest rejects non-Groby’s Deck publishers and capability over
 });
 
 test("feature package rejects payload tampering and undeclared files", async (t) => {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "groby-feature-"));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-feature-"));
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
   fs.cpSync(root, temp, { recursive: true });
   fs.appendFileSync(path.join(temp, "dist", "main.js"), "\n// tampered\n");

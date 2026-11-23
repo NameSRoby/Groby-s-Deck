@@ -57,13 +57,13 @@ test("Spotify install planning is read-only and install/uninstall restores the e
     rows
       .find((row) => row.name === "index.html")
       .data.toString()
-      .includes('<script src="/groby-spotify.js"></script>'),
+      .includes('<script src="/ravelink-spotify.js"></script>'),
   );
   assert.ok(
     rows
       .find((row) => row.name === "xpui.js")
       .data.toString()
-      .includes("__grobySpotify"),
+      .includes("__ravelinkSpotify"),
   );
   assert.deepEqual(rows.find((row) => row.name === "cover.png").data, Buffer.from([0, 1, 255]));
   assert.equal(rows.find((row) => row.name === "theme.css").data.toString(), "body{color:white}");
@@ -118,7 +118,7 @@ test("Spotify removal refuses changed client files and corrupt backups instead o
   assert.throws(() => installer.uninstall(apps, { isRunning: () => false }), /archive_changed/);
   assert.equal(fs.readFileSync(archive, "utf8"), "client updated");
   fs.writeFileSync(archive, patched);
-  fs.writeFileSync(path.join(apps, ".groby-spotify-original.spa"), "corrupt backup");
+  fs.writeFileSync(path.join(apps, ".ravelink-spotify-original.spa"), "corrupt backup");
   assert.throws(
     () => installer.uninstall(apps, { isRunning: () => false }),
     /backup_integrity_failed/,
@@ -134,7 +134,7 @@ test("Spotify prepared transaction can be restored after interruption without de
     isRunning: () => false,
     expectedArchiveHash: plan.archiveHash,
   });
-  const file = path.join(apps, ".groby-spotify-install.json"),
+  const file = path.join(apps, ".ravelink-spotify-install.json"),
     journal = JSON.parse(fs.readFileSync(file));
   journal.phase = "prepared";
   fs.writeFileSync(file, JSON.stringify(journal));
@@ -167,4 +167,23 @@ test("Spotify asset patch refuses duplicate hooks, restrictive CSP and unsafe ar
     at += 8;
   }
   await assert.rejects(readArchive(unsafe), /archive_invalid/);
+});
+
+test("Spotify recognizes the published Groby journal spelling without losing the original archive", async (t) => {
+  const { apps, original } = await fixture(t),
+    plan = await installer.plan(apps);
+  await installer.install(apps, {
+    isRunning: () => false,
+    allowUnverifiedBuild: true,
+    expectedArchiveHash: plan.archiveHash,
+  });
+  for (const [before, after] of [
+    [".ravelink-spotify-install.json", ".groby-spotify-install.json"],
+    [".ravelink-spotify-original.spa", ".groby-spotify-original.spa"],
+  ])
+    fs.renameSync(path.join(apps, before), path.join(apps, after));
+  assert.equal(installer.status(apps).recoverable, true);
+  assert.equal(installer.uninstall(apps, { isRunning: () => false }).restored, true);
+  assert.deepEqual(fs.readFileSync(path.join(apps, "xpui.spa")), original);
+  assert.equal(fs.existsSync(path.join(apps, ".groby-spotify-install.json")), false);
 });

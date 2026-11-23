@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const extension = require("../src/app/optional/create-feature-platform-extension");
 test("Library starts SoundCloud cold/warm and standalone YouTube without a second click", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-library-start-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-library-start-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),
@@ -47,6 +47,16 @@ test("Library starts SoundCloud cold/warm and standalone YouTube without a secon
     );
     assert.equal(result.ok, true, JSON.stringify(result));
     return result.value;
+  };
+  const waitForManagedStatus = async (expected) => {
+    const deadline = Date.now() + 12000;
+    let playback;
+    do {
+      playback = await api("song.playback.read.v1", "status");
+      if (playback.managed.status === expected) return;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    } while (Date.now() < deadline);
+    assert.equal(playback.managed.status, expected, JSON.stringify(playback));
   };
   await api("song.player.preferences.v1", "select", { player: "soundcloud" });
   const upload = await api("song.soundcloud.player.v1", "import-start", {
@@ -115,12 +125,16 @@ test("Library starts SoundCloud cold/warm and standalone YouTube without a secon
     .locator("#soundcloudState")
     .filter({ hasText: "Playing Fixture song" })
     .waitFor({ timeout: 12000 });
-  assert.equal((await api("song.playback.read.v1", "status")).managed.status, "playing");
+  // The widget updates its label before the asynchronous host acknowledgement.
+  // Verify that acknowledgement rather than racing it with a single API read.
+  await waitForManagedStatus("playing");
   for (const button of ["shuffle", "random"]) {
     await player.locator("#soundcloudPause").click();
+    await waitForManagedStatus("paused");
     await page.locator('[data-page="server-playlist"]').click();
     await library.locator("#" + button).click();
     await player.locator("#soundcloudState").filter({ hasText: "Playing Fixture song" }).waitFor();
+    await waitForManagedStatus("playing");
   }
   // Separate rapid synthetic playback events from the import batch; keep the production IPC guard intact.
   await page.waitForTimeout(1000);
@@ -170,7 +184,7 @@ test("Library starts SoundCloud cold/warm and standalone YouTube without a secon
       );
     });
   assert.equal(await yt.locator("#songPlayerProvider").inputValue(), "youtube");
-  assert.equal((await api("song.playback.read.v1", "status")).managed.status, "playing");
+  await waitForManagedStatus("playing");
   assert.equal(
     new URL(standalone.url()).searchParams.has("startPlayback"),
     false,

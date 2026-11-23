@@ -14,7 +14,7 @@ function fixture(t, provider = "tidal") {
     saveFailure = false;
   const context = {
     async callCapability(cap, method, input) {
-      if (cap === "groby.storage.v1") {
+      if (cap === "ravelink.storage.v1") {
         if (method === "get")
           return {
             ok: true,

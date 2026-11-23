@@ -12,7 +12,7 @@ const createModProcessSupervisor = require("../src/capabilities/mod-platform/hos
 const HASH = "a".repeat(64);
 
 function createFixture(options = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-mod-supervisor-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-mod-supervisor-"));
   fs.mkdirSync(path.join(root, "dist"), { recursive: true });
   fs.writeFileSync(
     path.join(root, "dist", "main.js"),
@@ -27,7 +27,7 @@ function createFixture(options = {}) {
     publisher: "example",
     license: "MIT",
     entry: "dist/main.js",
-    engine: { grobyModApi: "^1.0.0", node: ">=22" },
+    engine: { ravelinkModApi: "^1.0.0", node: ">=22" },
     activationEvents: ["onEnable"],
     consumes: options.consumes || [],
     provides: ["test.echo.v1"],
@@ -268,7 +268,7 @@ test("supervisor brokers bounded requests originating from an active mod", async
       id: "worker_1",
       capability: "chat.send.v1",
       method: "send",
-      providerId: "groby.chat",
+      providerId: "ravelink.chat",
       deadlineAt: Date.now() + 1000,
       payload: { text: "hello" },
     }),
@@ -276,7 +276,7 @@ test("supervisor brokers bounded requests originating from an active mod", async
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(responses.length, 1);
   assert.equal(responses[0].ok, true);
-  assert.equal(responses[0].payload.providerId, "groby.chat");
+  assert.equal(responses[0].payload.providerId, "ravelink.chat");
   assert.equal(supervisor.getStatus().protocolViolations, 0);
   fakeChild.emit(
     "message",
@@ -618,7 +618,7 @@ test("real child uses available isolation and receives no ambient secrets", asyn
       "module.exports = {",
       "  handleRequest({ method, payload }) {",
       "    if (method !== 'echo') throw new Error('unknown_method');",
-      "    return { echoed: payload, leaked: process.env.GROBYS_DECK_TEST_SECRET || null };",
+      "    return { echoed: payload, leaked: process.env.RAVELINK_TEST_SECRET || null };",
       "  },",
       "  deactivate() {}",
       "};",
@@ -630,7 +630,7 @@ test("real child uses available isolation and receives no ambient secrets", asyn
     allowUnsafeRuntime: !networkIsolation,
     environment: {
       TEMP: os.tmpdir(),
-      GROBYS_DECK_TEST_SECRET: "must-not-cross-boundary",
+      RAVELINK_TEST_SECRET: "must-not-cross-boundary",
     },
     startupTimeoutMs: 5000,
   });

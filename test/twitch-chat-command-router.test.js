@@ -362,7 +362,7 @@ test("moderator and broadcaster skips pass the real broker without a cooldown be
     os = require("node:os"),
     path = require("node:path");
   const createRegistry = require("../src/capabilities/feature-platform/host/feature-host-registry");
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-chat-skip-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-chat-skip-"));
   fs.cpSync(
     path.join(__dirname, "../features/song-request"),
     path.join(root, "installed/song-request"),

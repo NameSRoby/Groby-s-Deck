@@ -13,7 +13,7 @@ const {
 const { createPackage } = require("./helpers/mod-package-fixture");
 
 test("package verifier accepts an exact complete SHA-256 inventory", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-valid-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-valid-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   await createPackage(root);
   const result = await verifyPackageDirectory(root);
@@ -26,7 +26,7 @@ test("package verifier accepts an exact complete SHA-256 inventory", async (t) =
 });
 
 test("package verifier rejects modified and undeclared payload files", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-tamper-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-tamper-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   await createPackage(root);
   await fs.promises.writeFile(path.join(root, "dist", "main.js"), "tampered\n", "utf8");
@@ -41,7 +41,7 @@ test("package verifier rejects modified and undeclared payload files", async (t)
 });
 
 test("package scanner enforces file count and per-file limits", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-limits-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-limits-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   await createPackage(root);
   let result = await scanPackageDirectory(root, { maxFiles: 1 });
@@ -51,7 +51,7 @@ test("package scanner enforces file count and per-file limits", async (t) => {
 });
 
 test("package scanner rejects symbolic links when supported by the host", async (t) => {
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "groby-package-link-"));
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "ravelink-package-link-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   await createPackage(root);
   const target = path.join(root, "dist", "main.js");

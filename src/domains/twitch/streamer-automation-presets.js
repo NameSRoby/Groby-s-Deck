@@ -53,11 +53,6 @@ const goalRecipe = (message) => ({
   params: { message },
   delayMs: 0,
 });
-const goals = [
-  ["followers", "Followers", "channel.follow", "${countgoal-followers}"],
-  ["subscribers", "New subscriptions", "channel.subscribe", "${countgoal-subscribers}"],
-  ["bits", "Bits", "channel.cheer", "${addcount goal-bits ${bits}}"],
-];
 const goalControl = (id, name, command, description, source) => ({
   ...recordCommand(id, name, command, description, source),
   group: "Goals",
@@ -65,40 +60,47 @@ const goalControl = (id, name, command, description, source) => ({
   userCooldownSeconds: 0,
 });
 module.exports = [
-  ...goals.map(([id, label, type, source]) =>
-    event(
-      "goal-" + id,
-      label + " goal",
-      type,
-      "Updates the goal-" +
-        id +
-        " counter. In Overlay Designer add a Goal and select the " +
-        label +
-        " setup.",
-      [goalRecipe(source)],
-      "Goals",
-    ),
+  ...require("./streamer-utility-presets")({ chat, timer, event }),
+  ...require("../../../public/core/overlay-goal-sources").sources.map((source) => ({
+    id: "track-goal-" + source.id,
+    name: source.name + " goal",
+    group: "Goals",
+    description:
+      "One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: " +
+      source.id +
+      ". Adjust its target with !addgoal " +
+      source.id +
+      " " +
+      source.id +
+      " " +
+      source.target +
+      ".",
+    trigger: { type: "timer", intervalMs: 1000, repeatLimit: 1, onlyLive: false, minMessages: 0 },
+    steps: [goalRecipe("${addgoal " + source.id + " " + source.id + " " + source.target + "}")],
+    role: "broadcaster",
+    cooldownSeconds: 0,
+    userCooldownSeconds: 0,
+  })),
+  goalControl(
+    "add-goal",
+    "Create or update a named goal",
+    "!addgoal",
+    "Broadcaster only. !addgoal name tracking amount. Example: !addgoal community bits 10000. Progress is tracked from Twitch events; an existing goal keeps its progress when its tracking is unchanged.",
+    "${addgoal ${1} ${2} ${3}}",
   ),
   goalControl(
+    "reset-goal",
+    "Reset a named goal",
+    "!resetgoal",
+    "Broadcaster only. !resetgoal name resets progress and keeps the tracking source and target.",
+    "${resetgoal ${1}}",
+  ),
+  timer(
     "goal-donations",
-    "Donation goal: record an amount",
-    "!adddonation",
-    "Broadcaster only. Record a received donation in minor units. Example !adddonation 1250 adds 12.50 in a two-decimal currency. Select Donations in the overlay and set the currency you use.",
-    "${if ${1} > 0}Donation total in minor units: ${addcount goal-donations ${1}}.${else}Use !adddonation followed by a positive amount in minor units.${end}",
-  ),
-  goalControl(
-    "goal-target",
-    "Set a goal target",
-    "!goaltarget",
-    "Broadcaster only. Example !goaltarget followers 20. Built-in goal names are followers, subscribers, bits and donations. Use minor units for donations.",
-    "${if ${2} > 0}Goal target saved: ${setcount goal-${1}-target ${2}}.${else}Use !goaltarget followed by a goal name and positive target.${end}",
-  ),
-  goalControl(
-    "goal-progress",
-    "Correct or reset goal progress",
-    "!goalprogress",
-    "Broadcaster only. Example !goalprogress followers 0. Use minor units for donations. This sets the current amount and keeps the target.",
-    '${if same ${2} ""}Use !goalprogress followed by a goal name and amount.${else}${if ${2} >= 0}Goal progress saved: ${setcount goal-${1} ${2}}.${else}Use a nonnegative amount.${end}${end}',
+    "Donation goal progress timer",
+    30,
+    "Twitch charity goal: ${goal donations}. Thank you for supporting the campaign.",
+    5,
   ),
   {
     id: "xp-seasons",

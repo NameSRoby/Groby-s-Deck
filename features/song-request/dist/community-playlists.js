@@ -27,7 +27,7 @@ module.exports = function communityPlaylists({
     timer;
   const storage = (method, value) =>
     context.callCapability(
-      "groby.storage.v1",
+      "ravelink.storage.v1",
       method,
       { key, ...(value ? { value } : {}) },
       { timeoutMs: 5000 },

@@ -33,7 +33,7 @@ for (const target of ["youtube", "soundcloud"])
       const targetTrack = candidate(target, target === "youtube" ? "abcdefghijk" : "789");
       const context = {
         callCapability: async (cap, method, input) => {
-          if (cap === "groby.storage.v1") {
+          if (cap === "ravelink.storage.v1") {
             if (method === "get")
               return {
                 ok: true,
@@ -110,7 +110,7 @@ test("a missing catalog match remains reviewable and does not stop the rest of t
   let calls = 0;
   const context = {
     callCapability: async (cap) =>
-      cap === "groby.storage.v1"
+      cap === "ravelink.storage.v1"
         ? { ok: true }
         : ++calls === 1
           ? { ok: false, reason: "soundcloud_no_eligible_match" }

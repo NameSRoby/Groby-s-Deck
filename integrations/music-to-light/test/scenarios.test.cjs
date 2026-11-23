@@ -43,7 +43,7 @@ test("the complete recipe exists before audio and survives loudness, onsets, gap
     );
   const edited = m.configure({
     ...m.settings(),
-    preset: "pulse",
+    preset: "bands",
     arrangement: "roles",
     colorMode: "energy",
     palette: ["#00ff00"],
@@ -82,7 +82,7 @@ test("draw odds depend only on operator weights", () => {
 });
 test("random layer combinations are stable, respect hard blocks and keep the defining mechanism", () => {
   const b = settings().behaviors;
-  for (const id of ["pulse", "wave"]) {
+  for (const id of ["wash", "pulse", "bands", "wave"]) {
     const draw = chooseLayers({ ...b, colorEnabled: false }, id, () => 0.99);
     assert.equal(draw.colorEnabled, false);
     if (["pulse", "wave"].includes(id)) assert.equal(draw.attacksEnabled, true);
@@ -106,10 +106,10 @@ test("random layer combinations are stable, respect hard blocks and keep the def
   assert.deepEqual(m.inspect(3980).scenario.layers, selected.layers);
   assert.equal(calls, 6);
 });
-test("a Pulse-only scenario produces a uniform fixture response", () => {
+test("legacy band-only scenario weights migrate to Pulse without reviving removed choices", () => {
   const m = createMapper({
     scenarioMode: "random",
-    scenarioWeights: { pulse: 1, wave: 0 },
+    scenarioWeights: { wash: 0, pulse: 0, wave: 0, bands: 1 },
     colorMode: "fixed",
     palette: ["#ff0000", "#00ff00", "#0000ff"],
   });
@@ -139,14 +139,14 @@ test("energy colors use the supplied palette independently of brightness and fix
   assert.deepEqual(roles.render(20, { role: "mid", position: 0.5 }).rgb, { r: 0, g: 255, b: 0 });
 });
 test("weighted draws never choose blocked scenarios and explain normalized artistic odds", () => {
-  const w = weights({ pulse: 2, wave: 1 });
+  const w = weights({ wash: 0, pulse: 2, bands: 0, wave: 1 });
   for (let i = 0; i < 100; i++) {
     const s = choose(w, () => i / 100);
     assert.ok(["pulse", "wave"].includes(s.id));
     assert.ok(Math.abs(s.candidates.reduce((n, r) => n + r.chance, 0) - 1) < 1e-10);
   }
   assert.equal(
-    choose(weights({ pulse: 0, wave: 0 }), {
+    choose(weights({ wash: 0, pulse: 0, bands: 0, wave: 0 }), {
       level: 0,
       rise: 0,
       spread: 0,
@@ -223,7 +223,7 @@ test("onset color blending is smooth, bounded and independent from brightness", 
 });
 
 test("random foundation recipes retain allowed drum accents in every scenario and respect explicit blocks", () => {
-  for (const id of ["pulse", "wave", "bounce", "handoff"])
+  for (const id of ["wash", "pulse", "bands", "wave", "bounce", "handoff"])
     for (const attacksEnabled of [true, false]) {
       const b = {
         ...settings().behaviors,

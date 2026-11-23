@@ -29,7 +29,7 @@ module.exports = function createManager({
         const status = installer.inspect(resources),
           pairingFile = path.join(runtimeDir, "experimental-tidal-pairing.json");
         const binding =
-          status.installed && !status.previousBundle && require("node:fs").existsSync(pairingFile)
+          status.installed && require("node:fs").existsSync(pairingFile)
             ? installer.repairPairing?.({ resources, pairingFile })
             : null;
         return {

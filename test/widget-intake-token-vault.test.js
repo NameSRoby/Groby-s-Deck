@@ -10,7 +10,7 @@ const protect = (plain) => ({ ok: true, encrypted: { ...plain } });
 const unprotect = (encrypted) => ({ ok: true, plain: { ...encrypted } });
 
 test("managed widget token persists, rotates with bounded overlap, and revokes backups", (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-token-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-token-"));
   const vaultPath = path.join(runtimeDir, "widget.vault.json");
   t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
   let clock = 10_000;
@@ -53,7 +53,7 @@ test("managed widget token persists, rotates with bounded overlap, and revokes b
 });
 
 test("environment widget token overrides managed storage and is read-only", (t) => {
-  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widget-env-token-"));
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-widget-env-token-"));
   const vaultPath = path.join(runtimeDir, "widget.vault.json");
   t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
   fs.writeFileSync(vaultPath, "not-json", "utf8");
