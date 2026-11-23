@@ -1,6 +1,6 @@
 # Mod API reference
 
-Public API v1, as shipped with Core 0.7.6a. Read the
+Mod API v1, as shipped with Groby’s Deck 0.8. The SDK version is 1.0.0. Read the
 [author guide](MOD_AUTHOR_GUIDE.md) for a complete workflow. The executable
 validators, [manifest schema](../packages/mod-sdk/schemas/mod-manifest-v1.schema.json)
 and [broker schema](../packages/mod-sdk/schemas/broker-envelope-v1.schema.json)
@@ -12,11 +12,11 @@ Declare `"groby.controls.v1"` in `consumes` to use the same first-party actions
 as deck buttons. Activation review explicitly lists this access. No local HTTP
 token, URL, Windows username or machine-specific paths are required.
 
-| Method    | Request                                                    | Result                                                                                                                                                       |
-| --------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `catalog` | `null`, `{}`, or `{offset, limit}`; default 16, maximum 32 | `actions`, `total`, `offset`, `nextOffset`. Each action includes its ID, label, availability, defaults and parameter schema. Follow `nextOffset` until null. |
-| `status`  | Same pagination                                            | `states` keyed by action ID, plus pagination. Reads live feedback without running actions.                                                                   |
-| `execute` | `{actionId, params}`                                       | The underlying app action's confirmed result. Unavailable controls, invalid parameters, cancellation and provider failures reject the call.                  |
+| Method    | Request                                                                               | Result                                                                                                                                                       |
+| --------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `catalog` | `null`, `{}`, or `{offset, limit}`; default limit 16, maximum limit 32, offset 0–4096 | `actions`, `total`, `offset`, `nextOffset`. Each action includes its ID, label, availability, defaults and parameter schema. Follow `nextOffset` until null. |
+| `status`  | Same pagination                                                                       | `states` keyed by action ID, plus pagination. Reads live feedback without running actions.                                                                   |
+| `execute` | `{actionId, params}`                                                                  | `{ok:true,value}` or `{ok:false,error:{code,message,retryable}}` for app-level failures. Broker admission and transport failures can reject the promise.     |
 
 ```js
 const page = await context.callCapability("groby.controls.v1", "catalog", {});
@@ -25,11 +25,12 @@ const result = await context.callCapability("groby.controls.v1", "execute", {
   actionId: selectedAction.id,
   params: userParameters,
 });
+if (!result.ok) throw Error(result.error.code);
 ```
 
 Available controls follow the user's installed features, connected OBS, selected
 audio applications, fixtures, profiles and authorizations. The catalog includes
-playback, mixer, lights, OBS, Twitch rewards and stream actions where available;
+playback, mixer, soundboard, lights, OBS, Twitch rewards and stream actions where available;
 it grows with Core's public action catalog. It excludes navigation-only commands
 and mod actions (use their own declared capabilities instead). Do not hardcode
 machine-specific action IDs or assume a currently unavailable integration works.
@@ -206,13 +207,6 @@ Mods cannot override this policy in `create`; operators manage it in Connections
 The adapter's provided `stream.clip.v1` interface is separate from this host
 contract; use its declared contributed action for dashboard operation.
 
-### Discord controls
-
-The old accessibility adapter and `discord.desktop.host.v1` provider have been
-removed. Existing mute/deafen deck buttons migrate to keyboard macros. Use
-F13–F24 or another key with Discord’s own bindings. Keyboard input delivery does
-not claim to confirm Discord’s mute state, and Groby’s Deck does not own its process.
-
 ## Manifest field reference
 
 | Field                                       | Contract                                                                                                                                                   |
@@ -221,7 +215,7 @@ not claim to confirm Discord’s mute state, and Groby’s Deck does not own its
 | `id`, `publisher`                           | `<publisher>.<name>` lowercase portable ID; publisher must match the prefix. Publisher text is self-asserted, not a verified signature.                    |
 | `name`, `description`, `license`, `version` | Name ≤80 characters, optional description ≤500, nonempty license and semantic version.                                                                     |
 | `entry`                                     | Relative integrity-listed CommonJS entry; portable package path.                                                                                           |
-| `engine`                                    | `{grobyModApi, node}` compatible ranges; not the product release number.                                                                                |
+| `engine`                                    | `{grobyModApi, node}` compatible ranges; not the product release number.                                                                                   |
 | `activationEvents`                          | At most 16 unique declared startup triggers.                                                                                                               |
 | `consumes`, `provides`                      | At most 32 each; versioned capability names. Optional consumed names may end in `?`.                                                                       |
 | `permissions`                               | Closed object with `network`, `storage`, `secrets`, `ui`, `process`, `hardware`. Declarations do not create a host provider or bypass runtime containment. |
@@ -296,9 +290,8 @@ broker/supervisor regression tests and explicit operator review remain necessary
 ## Operator administration HTTP
 
 These are local operator APIs, not callable privileges granted to mods. They
-require local admission and matching browser Origin/Host; a public site cannot
-use them to install code. Normal startup supports reviewed community packages;
-a deliberately restricted bundled-only composition rejects community mutations.
+require local operator admission and matching browser Origin/Host. Normal startup
+supports reviewed community packages. The Core-only profile omits the mod host.
 
 | Method/path                                        | Purpose/input                                                                                                              |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |

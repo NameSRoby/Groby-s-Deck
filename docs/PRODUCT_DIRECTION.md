@@ -1,6 +1,8 @@
 # Historical product direction and JavaFX exploration
 
-Updated for 0.7.2: Music-to-Light now includes first-party application capture,
+This historical exploration records the project’s direction at 0.7.2. For the current app, see the [developer guide](DEVELOPMENT.md).
+
+At that checkpoint, Music-to-Light now includes first-party application capture,
 reactive looks, saved effects and fixture ownership. Hardware acceptance remains
 limited; see the current behavior and requirements in [README.md](../README.md).
 This document retains an earlier planning baseline, including the JavaFX

@@ -1,7 +1,6 @@
 # Overlay designer
 
-Open **More > Overlay designer**. This is the full-scene compositor; Song Request's
-existing designer continues to edit its detailed music card independently.
+Open **Overlay designer** from the main navigation or **More**, depending on your tab settings. Use **Song Request → Overlay Designer** to edit the standalone now-playing card.
 
 ## Editing and OBS
 
@@ -25,8 +24,10 @@ existing designer continues to edit its detailed music card independently.
   scrolling as soon as Twitch returns names. Switch **Credit names** to Followers
   or My list if needed. Dated subscriber rolls use locally recorded events.
 - Twitch chat shows recent messages already received by the connected app and
-  new messages as they arrive. It renders native Twitch emotes. Twitch EventSub
-  does not replay messages sent before the app began receiving chat.
+  new messages as they arrive. Deletes, bans, timeouts and chat clears update
+  the editor and OBS. **Content** has separate switches for username colors,
+  badges and emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ. The feed starts
+  when Groby’s Deck receives chat events from Twitch.
 - **Test widgets** and **Preview a chat message** add a local sample with editable
   name and message. These never post chat, award XP, start an ad or reach OBS.
 - Chat's **Content** tab keeps removal mode, lifetime and bot filtering together.
@@ -134,7 +135,7 @@ actual provider methods and event definitions:
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [StreamElements overlay overview](https://docs.streamelements.com/overlays) and [canvas payload](https://docs.streamelements.com/websockets/topics/channel-overlay-update)                               | One transparent browser-source document with independent canvas dimensions and layers                                  |
 | [Editor shortcuts](https://docs.streamelements.com/overlays/overlay-editor-shortcuts)                                                                                                                    | Undo/redo, duplication, pixel nudging, selection and groups; independent fit/zoom                                      |
-| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly Groby’s Deck-specific read-only data API                                       |
+| [Custom widget structure](https://docs.streamelements.com/overlays/widget-structure) and [custom widget API](https://docs.streamelements.com/overlays/custom-widget)                                     | Separate code/field views and an explicitly Groby’s Deck-specific read-only data API                                   |
 | [Alert variations](https://docs.streamelements.com/overlays/alertbox-variations) and [session data](https://docs.streamelements.com/overlays/session-data)                                               | Do not advertise advanced variations, imported session statistics or external event sources without implementing them  |
 | [OBS Browser Source](https://obsproject.com/kb/browser-source)                                                                                                                                           | Supply matching width/height and transparent output; browser codec and local-server lifetime are real dependencies     |
 | [Twitch channel events](https://dev.twitch.tv/docs/eventsub/reference/channel) and [subscription authorization](https://dev.twitch.tv/docs/eventsub/manage-subscriptions/)                               | Use existing authorized follow/sub/raid/cheer/poll/Hype Train events; do not invent data when authorization is missing |

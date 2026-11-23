@@ -2,237 +2,64 @@
 
 <img src="assets/Grobys-Deck.png" alt="Groby’s Deck" width="96" height="96">
 
-**Your stream. Your controls. Your deck.**
+Groby’s Deck is a local Windows control surface for streaming. Build button decks for OBS, audio and lights, automate Twitch rewards and chat, take song requests, and design overlays for OBS.
 
-Build a modular control surface for your stream, desktop, phone or tablet:
+[Download 0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) · [User guide](docs/USER_GUIDE.md) · [Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
-- **Button decks:** music, audio mixers, OBS scenes, microphones, lights and custom actions.
-- **Twitch automations:** chat commands, Channel Points rewards, timers, raids and subscriber events.
-- **Flow builder:** combine actions, conditions, waits, repeats and temporary changes you can restore.
-- **Overlay designer:** named layouts, editable layers, animated widgets, chat and song information.
-- **Song requests:** shared moderation for supported music players and Twitch request sources.
-- **Smart lighting:** Hue, WiZ and Govee LAN controls, saved scenes and Music-to-Light.
+## Install and get started
 
-Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
+Run **Grobys-Deck-Windows-v0.8-setup-installer.exe**, then open **Groby’s Deck**. For portable use, extract **Grobys-Deck-Windows-v0.8-self-contained.zip** and run **Groby's Deck.exe**. Windows 10 x64 build 19041 or later is required. Setup includes an offline WebView2 installer for systems that need it. [Windows setup and upgrades](docs/WINDOWS_SETUP.md)
 
-[Download 0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) |
-[User guide](docs/USER_GUIDE.md) |
-[Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
+| To                                         | Open                                                  |
+| ------------------------------------------ | ----------------------------------------------------- |
+| Build stream controls                      | **Dashboard → Button deck → Edit**                    |
+| Install Twitch Integration or Song Request | **More → Updates & packages**                         |
+| Review and manage mods                     | **More → Updates & packages → Mods**                  |
+| Design a full scene for OBS                | **Overlay designer**                                  |
+| Connect lights                             | **Fixtures**                                          |
+| Match light effects to music               | **Lights → Music-to-Light**                           |
+| Use your phone or tablet                   | The **network icon** to enable private-network access |
 
-## Install
+The desktop window and [local browser interface](http://127.0.0.1:5050) share the same controls. Closing the window keeps the app in the tray. Use **Groby’s Deck → Exit** to stop it.
 
-1. Download **Grobys-Deck-Windows-v0.8-setup-installer.exe**.
-2. Run Setup and choose the features you want.
-3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
+## Button deck
 
-**Portable:** extract **Grobys-Deck-Windows-v0.8-self-contained.zip** completely,
-then run **Groby's Deck.exe**.
+Create pages for OBS, app volume, music, lights and soundboard clips. Build timed sequences with conditions and waits, edit button appearance separately, and use **Fullscreen** on a desktop, phone or tablet. Soundboard buttons can route an MP3 or WAV to multiple Windows outputs, including the playback side of a virtual microphone cable. [Deck and soundboard guide](docs/CONTROL_DECK.md)
 
-The runtime and optional packages are included. No developer tools are needed.
-Your account sign-ins and online music services still need internet.
+![Button deck with playback, lighting and volume controls](assets/screenshots/dashboard.png)
+
+## Twitch automations
+
+Create chat commands, Channel Points rewards, timers and responses to events like raids and subscriptions. The Twitch workspace also includes a command list generator, syntax reference, editable quotes and watchtime settings.
+
+[Twitch automations](docs/TWITCH_AUTOMATIONS.md) · [Command language](docs/COMMAND-VARIABLES.md) · [Editable d20 arena](docs/d20-arena.md)
+
+![Twitch Rewards & automations with the Channel Points editor](assets/screenshots/twitch-automations.png)
+
+## Overlay designer
+
+Arrange and style layers on a full-scene canvas. Preview live chat and supporter data, or test with sample data before adding the saved overlay to OBS. Twitch chat mirrors moderation events and offers separate controls for username colors, badges, and Twitch, 7TV, BetterTTV and FrankerFaceZ emotes. [Overlay designer guide](docs/OVERLAY-DESIGNER.md)
+
+![Overlay designer with a Twitch chat layer on the canvas](assets/screenshots/overlay-designer.png)
+
+## Song Request and lights
+
+- **Song Request** supports YouTube, SoundCloud, TIDAL and Spotify with shared request moderation. Use **Song Request → Overlay Designer** to customize the standalone now-playing card. [Player setup, queues and transfers](docs/USER_GUIDE.md#optional-features)
+- **Lights** supports compatible Hue, WiZ and Govee devices. In **Music-to-Light**, choose a capture source, calibrate at your usual volume and preview an effect before starting output. [Music-to-Light setup](docs/USER_GUIDE.md#music-to-light)
 
 <details>
-<summary>Windows requirements and other installation options</summary>
+<summary>See Song Request and Music-to-Light</summary>
 
-- **Windows 10 x64, build 19041 or later**, or Windows 11.
-- Music-to-Light app capture needs **build 20348 or later**; Windows 11 is recommended.
-- Setup detects WebView2 and runs its bundled offline Evergreen installer only
-  when it is missing. Portable users can run **scripts/install-webview2.ps1**.
-- The release is unsigned, so Windows may show an unknown-publisher warning.
-  Compare downloads with **SHA256SUMS.txt**.
-- **Code > Download ZIP** downloads source code. Run **Start-Grobys-Deck.cmd** for
-  first-time source setup; it downloads a verified runtime bundle.
+![Song Request player and queue using sample tracks](assets/screenshots/song-request.png)
 
-[Windows setup guide](docs/WINDOWS_SETUP.md) |
-[Source setup](docs/USER_GUIDE.md#source-and-tests)
+![Music-to-Light effect profiles and mapped preview](assets/screenshots/music-to-light.png)
 
 </details>
 
-## Start here
+Screenshots use demonstration data and simulated connections. Account credentials and settings are stored locally. Online services you enable still need internet access. [Privacy and updates](docs/USER_GUIDE.md#updates-privacy-and-uninstall)
 
-| Want to...                  | Open                                         |
-| --------------------------- | -------------------------------------------- |
-| Connect your lights         | **Fixtures**                                 |
-| Make lights follow music    | **Lights > Music-to-Light > Audio & lights** |
-| Add Twitch or song requests | **Packages**                                 |
-| Customize your controls     | **Dashboard > Button deck > Edit**           |
-| Use your phone or tablet    | The **network icon**                         |
+## Build and extend
 
-Core opens in its own desktop window. You can also use
-[localhost:5050](http://127.0.0.1:5050) in a browser.
-Closing the window keeps Core in the tray; **Groby’s Deck > Exit** stops it.
+[Application API](docs/API_REFERENCE.md) · [Mod API](docs/MOD_API_REFERENCE.md) · [Mod author guide](docs/MOD_AUTHOR_GUIDE.md) · [Mod starter](packages/mod-sdk/starter) · [Developer guide](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md)
 
-## Build your button deck
-
-Put your most-used controls on one screen:
-
-- **Music:** playback, volume and request moderation.
-- **Lights:** colors, saved profiles and Rave controls.
-- **OBS:** scenes, source visibility, microphones and filters.
-- **Custom actions:** keyboard shortcuts, macros and approved mod functions.
-
-Press **+** to add a button. Use **Edit** to move it or change its appearance.
-Add pages and folders when you need more space.
-
-Choose icons, text, images, GIFs and backlight colors.
-Use **Fullscreen** for a dedicated control surface on desktop, phone or tablet.
-
-[<img src="assets/screenshots/dashboard.png" alt="Button deck with music widgets and lighting controls" width="920">](assets/screenshots/dashboard.png)
-
-[Button deck setup and customization](docs/CONTROL_DECK.md)
-
-<details>
-<summary>See the OBS button builder</summary>
-
-Connect through **OBS connection**, then choose **Create an OBS button** in the
-button editor. OBS 28+ includes the required WebSocket server.
-
-[<img src="assets/screenshots/obs-button-builder.png" alt="OBS button builder" width="760">](assets/screenshots/obs-button-builder.png)
-
-[OBS setup](docs/CONTROL_DECK.md#obs-buttons)
-
-</details>
-
-### Send soundboard audio to a microphone input
-
-Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter. [VB-CABLE setup](https://voicemeter.org/Cable/index.htm) · [Voicemeeter setup](https://voicemeeter.com/setup-voicemeeter-for-skype-zoom-or-discord/)
-
-## Make your lights follow music
-
-1. Open **Audio & lights** and choose your audio source and lights.
-2. Allow capture and light output, then calibrate at your usual listening volume.
-3. Open **Play**, choose an effect profile and preview it.
-
-Choose matching, custom or random colors. Use **Create** for detailed tuning
-and saved effects.
-
-[<img src="assets/screenshots/music-to-light.png" alt="Music-to-Light profiles and palette controls" width="920">](assets/screenshots/music-to-light.png)
-
-[Music-to-Light guide](docs/USER_GUIDE.md#music-to-light) |
-[Hue setup](docs/USER_GUIDE.md#hue-entertainment-setup) |
-[Govee compatibility](docs/USER_GUIDE.md#govee-lan-compatibility)
-
-## Take song requests
-
-Install **Song Request** from **Packages**, choose a player and follow its Setup page.
-
-Manage requests, moderate viewers and songs, organize playlists, review transfers
-and design a now-playing overlay for OBS.
-
-| Player     | How it connects                                      |
-| ---------- | ---------------------------------------------------- |
-| YouTube    | Search and official embedded playback                |
-| SoundCloud | Public search and official widget playback           |
-| Spotify    | Desktop companion; optional Premium account controls |
-| TIDAL      | Signed-in catalog and desktop companion              |
-
-Availability, accounts, ads and playback restrictions depend on the provider.
-Desktop companions may need updating after player changes.
-
-[<img src="assets/screenshots/song-request.png" alt="Song Request player and queue" width="920">](assets/screenshots/song-request.png)
-
-[Player setup and limitations](docs/USER_GUIDE.md#optional-features) |
-[Playlists and transfers](docs/USER_GUIDE.md#playlists-and-transfers)
-
-<details>
-<summary>See the overlay designer</summary>
-
-Select an object, adjust its layout and choose **Save overlay** to apply changes to OBS. The Twitch chat widget mirrors message deletions, bans, timeouts and chat clears in both the editor and OBS. Open the widget's **Content** settings to control username colors, Twitch badges and emotes from Twitch, 7TV, BetterTTV and FrankerFaceZ.
-
-[<img src="assets/screenshots/overlay-designer.png" alt="Overlay designer canvas and controls" width="920">](assets/screenshots/overlay-designer.png)
-
-</details>
-
-## Connect Twitch
-
-Install **Twitch Integration** from **Packages** and connect your account.
-Choose which permissions you want before signing in.
-
-You can enable:
-
-- Song requests through Channel Points or **!sr / !songrequest**.
-- Viewer lighting commands and Rave.
-- Chat replies and stream clipping.
-
-Core-managed song rewards stay refundable until playback is confirmed.
-Widget-only intake requires manual refunds and fulfillment.
-
-<details>
-<summary>See Twitch permission settings</summary>
-
-[<img src="assets/screenshots/twitch-permissions.png" alt="Twitch permissions and feature availability" width="760">](assets/screenshots/twitch-permissions.png)
-
-Permission changes apply to your next sign-in. Unchecking an option does not
-revoke permissions already granted on Twitch.
-
-</details>
-
-[Community playlist rewards](docs/USER_GUIDE.md#community-playlist-reward)
-
-## Use a phone or tablet
-
-Click the **network icon** to enable access on your private network.
-Scan the QR code or copy the link to your other device.
-
-Private-network access gives that device full controls.
-The desktop window and localhost remain available.
-
-## What's new in 0.8
-
-- Groby's Deck branding and a clearer workspace for stream controls.
-- Shared automation flows for deck buttons, Twitch rewards, commands, events and timers.
-- Editable command recipes, saved player records and optional XP seasons.
-- Full-canvas overlay editing with layers, live widgets, animated presets and custom fonts.
-- Soundboard buttons with multiple Windows outputs, a Bingo deck and saved button appearances.
-- More runtime headroom, bounded requests and visible recovery warnings.
-
-Update the optional **Song Request** and **Twitch Integration** packages under **Packages & updates** to use their latest features.
-
-[Command language](docs/COMMAND-VARIABLES.md) | [Twitch automations](docs/TWITCH_AUTOMATIONS.md) | [Earlier releases](docs/RELEASE_ARCHIVE.md)
-
-## Things to know
-
-- Light features depend on the model, firmware and network. Hue Entertainment
-  needs pairing and an area; compatible Govee lights need LAN Control enabled.
-- Protected audio may be unavailable. Browser capture does not isolate individual tabs.
-- Stop and normal shutdown attempt to restore your lights. A crash, power loss or
-  disconnected device can prevent restoration.
-- Community mods are third-party code. Review them before activation.
-
-Screenshots use demonstration data and simulated connections.
-Automated tests cannot certify every device or account.
-
-[User guide](docs/USER_GUIDE.md) |
-[Validation and known limits](docs/REPOSITORY_HEALTH.md)
-
-## Privacy and updates
-
-Settings, credentials, pairings, playlists and logs stay on your PC and are
-excluded from published downloads. Services you enable still use the internet.
-
-Updates verify checksums and preserve local data.
-Optional packages update separately under **Packages**.
-
-When reporting a bug, include your versions and steps to reproduce it.
-Remove tokens, account details and private paths from screenshots and logs.
-
-## Developers and contributors
-
-[Contributing](CONTRIBUTING.md) |
-[Developer guide](docs/DEVELOPMENT.md) |
-[Mod author guide](docs/MOD_AUTHOR_GUIDE.md) |
-[Mod APIs](docs/MOD_API_REFERENCE.md) |
-[Application APIs](docs/API_REFERENCE.md) |
-[Mod starter](packages/mod-sdk/starter)
-
-## License
-
-Apache-2.0. Third-party code and provider marks retain their own licenses.
-See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Earlier versions
-
-Groby’s Deck 0.8 is the current release. Previous releases remain available in the
-[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8 for new installations.
-
-Install into the same folder to retain local settings, account authorizations and automation data. Update Song Request and Twitch Integration in **Packages & updates**. Mods use the current SDK and require review after a package change. Regenerate any external event-intake widgets from **Widget**.
+[0.8 release notes](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) · [Earlier releases](docs/RELEASE_ARCHIVE.md) · [Apache-2.0 license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)

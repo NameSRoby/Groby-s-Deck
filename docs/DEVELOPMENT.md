@@ -14,7 +14,7 @@ internal implementation helpers.
 
 ## Getting started
 
-Use a supported Windows x64 machine and Node 26 LTS for development. Run
+Use a supported Windows x64 machine and Node 26 for development. Run
 `npm.cmd ci` in the checkout, then `npm.cmd run verify:health`. Start the app with
 `npm.cmd start`; it loads the feature manager and mod discovery together. Installed
 features still need their own activation and account sign-in. Use a separate
@@ -69,11 +69,11 @@ account tokens. See the [mod API reference](MOD_API_REFERENCE.md) for payloads.
 | Change                                | Useful first checks                                                                                                        |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Viewer color parsing or Rave palettes | `test/twitch-light-effects.service.test.js` and the music integration tests                                                |
-| Mod packages, discovery or approval   | `test/mod-platform.drop-inbox.test.js`, `test/mod-platform.http.test.js`, and package-manager tests                        |
+| Mod packages, discovery or approval   | `test/mod-platform.drop-inbox.test.js`, `test/mod-platform.package-manager.test.js` and the mod UI browser test            |
 | Mod UI or app controls                | `test/mod-platform.ui.browser.test.js` and `test/mod-platform.app-controls.test.js`                                        |
 | Windows prerequisite installation     | `test/windows-setup-prerequisites.test.js`; it runs Inno fixtures with a fake vendor installer and a separate registry key |
 | Any authored source change            | `npm.cmd run verify:health` for formatting, lint, import resolution, source size and generated-file checks                 |
-| Release candidate                     | `npm.cmd run verify`, the sanitized-source suite, package smoke checks, dependency audit and all GitHub CodeQL jobs        |
+| Release candidate                     | `npm.cmd run verify:health`, `npm.cmd test`, release package smoke checks, dependency audit and GitHub CodeQL              |
 
 Synthetic tests establish reproducible behavior. Real hardware, account-dependent
 operations and a clean Windows installation need separate acceptance testing.
@@ -89,10 +89,7 @@ readers for saved settings remain useful even after the old writer disappears.
 Generated copies also have an owner and a rebuild command; editing only one copy
 creates conflicting behavior.
 
-The 0.7.6a cleanup removes the retired Discord accessibility worker, its provider,
-binding endpoint and UIAutomation implementation. Keyboard macros and saved-button
-migration remain. The old combined startup filename now delegates to normal
-startup, preserving existing launch commands while sharing one composition path.
+Use the shared action catalog for new integrations. Discord shortcuts run through Windows keyboard actions, and the d20 arena runs through the same template engine as other Twitch commands.
 
 ## Building an offline Windows release
 
@@ -541,7 +538,7 @@ automatically. Keep queue admission, moderation and reward settlement with their
 existing owners. Tests use synthetic players; they do not certify provider accounts
 or future client behavior. See [player setup](USER_GUIDE.md#youtube-playback).
 
-Use Node 26 LTS for the maintained checks. Install development dependencies with
+Use Node 26 for the maintained checks. Install development dependencies with
 `npm ci`; runtime-only installs can omit them. Browser tests need Playwright's
 Chromium and Firefox (`npx playwright install chromium firefox`) and should use
 temporary state. Start with [CONTRIBUTING.md](../CONTRIBUTING.md) for local setup

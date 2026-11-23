@@ -1,6 +1,6 @@
 # Creating Groby’s Deck mods
 
-This guide covers the mod API shipped with Groby’s Deck 0.7.6. Start with the
+This guide covers the mod API shipped with Groby’s Deck 0.8. Start with the
 [runnable starter](../packages/mod-sdk/starter), then use the
 [complete mod API reference](MOD_API_REFERENCE.md) and
 [application API map](API_REFERENCE.md). The mod protocol is version 1; it is
@@ -10,9 +10,8 @@ versioned separately from the application and optional features.
 
 Keep a mod's manifest `id` and contributed action IDs stable when moving its
 folder, renaming its display label or updating its version. Saved deck buttons
-and automations refer to these IDs, not the package's folder path. The 0.8
-upgrade repairs the clipping example's old rebrand reference once; permission
-approval and activation still follow the normal Mods workflow.
+and automations refer to these IDs. You can move the package without changing
+its action IDs.
 
 | What you want                                                                                  | Where to start                                                                       |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -29,7 +28,8 @@ adapters. The SDK wraps the host context; it does not install privileges.
 ## Current availability and trust
 
 Groby's Deck includes mod discovery in its normal startup. Drop an extracted
-mod folder or a ZIP directly into **`mods/`**, open **Mods**, and confirm **Activate**.
+mod folder, `.grobydeckmod` or ZIP directly into **`mods/`**, open **More → Updates & packages → Mods**,
+and confirm **Activate**.
 No installer switch, special launch command, npm install or Core source edit is
 needed. Declared buttons appear in the Dashboard action library and declared UI
 panels appear in Mods. Place all packages in `mods/`.
@@ -40,11 +40,10 @@ The action picker explains when a disabled mod must be enabled in Mods.
 For a source checkout, `npm.cmd start` runs the normal profile and
 `npm.cmd run start:core` runs Core alone.
 
-The bundled Windows runtime enforces network denial for third-party Node workers.
-On an unsupported runtime, activation stops and the review explains what the
-operator can do. Review permissions and run trusted packages.
-The bundled adapters have a separate, exact-inventory first-party exception.
-Do not copy that exception into community packages or enable an unsafe default.
+Windows Node cannot fully block undeclared network access by a community worker.
+The app asks the operator to accept reduced isolation during activation and remembers
+that decision for the exact reviewed package. A changed package requires review again.
+Approve code from a publisher you trust.
 
 You can develop and test with fake providers without running a production worker.
 The standalone SDK is in `packages/mod-sdk`; no npm-registry publication is
@@ -62,6 +61,8 @@ Copy-Item packages/mod-sdk/starter runtime/my-first-mod -Recurse
 npm.cmd run mod:validate -- runtime/my-first-mod
 npm.cmd run mod:package -- runtime/my-first-mod runtime/my-first-mod.zip
 ```
+
+For a real provider example, see [Twitch Clip Button](../mods/twitch-clips). It declares and consumes the host clipping capability through the same review as other drop-in mods.
 
 The starter's button toggles its own in-memory boolean and reports that same
 state. It has no network, storage, credential or desktop permission. `status`
@@ -239,7 +240,7 @@ exclude credentials, personal data, dependency caches and development output.
 Keep portable forward-slash paths. Links, traversal, duplicate/colliding names,
 undeclared files and mismatched hashes are rejected.
 
-For the unchanged two-file starter layout, update hashes explicitly:
+For the unchanged starter inventory, update hashes explicitly:
 
 ```powershell
 $modFolder = (Resolve-Path runtime/my-first-mod).Path
@@ -263,18 +264,18 @@ Removing an inbox ZIP does not uninstall its private installed copy.
 
 ## Troubleshooting and compatibility
 
-| Symptom                              | Check                                                                                                           |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory. |
-| Integrity error                      | Recompute all changed file hashes after final formatting/building.                                              |
-| Approval required                    | Review the exact current fingerprint; permission or resource changes require renewed approval.                  |
-| Network isolation unavailable        | Current runtime limitation; use the test harness or explicitly review reduced isolation for trusted code.       |
-| Action missing                       | Mod active; `contributes.actions` valid; action capability present in `provides`.                               |
-| Provider unavailable/ambiguous       | Required provider active and compatible; explicitly select its `providerId` where needed.                       |
-| Storage/network permission denied    | Declare capability, exact permission and a nonzero resource budget.                                             |
-| Quarantined or disabled              | Inspect lifecycle/error, frame size, timeouts, resource ceilings and repeated malformed requests.               |
-| UI panel cannot call Core            | Expected: panels have no direct API or network bridge. Use contributed actions.                                 |
-| Wrong state after an external change | Read confirmed provider state; do not maintain a guessed copy of another app's toggle.                          |
+| Symptom                              | Check                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Package not listed                   | Folder/ZIP directly under `mods/`; correct manifest root and valid inventory.                          |
+| Integrity error                      | Recompute all changed file hashes after final formatting/building.                                     |
+| Approval required                    | Review the exact current fingerprint; permission or resource changes require renewed approval.         |
+| Network isolation unavailable        | Current runtime limitation; use the test harness or review reduced isolation in Mods for trusted code. |
+| Action missing                       | Mod active; `contributes.actions` valid; action capability present in `provides`.                      |
+| Provider unavailable/ambiguous       | Required provider active and compatible; explicitly select its `providerId` where needed.              |
+| Storage/network permission denied    | Declare capability, exact permission and a nonzero resource budget.                                    |
+| Quarantined or disabled              | Inspect lifecycle/error, frame size, timeouts, resource ceilings and repeated malformed requests.      |
+| UI panel cannot call Core            | Expected: panels have no direct API or network bridge. Use contributed actions.                        |
+| Wrong state after an external change | Read confirmed provider state; do not maintain a guessed copy of another app's toggle.                 |
 
 Keep older stored settings readable, separate state migrations from external
 effects, release all owned resources on shutdown and bound every cache/queue.

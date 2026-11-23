@@ -1,11 +1,18 @@
 # Application API map
 
-Use this map to choose the supported integration surface in Core 0.7.6.
-[Mod authors](MOD_AUTHOR_GUIDE.md) should use the
-[mod API](MOD_API_REFERENCE.md); HTTP access is not automatically granted to a mod.
-All examples below refer to the Core PC's localhost instance, normally port 5050.
-Full controls can also be deliberately shared on a private LAN. Treat those
-devices as trusted operators. None of these interfaces is a public internet API.
+Use this map to choose an integration surface in Groby’s Deck 0.8.
+
+| If you are building                                                                 | Start with                                                                                      |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| A separate local client                                                             | [Versioned Core client API](#versioned-core-client-api)                                         |
+| A drop-in extension or button action                                                | [Mod API v1](MOD_API_REFERENCE.md)                                                              |
+| A first-party feature or dashboard change                                           | [Operator routes](#dashboard-operator-api) and [feature contracts](#optional-feature-contracts) |
+| An OBS overlay                                                                      | [Saved Browser Source setup](OVERLAY-DESIGNER.md#editing-and-obs)                               |
+| [Mod authors](MOD_AUTHOR_GUIDE.md) should use the                                   |
+| [mod API](MOD_API_REFERENCE.md); HTTP access is not automatically granted to a mod. |
+| All examples below refer to the Core PC's localhost instance, normally port 5050.   |
+| Full controls can also be deliberately shared on a private LAN. Treat those         |
+| devices as trusted operators. None of these interfaces is a public internet API.    |
 
 ## Versioned Core client API
 
@@ -70,8 +77,8 @@ and rate limiting; do not assume every action exists on every PC.
 | `POST /api/control-deck/buttons/:id/execute` | `{trigger:"press"}` or `"hold"`; sliders may supply a validated `value`. Executes only the saved action.                    |
 | `POST /api/control-deck/cancel`              | `{runId?}`; cancel queued/request-owned macro work. Cannot undo completed effects.                                          |
 | `POST /api/control-deck/media`               | Raw PNG/JPEG/GIF, at most 2 MiB; stores validated private media and returns its ID/URL.                                     |
-| `POST /api/control-deck/screen-media`        | Private screen backdrop: raw PNG/JPEG/GIF up to 8 MiB, or MP4/WebM up to 16 MiB. Returns a content-addressed ID.             |
-| `GET /api/control-deck/media/:id`            | Read immutable private raster/video media by its digest ID. No filesystem path input.                                      |
+| `POST /api/control-deck/screen-media`        | Private screen backdrop: raw PNG/JPEG/GIF up to 8 MiB, or MP4/WebM up to 16 MiB. Returns a content-addressed ID.            |
+| `GET /api/control-deck/media/:id`            | Read immutable private raster/video media by its digest ID. No filesystem path input.                                       |
 | `GET /api/control-deck/integrations`         | Current connection/permission availability.                                                                                 |
 | `GET /api/control-deck/timestamps`           | Up to 1,000 local stream timestamps.                                                                                        |
 | `POST /api/control-deck/timestamps`          | Create a local timestamp using confirmed stream timing.                                                                     |
@@ -96,21 +103,21 @@ fixture's dedicated temperature command. State feedback overrides decorative col
 
 ### Native Windows operations
 
-| Method/path or action                   | Behavior                                                                                      |
-| --------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `GET /api/control-deck/windows/audio`   | Discover current output/input devices and per-app sessions.                                   |
-| `POST /api/control-deck/windows/audio`  | Validated mixer command through the Core Audio owner; read the live target keys first.        |
-| `POST /api/control-deck/windows/hotkey` | `{shortcut:"F13"}` or another supported key/modifier combination. Sends input on the Core PC. |
-| `POST /api/control-deck/windows/media`  | `{key:"playPause"}`; also accepts `next`, `previous` or `stop`.                                |
-| `native.hotkey`                         | F1–F24, letters/digits, supported named keys and Ctrl/Shift/Alt/Win combinations.             |
-| `native.text`                           | Type bounded literal text; no shell evaluation.                                               |
-| `native.open`                           | Explicit HTTP(S) URL or existing absolute Windows path; no command-line shell string.         |
-| `native.media`                          | Validated media-key action, including mute/volume keys.                                       |
+| Method/path or action                           | Behavior                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GET /api/control-deck/windows/audio`           | Discover current output/input devices and per-app sessions.                                       |
+| `POST /api/control-deck/windows/audio`          | Validated mixer command through the Core Audio owner; read the live target keys first.            |
+| `POST /api/control-deck/windows/hotkey`         | `{shortcut:"F13"}` or another supported key/modifier combination. Sends input on the Core PC.     |
+| `POST /api/control-deck/windows/media`          | `{key:"playPause"}`; also accepts `next`, `previous` or `stop`.                                   |
+| `native.hotkey`                                 | F1–F24, letters/digits, supported named keys and Ctrl/Shift/Alt/Win combinations.                 |
+| `native.text`                                   | Type bounded literal text; no shell evaluation.                                                   |
+| `native.open`                                   | Explicit HTTP(S) URL or existing absolute Windows path; no command-line shell string.             |
+| `native.media`                                  | Validated media-key action, including mute/volume keys.                                           |
 | `native.player.next` / `native.player.previous` | Targeted selected-native-player commands with empty parameters; separate from request moderation. |
-| `native.player.playPause`               | Targeted native play/pause using current playback state; no global-key fallback.               |
-| `native.audio.volume:<key>`             | Slider with `{level:0..100}`.                                                                 |
-| `native.audio.mute:<key>`               | Toggle confirmed Windows mixer mute.                                                          |
-| `native.audio.controls:<key>`           | Open the controls popup for the discovered target.                                            |
+| `native.player.playPause`                       | Targeted native play/pause using current playback state; no global-key fallback.                  |
+| `native.audio.volume:<key>`                     | Slider with `{level:0..100}`.                                                                     |
+| `native.audio.mute:<key>`                       | Toggle confirmed Windows mixer mute.                                                              |
+| `native.audio.controls:<key>`                   | Open the controls popup for the discovered target.                                                |
 
 System/microphone targets follow the current default devices. App controls follow
 application identity across process restarts; do not persist a PID as identity.
@@ -151,7 +158,7 @@ host and returns only password-presence/status information to browsers.
 | `PUT /api/control-deck/obs/connection`        | `{host,port,enabled,password?}`; omitted password preserves the saved credential.                     |
 | `POST /api/control-deck/obs/local`            | Explicitly import this PC's saved OBS WebSocket settings and connect.                                 |
 | `POST /api/control-deck/obs/disconnect`       | Disable the shared connection.                                                                        |
-| `GET /api/control-deck/obs/browse`            | `kind=scene                                                                                           | filters | audio`, `name`and optional`group=true`; read available controls. |
+| `GET /api/control-deck/obs/browse`            | `kind` is `scene`, `filters` or `audio`. Supply `name` and optional `group=true` as needed.           |
 | `GET /api/control-deck/obs/preview?scene=...` | Small read-only scene snapshot; never switches the program scene.                                     |
 | `POST /api/control-deck/obs/buttons`          | `{target,previewImage?}`; create an action for a validated discovered target. It does not execute it. |
 
@@ -174,7 +181,7 @@ preferences such as `chatEnabled` and `chatAccess`, plus a partial
 `titleModeration` policy. Defaults:
 
 ```json
-{"enabled":true,"mode":"mask","useDefaultList":true,"blockedWords":[],"allowedWords":[]}
+{ "enabled": true, "mode": "mask", "useDefaultList": true, "blockedWords": [], "allowedWords": [] }
 ```
 
 `mode` is `mask` (fixed `****` replacement) or `reject`. Lists contain at most
@@ -187,12 +194,32 @@ draft policy without saving, creating a clip or consuming cooldown. Custom title
 are checked in Core for chat, buttons and capability consumers; reject mode returns
 `twitch_clip_title_rejected`. An omitted/empty title uses Twitch's broadcast title.
 
-Compatibility `authorize`
-and `poll` routes remain, but the UI uses the main Twitch Connection permission
-chooser. Grant only the selected features' OAuth scopes. A clip action remains
-unavailable if its account/scope/live-broadcast requirements are missing.
-The legacy Discord `/integrations/discord/bind` route is compatibility-only;
-new generic key buttons do not need it.
+Authorize clip access in **Twitch Integration → Connection**. Read the live catalog for availability and use the normal action owner. A clip needs clip access and an eligible live broadcast. For Discord, use a keyboard action with a shortcut configured in Discord.
+
+## Soundboard and overlay operator routes
+
+These routes serve the built-in editors. The saved overlay’s OBS Browser Source
+uses its own read-only URL, available from **OBS setup** in the designer.
+
+| Route                                           | Behavior                                                                                                                   |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/control-deck/soundboard`              | Read clips, available host outputs and playback state.                                                                     |
+| `POST /api/control-deck/soundboard/clips`       | Upload raw audio with the URL-encoded name in `X-Sound-Name`.                                                              |
+| `PATCH /api/control-deck/soundboard/clips/:id`  | Rename a clip using `{name}`.                                                                                              |
+| `DELETE /api/control-deck/soundboard/clips/:id` | Stop and remove a clip.                                                                                                    |
+| `POST /api/control-deck/soundboard/play`        | Run `native.soundboard.play` using a saved clip ID and discovered output IDs. Read the catalog for the full action schema. |
+| `POST /api/control-deck/soundboard/stop`        | Stop a clip or all clips through the shared soundboard owner.                                                              |
+| `GET /api/stream-overlays`                      | Read saved overlays, revision and widget catalog.                                                                          |
+| `PUT /api/stream-overlays`                      | Save a validated overlay with its revision.                                                                                |
+| `GET /api/stream-overlays/document/:id`         | Read a saved document, optionally supplying the last known revision.                                                       |
+| `GET /api/stream-overlays/data`                 | Read the local presentation snapshot.                                                                                      |
+| `GET /api/stream-overlays/chat-feed`            | Subscribe to the chat presentation feed while the editor needs it.                                                         |
+| `POST /api/stream-overlays/preview-data`        | Create or update local preview data.                                                                                       |
+| `POST /api/stream-overlays/game-control`        | Apply a widget game action through its owner.                                                                              |
+
+See the [soundboard routes](../src/app/core/register-soundboard.routes.js) and
+[overlay routes](../src/app/core/register-stream-overlays.routes.js) for upload,
+deletion and editor request details.
 
 ## Music-to-Light operator API
 
@@ -255,25 +282,25 @@ scraping UI state or bypassing the existing queue/reward owners.
 The [Song Request contracts](../features/song-request/contracts/song-request-v1.contracts.json)
 cover these capabilities:
 
-| Capability                                             | Methods                                                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `song.playlist.read.v1` / `song.playlist.admin.v1`     | `status` / `mutate`                                                                                     |
-| `song.queue.read.v1` / `song.queue.submit.v1`          | `status` / `submit`, `undo`, `self`                                                                     |
-| `song.queue.admin.v1`                                  | `moderate`, `configure`, `settle`                                                                       |
-| `song.queue.events.v1`                                 | Event contracts in JSON                                                                                 |
-| `song.playback.read.v1` / `song.playback.driver.v1`    | `status` / `pull`, `acknowledge`                                                                        |
-| `song.playback.observe.v1` / `song.playback.events.v1` | `observe` / event contracts                                                                             |
-| `song.observer.admin.v1`                               | `status`, `control`                                                                                     |
-| `song.overlay.read.v1` / `song.overlay.admin.v1`       | `status`, `preset` / `configure`, `profile`                                                             |
-| `song.overlay.events.v1`                               | Event contracts in JSON                                                                                 |
-| `song.catalog.read.v1` / `song.catalog.admin.v1`       | `status` / `configure`, `clear`                                                                         |
-| `song.tidal.experimental.v1`                           | `status`, `submit`, `handoff`, `monitor`, `enable`, `companion`, `catalog`, `review`, `flush`, `volume` |
-| `song.playlist.transfer.v1`                            | `action`                                                                                                |
-| `song.player.preferences.v1`                           | `status`, `select`                                                                                      |
-| `song.soundcloud.player.v1`                            | `submit`, `start`, `release`, `import-start`, `import-append`, `import-save`, `submit-query`            |
-| `song.spotify.player.v1`                               | `status`, `flush`, `monitor`, `submit`, `setup`, `control`, `lookup`, `review`                          |
-| `song.chat.commands.v1`                                | `status`, `configure`, `query`                                                                          |
-| `song.youtube.browser.v1`                              | `status`, `setup`, `control`, `review`, `moderate`, `flush`, `monitor`                                  |
+| Capability                                             | Methods                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `song.playlist.read.v1` / `song.playlist.admin.v1`     | `status` / `mutate`                                                                                                 |
+| `song.queue.read.v1` / `song.queue.submit.v1`          | `status` / `submit`, `undo`, `self`                                                                                 |
+| `song.queue.admin.v1`                                  | `moderate`, `configure`, `settle`                                                                                   |
+| `song.queue.events.v1`                                 | Event contracts in JSON                                                                                             |
+| `song.playback.read.v1` / `song.playback.driver.v1`    | `status` / `pull`, `acknowledge`                                                                                    |
+| `song.playback.observe.v1` / `song.playback.events.v1` | `observe` / event contracts                                                                                         |
+| `song.observer.admin.v1`                               | `status`, `control`                                                                                                 |
+| `song.overlay.read.v1` / `song.overlay.admin.v1`       | `status`, `preset` / `configure`, `profile`                                                                         |
+| `song.overlay.events.v1`                               | Event contracts in JSON                                                                                             |
+| `song.catalog.read.v1` / `song.catalog.admin.v1`       | `status` / `configure`, `clear`                                                                                     |
+| `song.tidal.experimental.v1`                           | `status`, `submit`, `handoff`, `monitor`, `enable`, `companion`, `catalog`, `review`, `flush`, `volume`, `favorite` |
+| `song.playlist.transfer.v1`                            | `action`                                                                                                            |
+| `song.player.preferences.v1`                           | `status`, `select`                                                                                                  |
+| `song.soundcloud.player.v1`                            | `submit`, `start`, `release`, `import-start`, `import-append`, `import-save`, `submit-query`                        |
+| `song.spotify.player.v1`                               | `status`, `flush`, `monitor`, `submit`, `setup`, `control`, `lookup`, `review`, `favorite`                          |
+| `song.chat.commands.v1`                                | `status`, `configure`, `query`                                                                                      |
+| `song.youtube.browser.v1`                              | `status`, `setup`, `control`, `review`, `moderate`, `flush`, `monitor`                                              |
 
 The [Twitch Integration contracts](../features/twitch-integration/contracts/twitch-integration-v1.contracts.json)
 cover:
@@ -288,6 +315,8 @@ cover:
 | `twitch.redemptions.v1`     | `settle`, `review`, `reconcile`                     |
 | `twitch.chat.send.v1`       | `send`                                              |
 | `twitch.rewards.catalog.v1` | `list`                                              |
+
+Twitch automations, command previews, quotes and watchtime use a separate first-party bridge. The [automation provider](../src/domains/twitch/twitch-automations.service.js) owns these workflows.
 
 Do not bypass current player ownership, lease acknowledgements, exact recording
 identities, managed-reward scope, cooldowns or redemption settlement. Experimental

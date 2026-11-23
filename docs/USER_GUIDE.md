@@ -295,7 +295,7 @@ Lights workspaces support keyboard navigation with Left/Right, Home and End. Mus
 - **Active fullscreen / borderless app** selects its source once when capture starts. Alt+Tab and minimization keep capture pinned to that app; use Stop and Start to select another app. An app that mutes its own background audio will still produce silence.
 - Existing song requests, playlist transfers, chat commands and OBS overlays remain available through optional packages.
 
-**Updating from 0.7.1d or earlier:** use the 0.7.6 installer, or stop Core and extract the complete portable archive into your installation folder. Earlier built-in updaters do not copy the new Music-to-Light components. Keep your local data, restart Core and refresh the dashboard. Check **Packages** for Song Request and Twitch Integration updates. The capture helper, Node runtime and production dependencies are bundled; end users do not need Rust or Node installed.
+For upgrades from earlier releases, follow the [Windows upgrade instructions](WINDOWS_SETUP.md#install-or-upgrade). Check **More → Updates & packages** for Song Request and Twitch Integration updates.
 
 Music-to-Light process capture requires a supported Windows build (build 20348 or later; Windows 11 recommended). Protected content may be unavailable. Application capture includes its process tree; browser capture does not promise isolation of one tab. TIDAL capture and Hue/WiZ output have had limited hardware validation; automated coverage uses synthetic signals and fixtures. Compatible Govee LAN fixtures participate in Music-to-Light, Rave, chat effects and profiles using whole-light controls. Model and firmware determine white-temperature support and response speed. Stop restores reported power, brightness and RGB/white state; Govee app animations, DreamView and segments are not reported or recreated by the LAN API. Govee integration coverage uses simulated UDP fixtures; physical model compatibility is not certified by these tests.
 
@@ -346,9 +346,13 @@ Formatting changes the reference text only; it does not connect a Discord bot.
 See the official [Twitch panel formatting guide](https://help.twitch.tv/s/article/markdown-basics)
 and [Discord formatting guide](https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline).
 
+## Overlay designer
+
+Open the main **Overlay designer** tab for full scenes, saved layouts, live Twitch widgets and an OBS Browser Source URL. The separate editor inside **Song Request** controls the standalone now-playing card. [Full-scene overlay guide](OVERLAY-DESIGNER.md)
+
 ## Optional features
 
-Install, update, roll back or remove features in **Packages**. Hiding a tab changes navigation only; it does not stop or uninstall a feature.
+Install, update, roll back or remove features in **More → Updates & packages**. Hiding a tab changes navigation only; it does not stop or uninstall a feature.
 
 **Twitch Integration** provides OAuth, EventSub, chat, managed Channel Points rewards, completion/refunds and optional chat responses. It works independently of Song Request.
 
@@ -364,13 +368,13 @@ choose **I authorized - check**.
 feature does not revoke an existing grant. Reading chat enables commands; sending
 replies is separate. Clip chat commands need reading chat, and posting their links
 also needs sending replies. These scopes follow the [Twitch permission reference](https://dev.twitch.tv/docs/authentication/scopes/).
-Update the Twitch Integration package to **0.12.6** for this chooser.
+Additional permission groups enable features such as alerts, ads, shoutouts and watchtime. See [Twitch rewards and automations](TWITCH_AUTOMATIONS.md) for setup.
 
 **Song Request** provides song-name parsing, FIFO requests, local playlists, quick song/requester bans and timeouts, artwork, playback details and customizable OBS overlays. Library Play, Shuffle and Pick Random start the correct player with one click. Player selection persists.
 
 Frequent choices such as player, transfer grouping and overlay layout appear as visible option buttons. Saved lighting profiles use selectable cards; overlay profiles use a searchable list. Countries, timeout durations and detailed match candidates keep compact dropdowns.
 
-The **Overlay designer** keeps an object list beside the canvas and places selection
+**Song Request → Overlay Designer** keeps an object list beside the canvas and places selection
 controls on the right. Select a shape or information piece to move, resize, align,
 rename or duplicate it. Shapes can also be hidden without deleting them. Use Zoom
 for fine placement; measurements always refer to overlay pixels. On desktop, the
@@ -392,9 +396,7 @@ to OBS; the header shows whether you have unsaved edits.
 
 **Overlay Designer → Behavior** offers optional pause hiding (five seconds by default), stopped/loading hiding, provider-colored accents and remaining-time display. Test pause/resume in the preview, then save to apply. Classic, Album Card and Minimal remain available alongside compact Split Panels and other small presets.
 
-**Mods:** drop a mod folder or ZIP directly into `mods`, then confirm **Activate** in **Updates & packages > Mods**. Discovery is built into normal startup. Buttons appear in the deck action library, and HTML/CSS/JavaScript panels appear in that Mods subdivision. Review the requested access before activating third-party code. The old `mod` folder remains recognized for existing installations.
-
-**TTS, Alerts / TTS and Lighting Automation have been removed in 0.7.0.** No speech runtime or voice asset is shipped.
+**Mods:** drop a mod folder or ZIP directly into `mods`, then confirm **Activate** in **More → Updates & packages → Mods**. Discovery is built into normal startup. Buttons appear in the deck action library, and HTML/CSS/JavaScript panels appear in that Mods subdivision. Review the requested access before activating third-party code.
 
 ## Playlists and transfers
 

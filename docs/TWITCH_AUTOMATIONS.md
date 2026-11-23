@@ -1,6 +1,6 @@
 # Twitch rewards, events and timers
 
-## Custom command syntax
+## Create and manage an automation
 
 Use the [command language guide](COMMAND-VARIABLES.md) for the canonical syntax, saved values, random choices, conditions and complete editable recipes. The in-app **Syntax & examples** table and **Insert variable** picker share the same reference. Preview never posts chat or saves records.
 
@@ -14,7 +14,7 @@ Older imported templates are converted when loaded or saved, preserving names, t
 
 Open **Twitch Integration → Rewards & automations**. Choose **New automation**,
 select its **When** trigger, then connect actions, conditions and waits using the
-same builder as deck buttons. For a new Channel Points reward, **Save & create Twitch reward** saves the flow
+same builder as deck buttons. Use the row switch to start or pause a saved automation. For chat commands, **Allow this command while offline** controls when Twitch chat can trigger the flow. For a new Channel Points reward, **Save & create Twitch reward** saves the flow
 and creates its reward together. Saving never executes the flow.
 
 The management list separates **Chat commands**, **Channel Points** and **Timers &
@@ -53,14 +53,14 @@ running the removed handler. **Delete reward on Twitch** is a separate confirmed
 action; the automation remains a disabled draft.
 
 Reward details include title, cost, prompt, viewer text input, colour, visibility,
-pause, per-stream/per-viewer limits and a global cooldown. Twitch permits editing
+pause, per-stream/per-viewer limits and a global cooldown. Cooldown inputs accept seconds, minutes and hours. Save reward edits from the automation editor to sync changes such as its title to Twitch. Twitch permits editing
 and deletion only for rewards created by the same Twitch application. Deleting
 a reward may fulfil its outstanding redemptions on Twitch. [Twitch Channel Points API](https://dev.twitch.tv/docs/api/reference/channel-points/)
 
 ## Timers that wait for chat
 
 For a reminder every 30 minutes, choose **Timer**, set **Repeat every** to 30 and
-add **Send a chat message**. A repeat count of 0 means infinite. **Only count time
+choose **Minutes**, then add **Send a chat message**. A repeat count of 0 means infinite. **Only count time
 while live** pauses the countdown offline or when live status cannot be confirmed.
 
 **Require new chat messages per run** counts viewer messages since the previous
@@ -90,8 +90,14 @@ desktop input, executable targets or OBS parameters.
 Choose **Send a native shoutout**, **Send a bot shoutout**, or put both in a
 **Together** block. Native shoutouts need the optional shoutout permission and a
 live stream. Twitch's cooldown is two minutes overall and one hour for the same
-recipient. Bot shoutouts send `!so login` or `!shoutout login`; your chosen bot
+recipient. Select **Incoming raider (automatic)** to use the broadcaster in the raid event. Back-to-back eligible shoutouts wait in a bounded queue and duplicate recipients are coalesced. Use a zero event cooldown for a raid flow that should accept each raid. Bot shoutouts send `!so login` or `!shoutout login`; your chosen bot
 must recognise that command. [Twitch shoutout API](https://dev.twitch.tv/docs/api/reference/chat)
+
+## Command lists, quotes and watchtime
+
+- **Command list** generates shareable Markdown for Discord or Twitch About panels. Bot reply examples are optional and use sample data. [Command list formats and limits](architecture/share-command-lists.md)
+- **Quotes** lets you edit the numbered list and preview pasted StreamElements quotes before importing them. Use `!quote` in chat to read a random quote, or `!quote #3` for a specific one.
+- **Watchtime & points** lets you choose follower eligibility and a storage budget. Watchtime estimates live chat presence. [Watchtime settings and privacy](USER_GUIDE.md#watchtime-and-loyalty-privacy)
 
 ## Actions and stopping
 

@@ -1,8 +1,14 @@
-# Repository health review - 0.7.6b - 2026-11-09
+# Repository health
+
+## Groby’s Deck 0.8
+
+The [0.8 release](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) contains the supported Windows installer, portable bundle and SHA-256 checksums. The [developer guide](DEVELOPMENT.md#checking-a-change) lists the current validation commands. Tests use synthetic accounts, fixtures and audio where possible. Hardware, Twitch permissions and player updates can affect results on individual installations.
+
+## Historical review of 0.7.6b
 
 This is a focused maintenance release for optional Song Request and Twitch workers.
 
-## Changes
+### Changes
 
 - Song Request 0.45.12 allows 256 MiB active RSS; Twitch Integration 0.12.10
   allows 192 MiB. These budgets cover the complete Node process. Sustained
@@ -14,7 +20,7 @@ This is a focused maintenance release for optional Song Request and Twitch worke
   resource stops, with a Packages recovery link. It clears after recovery and
   also shows saved resource stops when the dashboard is first opened.
 
-## Validation and publication
+### Validation and publication
 
 Focused worker, package and browser regressions passed, including expired-request
 recovery for feature and mod workers, malformed-request rejection, memory policy
@@ -32,7 +38,7 @@ excluded. Exact private-value comparisons and executable build-path scans passed
 Secret-scanner findings were reviewed: the OAuth application identifier is public
 configuration, and the keyboard-binding strings are synthetic test values.
 
-## Practical limits
+### Practical limits
 
 Automated tests do not certify every external account, physical light or audio
 driver. Increased memory headroom prevents premature resource stops; it does not
@@ -63,12 +69,11 @@ Phone/tablet previews used synthetic channels; vibration was mocked. Physical
 touch assistive technology, vibration hardware and live account behavior remain
 separate acceptance checks. Private captures and logs stay under runtime.
 
-See [touch-fader research](research/touch-deck-faders-2026-11-13.md) for sources
-and browser limitations.
+See [deck faders and touch controls](CONTROL_DECK.md#audio-mixer-and-slider-docks) for the shipped controls.
 
 ## Deck redesign and sequence follow-up - 2026-11-13
 
-This work remains local; no additional release has been published.
+This entry records the 13 November development checkpoint.
 
 - Faders use a slim rail and centered thumb inside a broad touch area. The bulky
   surround is removed, precision controls share a row, and desktop dock alignment
@@ -85,4 +90,4 @@ centering, mixer layouts, sequence editing/execution and native volume routing.
 Source health and generated-integrity checks passed. Captures use synthetic owners
 and remain private. Live playback changes are not part of the regression suite.
 
-See [design and scheduling notes](research/deck-redesign-and-sequences-2026-11-13.md).
+See [timed actions and sequences](CONTROL_DECK.md#timed-actions-and-sequences) for the shipped editor.

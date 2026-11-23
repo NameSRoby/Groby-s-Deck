@@ -20,7 +20,7 @@ The host defaults to `127.0.0.1`, four active mod processes, a root `mods/` inbo
 ## Operator Flow
 
 1. Place a locally obtained `.zip` or unpacked package folder directly under `mods/`.
-2. Review publisher, version, license, exact fingerprint, permissions, resource requests, and approval changes in the Mods tab.
+2. Review publisher, version, license, exact fingerprint, permissions, resource requests, and approval changes in **More → Updates & packages → Mods**.
 3. Confirm approval and execution; Groby’s Deck copies the verified package to private runtime storage before starting it.
 4. Approved runtime consent and your enabled switch survive app restarts for the exact reviewed package. Disabling stops it but retains its review; changing package content requires another review.
 5. Disable before update, rollback, or uninstall.
@@ -37,7 +37,7 @@ Browser requests must also have an Origin matching the request Host, preventing 
 cross-origin site from administering localhost. Origin-less local CLI requests
 remain supported. Explicitly enabled full-control LAN devices are trusted
 operators through Core's gateway; do not share that network access with
-untrusted clients. The bundled-only profile rejects community mutations.
+untrusted clients.
 
 Installed mods never run in the core process. They remain disabled until approved, execute in supervised child processes, communicate through bounded IPC, and may use only declared broker capabilities. The host caps active processes and samples all active PIDs in one coarse resource pass.
 
@@ -58,7 +58,7 @@ The contribution CSP denies network access, forms, objects, base URL changes, an
 | SSRF and DNS rebinding | Exact public host allowlist, address policy, bounded transport                            | Re-resolve and reject non-public destinations for every new connection; never add wildcard/local host permissions.                        |
 | Archive extraction     | Preflight limits, portable paths, no links/special files, measured streaming limits       | New archive formats require an equivalent adversarial fixture set before support.                                                         |
 | IPC flooding           | Frame, queue, concurrency, timeout, invalid-message, and quarantine limits                | Run sustained multi-mod soak tests on each release runtime.                                                                               |
-| UI injection           | Integrity check, sandboxed opaque origin, restrictive CSP, no broker bridge               | Do not add `allow-same-origin`, navigation, forms, or direct API credentials.                                                             |
+| UI injection           | Integrity check, sandboxed opaque origin, restrictive CSP, capability-checked relay       | Do not add `allow-same-origin`, navigation, forms, or direct API credentials.                                                             |
 | Localhost CSRF         | Loopback plus same-Origin/Host check on every administration and panel route              | Keep external widget intake on separate scoped-token routes.                                                                              |
 | Resource exhaustion    | Process cap, declared ceilings, coarse batched sampling, sustained-breach shutdown        | OS-level RSS/CPU enforcement remains observational on Windows; retain conservative process limits.                                        |
 
@@ -76,10 +76,9 @@ The contribution CSP denies network access, forms, objects, base URL changes, an
 Run:
 
 ```powershell
-npm.cmd run verify:mod-platform-contracts
-npm.cmd run verify:mod-sdk-publication
-npm.cmd run verify
-npm.cmd run verify:audit
+npm.cmd run verify:health
+npm.cmd test
+npm.cmd audit --omit=dev
 ```
 
 Before release, also run a long-duration machine-specific soak with the intended Node version. Automated fixtures cover absence, incompatibility, startup, idle sampling, crashes, flooding, malformed IPC, timeouts, forced shutdown, package attacks, and isolated core operation; elapsed-time soak remains release execution rather than a unit-test substitute.

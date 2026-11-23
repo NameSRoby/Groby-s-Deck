@@ -2,18 +2,20 @@
 
 Groby’s Deck 0.8 includes the application, Node runtime, production dependencies, audio helper and optional first-party packages. Users do not need developer tools.
 
-| Component | Installation |
-| --- | --- |
-| WebView2 browser runtime | Reuse the installed Evergreen runtime. If absent, Setup verifies and runs the bundled Microsoft Evergreen Standalone Installer. No network download is needed. |
-| WebView2 SDK bindings and loader | Included under `runtime/desktop`; these small files are required to host the shared browser runtime. |
-| Music-to-Light | Optional statically linked capture helper. App capture requires Windows build 20348 or later. |
-| Twitch and Song Request | Optional verified packages included with Setup; account connections are completed afterwards. |
-| Spotify/TIDAL companions | Included first-party integrations; require the separately installed player. |
-| .NET Framework | 4.8 or newer, included on supported Windows; repair through Windows Update if missing. |
+| Component                        | Installation                                                                                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WebView2 browser runtime         | Reuse the installed Evergreen runtime. If absent, Setup verifies and runs the bundled Microsoft Evergreen Standalone Installer. No network download is needed. |
+| WebView2 SDK bindings and loader | Included under `runtime/desktop`; these small files are required to host the shared browser runtime.                                                           |
+| Music-to-Light                   | Optional statically linked capture helper. App capture requires Windows build 20348 or later.                                                                  |
+| Twitch and Song Request          | Optional verified packages included with Setup; account connections are completed afterwards.                                                                  |
+| Spotify/TIDAL companions         | Included first-party integrations; require the separately installed player.                                                                                    |
+| .NET Framework                   | 4.8 or newer, included on supported Windows; repair through Windows Update if missing.                                                                         |
 
 Windows 10 x64 build 19041 or later is required. Windows 11 is recommended for app audio capture.
 
 ## Install or upgrade
+
+Get the installer or portable bundle and `SHA256SUMS.txt` from the [0.8 release](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8).
 
 Run **Grobys-Deck-Windows-v0.8-setup-installer.exe**. When upgrading Core, use the existing application folder to retain your settings. Setup stops the old host before replacing application files and preserves `runtime`, accounts, mods and installed feature settings. Start-menu and desktop shortcuts use the new name.
 
@@ -24,6 +26,8 @@ Setup and portable archives include Microsoft’s full Evergreen Standalone Inst
 ## Source ZIP
 
 Run **Start-Grobys-Deck.cmd**. Source setup verifies and downloads the matching release runtime, builds the desktop host, checks WebView2, and launches the app. Tests are optional and use synthetic fixtures. No private development runtime or sign-in data is part of the source ZIP.
+
+Optional packages are managed separately under **More → Updates & packages**. Open **Mods** there to review drop-in packages.
 
 ## Runtime updates
 
