@@ -17,6 +17,7 @@
     shadowX: 0,
     shadowY: 2,
     textCase: "none",
+    textFit: "shrink",
     accentStyle: "none",
     paddingX: 16,
     paddingY: 10,
@@ -33,6 +34,7 @@
     paddingY: 8,
     verticalAlign: "top",
     textEffect: "none",
+    textFit: "wrap",
   };
   const looks = [
     ["Broadcast headline", { fontSize: 56, letterSpacing: -1, shadowBlur: 12 }],
@@ -143,6 +145,51 @@
     "subscribers",
     "sub-points",
   ]);
+  const fitted = new WeakMap();
+  function fit(node, w) {
+    if (!simple.has(w.type) || w.textFit !== "shrink") return;
+    const body = node.firstElementChild,
+      words = body?.querySelector(".itemText");
+    if (!words) return;
+    const key = JSON.stringify([
+      words.textContent,
+      w.width,
+      w.height,
+      w.fontSize,
+      w.paddingX,
+      w.paddingY,
+      w.font,
+      w.fontFamily,
+      w.fontAsset,
+      w.bold,
+      w.lineHeight,
+      w.letterSpacing,
+      document.fonts?.status,
+    ]);
+    const cached = fitted.get(node);
+    if (cached?.key === key) {
+      node.style.fontSize = cached.size + "px";
+      return;
+    }
+    const fits = () =>
+      body.scrollHeight <= body.clientHeight + 1 &&
+      words.scrollHeight <= words.clientHeight + 1 &&
+      words.scrollWidth <= words.clientWidth + 1;
+    let low = Math.min(8, w.fontSize),
+      high = w.fontSize;
+    node.style.fontSize = high + "px";
+    if (!fits()) {
+      for (let step = 0; step < 8; step++) {
+        const middle = (low + high) / 2;
+        node.style.fontSize = middle + "px";
+        if (fits()) low = middle;
+        else high = middle;
+      }
+      high = Math.floor(low * 10) / 10;
+    }
+    node.style.fontSize = high + "px";
+    fitted.set(node, { key, size: high });
+  }
   function styles(w) {
     const shadow =
       w.shadowColor +
@@ -173,6 +220,7 @@
       ],
       "--row-gap": w.rowGap + "px",
       "--value-size": w.valueSize + "%",
+      "--text-white-space": w.textFit === "ellipsis" ? "nowrap" : "pre-wrap",
     };
   }
   function apply(node, w) {
@@ -194,6 +242,12 @@
         ["top", "Top"],
         ["middle", "Middle"],
         ["bottom", "Bottom"],
+      ]);
+    if (simple.has(w.type))
+      select("Text overflow", "textFit", [
+        ["shrink", "Fit text inside the box"],
+        ["wrap", "Wrap at the chosen font size"],
+        ["ellipsis", "One line with ellipsis"],
       ]);
     if (["shadow", "glow"].includes(w.textEffect)) {
       field("Shadow / glow color", "shadowColor", "color");
@@ -229,5 +283,5 @@
       field("Separator between names (optional)", "creditSeparator", "text", { maxLength: 8 });
     }
   }
-  return { looks, defaults, simple, styles, apply, controls };
+  return { looks, defaults, simple, styles, apply, fit, controls };
 });

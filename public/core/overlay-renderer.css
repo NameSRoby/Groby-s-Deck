@@ -28,6 +28,12 @@
   flex-direction: column;
   justify-content: var(--text-vertical, flex-start);
 }
+.overlayLayer[data-simple-text="true"] .itemText {
+  white-space: var(--text-white-space, pre-wrap);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
 .overlayLayer[data-list-layout="inline"] .extra-leaderboard .overlayItem {
   display: flex;
   align-items: baseline;

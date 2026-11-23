@@ -116,6 +116,7 @@
       textCase: ["none", "uppercase", "lowercase", "capitalize"].includes(raw.textCase)
         ? raw.textCase
         : "none",
+      textFit: ["wrap", "shrink", "ellipsis"].includes(raw.textFit) ? raw.textFit : "wrap",
       shadowColor: color(raw.shadowColor, "#000000"),
       shadowOpacity: number(raw.shadowOpacity, 0, 100, 75),
       shadowBlur: number(raw.shadowBlur, 0, 40, 6),

@@ -414,6 +414,7 @@
       }
       // Viewport direction/speed/size can change without changing innerHTML.
       root.OverlayMotion.syncAttributes(node.firstElementChild, next);
+      root.OverlayTextStyle.fit(node, w);
       root.OverlayExtraRenderer?.motion(node, w, view, now);
       if (w.type === "alerts")
         root.OverlayAlertRenderer?.sync(
