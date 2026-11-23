@@ -806,3 +806,26 @@ for (const type of ["local", "cloudV2"])
     state.playQueue.currentIndex = 2;
     assert.equal(adapter.queueSnapshot().count, 9);
   });
+
+test("TIDAL recognizes the published Groby journal and restores the exact original archive", (t) => {
+  const f = fixture(t);
+  installer.install(f);
+  const oldJournal = path.join(f.resources, "ravelink-tidal-install.json");
+  const record = JSON.parse(fs.readFileSync(oldJournal));
+  record.owner = "groby-tidal-companion";
+  fs.writeFileSync(oldJournal, JSON.stringify(record));
+  for (const [before, after] of [
+    ["ravelink-tidal-install.json", "groby-tidal-install.json"],
+    ["ravelink-original.asar", "groby-original.asar"],
+    ["ravelink-original.asar.unpacked", "groby-original.asar.unpacked"],
+  ]) {
+    const source = path.resolve(f.resources, before),
+      target = path.resolve(f.resources, after);
+    assert(source.startsWith(path.resolve(f.resources) + path.sep));
+    assert(target.startsWith(path.resolve(f.resources) + path.sep));
+    if (fs.existsSync(source)) fs.renameSync(source, target);
+  }
+  assert.equal(installer.inspect(f.resources).installed, true);
+  assert.equal(installer.uninstall(f).installed, false);
+  assert.deepEqual(fs.readFileSync(path.join(f.resources, "app.asar")), f.original);
+});

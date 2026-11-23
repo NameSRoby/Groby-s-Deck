@@ -168,3 +168,22 @@ test("Spotify asset patch refuses duplicate hooks, restrictive CSP and unsafe ar
   }
   await assert.rejects(readArchive(unsafe), /archive_invalid/);
 });
+
+test("Spotify recognizes the published Groby journal spelling without losing the original archive", async (t) => {
+  const { apps, original } = await fixture(t),
+    plan = await installer.plan(apps);
+  await installer.install(apps, {
+    isRunning: () => false,
+    allowUnverifiedBuild: true,
+    expectedArchiveHash: plan.archiveHash,
+  });
+  for (const [before, after] of [
+    [".ravelink-spotify-install.json", ".groby-spotify-install.json"],
+    [".ravelink-spotify-original.spa", ".groby-spotify-original.spa"],
+  ])
+    fs.renameSync(path.join(apps, before), path.join(apps, after));
+  assert.equal(installer.status(apps).recoverable, true);
+  assert.equal(installer.uninstall(apps, { isRunning: () => false }).restored, true);
+  assert.deepEqual(fs.readFileSync(path.join(apps, "xpui.spa")), original);
+  assert.equal(fs.existsSync(path.join(apps, ".groby-spotify-install.json")), false);
+});
