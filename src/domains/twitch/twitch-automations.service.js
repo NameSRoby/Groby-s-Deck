@@ -42,6 +42,7 @@ module.exports = ({
     getRows: () => data.rows,
     getOwner: () => account(),
     launch: (row, context) => launch(row, null, context),
+    record,
     now,
   });
   let playerMigrationError = "";
@@ -392,9 +393,7 @@ module.exports = ({
     return true;
   }
   function launch(row, event, context) {
-    const result = eventBacklog.start(row, context, () => launchNow(row, event, context));
-    if (result.result?.code === "twitch_event_queue_full") record(row, result.result);
-    return result;
+    return eventBacklog.start(row, context, () => launchNow(row, event, context));
   }
   function launchNow(row, event, context) {
     context = templateContext(

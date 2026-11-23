@@ -1,5 +1,5 @@
 /** Buffer zero-cooldown event flows while the runner finishes their previous event. */
-module.exports = ({ isBusy, getRows, getOwner, launch, now = Date.now }) => {
+module.exports = ({ isBusy, getRows, getOwner, launch, record, now = Date.now }) => {
   let pending = [];
   function ready() {
     let owner = "";
@@ -28,8 +28,11 @@ module.exports = ({ isBusy, getRows, getOwner, launch, now = Date.now }) => {
         row.trigger.type === "event" &&
         (context?.event === "channel.raid" || row.cooldownSeconds === 0);
       if (!queueable || !isBusy(row.id)) return run();
-      if (pending.length >= 64)
-        return { accepted: false, result: { ok: false, code: "twitch_event_queue_full" } };
+      if (pending.length >= 64) {
+        const result = { ok: false, code: "twitch_event_queue_full" };
+        record(row, result);
+        return { accepted: false, result };
+      }
       pending.push({ row, context, until: now() + 600000 });
       return { accepted: true, queued: true };
     },
