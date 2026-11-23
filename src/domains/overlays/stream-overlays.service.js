@@ -129,42 +129,33 @@ module.exports = function streamOverlays({
   function catalog() {
     const status = auth(),
       music = active("song-request");
-    return model.definitions
-      .filter((row) =>
-        row.group === "Music"
-          ? music
-          : row.group === "Records" || row.type === "chat-vote"
-            ? !!status.provider
-            : ["Static", "Custom", "Tools", "Games"].includes(row.group) || !!status.provider,
-      )
-      .map((row) => {
-        const scope = {
-          followers: "moderator:read:followers",
-          "latest-follower": "moderator:read:followers",
-          subscribers: "channel:read:subscriptions",
-          "sub-points": "channel:read:subscriptions",
-          chat: "user:read:chat",
-          poll: "channel:read:polls",
-          prediction: "channel:read:predictions",
-          redemptions: "channel:manage:redemptions",
-          "chat-vote": "user:read:chat",
-          "hype-train": "channel:read:hype_train",
-        }[row.type];
-        return {
-          ...row,
-          available:
-            row.group === "Records"
-              ? status.connected
-              : !scope || (status.connected && status.scopes.includes(scope)),
-          requirement:
-            scope && !status.scopes.includes(scope)
-              ? "Grant this feature in Twitch Connection."
-              : !status.connected &&
-                  !["Static", "Custom", "Tools", "Music", "Games"].includes(row.group)
-                ? "Connect Twitch to receive live data."
-                : "",
-        };
-      });
+    return model.definitions.map((row) => {
+      const scope = {
+        followers: "moderator:read:followers",
+        "latest-follower": "moderator:read:followers",
+        subscribers: "channel:read:subscriptions",
+        "sub-points": "channel:read:subscriptions",
+        chat: "user:read:chat",
+        poll: "channel:read:polls",
+        prediction: "channel:read:predictions",
+        redemptions: "channel:manage:redemptions",
+        "chat-vote": "user:read:chat",
+        "hype-train": "channel:read:hype_train",
+      }[row.type];
+      const needsTwitch =
+        ["Labels", "Records", "Alerts", "Twitch"].includes(row.group) || row.type === "chat-vote";
+      const requirement =
+        row.group === "Music" && !music
+          ? "Enable Song Request in Updates & packages for live data."
+          : needsTwitch && !status.provider
+            ? "Enable Twitch Integration in Updates & packages for live data."
+            : needsTwitch && !status.connected
+              ? "Connect Twitch to receive live data."
+              : scope && !status.scopes.includes(scope)
+                ? "Grant this feature in Twitch Connection."
+                : "";
+      return { ...row, available: !requirement, requirement };
+    });
   }
   async function refresh() {
     const status = auth();
@@ -179,7 +170,10 @@ module.exports = function streamOverlays({
       if (status.connected) {
         try {
           const requested = widgets().filter(
-            (w) => w.visible && ["leaderboard", "player-card", "counter"].includes(w.type),
+            (w) =>
+              w.visible &&
+              (["leaderboard", "player-card", "counter"].includes(w.type) ||
+                (w.type === "goal" && w.goalSource === "counter")),
           );
           records = requested.length ? getRecords(requested) : {};
         } catch {

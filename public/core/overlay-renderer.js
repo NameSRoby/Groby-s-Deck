@@ -120,13 +120,7 @@
     } else if (w.type === "clock") label(new Date(now).toLocaleTimeString());
     else if (w.type === "countdown")
       label(duration(w.endsAt ? (w.endsAt - now) / 1000 : w.duration));
-    else if (w.type === "goal") {
-      label((w.text || "Goal") + ": " + w.current + " / " + w.target);
-      const progress = el("progress");
-      progress.max = w.target;
-      progress.value = w.current;
-      body.append(progress);
-    } else if (w.type === "now-playing") {
+    else if (w.type === "now-playing") {
       if (music?.current) {
         body.append(
           el("strong", music.current.title),
@@ -384,6 +378,8 @@
       if (credits) return w.name + " - Twitch supporter list unavailable. Check your connection.";
       return w.name + " - loading " + source + " from Twitch.";
     }
+    if (w.type === "goal" && w.goalSource === "counter")
+      return w.name + " - connect Twitch and select an automation counter, or use Sample data.";
     return w.name + " - waiting for data. Use Test widgets to preview.";
   }
   root.OverlayRenderer = { render, samples };

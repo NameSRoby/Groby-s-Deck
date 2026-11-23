@@ -21,7 +21,7 @@
     ["rotating-text", "Rotating text", "Static", 480, 100],
     ["clock", "Clock", "Tools", 320, 90],
     ["countdown", "Countdown", "Tools", 320, 90],
-    ["goal", "Manual goal", "Tools", 480, 100],
+    ["goal", "Goal", "Tools", 480, 120],
     ["now-playing", "Now playing", "Music", 520, 120],
     ["queue", "Song request queue", "Music", 480, 260],
     ["title", "Stream title", "Labels", 640, 90],
@@ -221,7 +221,17 @@
       duration: number(raw.duration, 1, 86400, 300),
       endsAt: number(raw.endsAt, 0, 9999999999999, 0),
       current: number(raw.current, 0, 1000000000, 0),
-      target: number(raw.target, 1, 1000000000, 100),
+      target: number(raw.target, 0.01, 1000000000, 100),
+      goalSource: raw.goalSource === "counter" ? "counter" : "manual",
+      goalCounter: text(raw.goalCounter, 64).trim().toLowerCase(),
+      goalTargetCounter: text(raw.goalTargetCounter, 64).trim().toLowerCase(),
+      goalFormat: ["inline", "stacked", "amount", "title"].includes(raw.goalFormat)
+        ? raw.goalFormat
+        : "inline",
+      goalCurrency: /^[A-Z]{3}$/.test(raw.goalCurrency || "") ? raw.goalCurrency : "",
+      goalBar: raw.goalBar !== false,
+      goalBarColor: color(raw.goalBarColor, "#c55ff4"),
+      goalBarHeight: number(raw.goalBarHeight, 2, 80, 18),
       label: text(raw.label, 100),
       events: (Array.isArray(raw.events)
         ? raw.events
@@ -272,15 +282,17 @@
     };
   }
   const recordKey = (w) =>
-    JSON.stringify([
-      w.type,
-      w.statSource,
-      w.statField,
-      w.player,
-      w.counterName,
-      w.maxItems,
-      w.items,
-    ]);
+    w.type === "goal"
+      ? JSON.stringify(["goal", w.goalCounter, w.goalTargetCounter])
+      : JSON.stringify([
+          w.type,
+          w.statSource,
+          w.statField,
+          w.player,
+          w.counterName,
+          w.maxItems,
+          w.items,
+        ]);
   const interest = (w) => ({
     id: w.id,
     type: w.type,
@@ -293,6 +305,13 @@
     statField: w.statField,
     player: w.player,
     counterName: w.counterName,
+    ...(w.type === "goal"
+      ? {
+          goalSource: w.goalSource,
+          goalCounter: w.goalCounter,
+          goalTargetCounter: w.goalTargetCounter,
+        }
+      : {}),
     items: w.type === "player-card" ? w.items : undefined,
     entrySource: w.entrySource,
     ...(w.type === "chat"

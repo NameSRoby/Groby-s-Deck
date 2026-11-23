@@ -1,4 +1,4 @@
-/** Preserve distinct raid events while their existing flow is still finishing. */
+/** Buffer zero-cooldown event flows while the runner finishes their previous event. */
 module.exports = ({ isBusy, getRows, getOwner, launch, now = Date.now }) => {
   let pending = [];
   function ready() {
@@ -24,9 +24,12 @@ module.exports = ({ isBusy, getRows, getOwner, launch, now = Date.now }) => {
   }
   return {
     start(row, context, run) {
-      if (context?.event !== "channel.raid" || !isBusy(row.id)) return run();
+      const queueable =
+        row.trigger.type === "event" &&
+        (context?.event === "channel.raid" || row.cooldownSeconds === 0);
+      if (!queueable || !isBusy(row.id)) return run();
       if (pending.length >= 64)
-        return { accepted: false, result: { ok: false, code: "twitch_raid_queue_full" } };
+        return { accepted: false, result: { ok: false, code: "twitch_event_queue_full" } };
       pending.push({ row, context, until: now() + 600000 });
       return { accepted: true, queued: true };
     },
@@ -35,7 +38,8 @@ module.exports = ({ isBusy, getRows, getOwner, launch, now = Date.now }) => {
       pending = [];
     },
     event(type) {
-      if (type === "stream.offline") pending = [];
+      if (type === "stream.offline")
+        pending = pending.filter((item) => item.context.event !== "channel.raid");
     },
   };
 };

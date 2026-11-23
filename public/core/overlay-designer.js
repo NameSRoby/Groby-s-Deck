@@ -350,7 +350,11 @@
       "Tools",
       "Custom",
     ];
-    const selectedGroup = $("widgetGroup").value;
+    const selectedGroup =
+      groups.includes($("widgetGroup").value) &&
+      catalog.some((row) => row.group === $("widgetGroup").value)
+        ? $("widgetGroup").value
+        : "";
     $("widgetGroup").replaceChildren(
       new Option("All categories", ""),
       ...groups
@@ -419,12 +423,19 @@
       host.append(empty);
     }
     $("catalogHelp").textContent =
-      "Live widgets are listed when their Groby’s Deck package is active. Missing Twitch permissions are shown on the widget.";
+      "You can design with sample data. Setup hints show what each live widget needs.";
   }
   $("add").onclick = () => {
     drawCatalog();
     $("catalogDialog").showModal();
     $("widgetSearch").focus();
+    void request()
+      .then((result) => {
+        catalog = result.catalog;
+        a.catalog = catalog;
+        if ($("catalogDialog").open) drawCatalog();
+      })
+      .catch((error) => a.notice(error.message));
   };
   $("widgetSearch").oninput = drawCatalog;
   $("widgetGroup").onchange = drawCatalog;
@@ -721,9 +732,7 @@
       if (documents.length && !dirty()) void load(documents[0].id);
     })
     .catch((error) => {
-      catalog = OverlayModel.definitions.filter((row) =>
-        ["Static", "Custom", "Tools"].includes(row.group),
-      );
+      catalog = OverlayModel.definitions;
       a.catalog = catalog;
       a.notice(error.message);
     })

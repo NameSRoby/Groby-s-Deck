@@ -662,8 +662,10 @@ test("custom code runs in an opaque frame with data fields, and the picker omits
   await page.locator("#add").click();
   assert.doesNotMatch(
     await page.locator("#widgetCatalog").textContent(),
-    /Charity|Merchandise|Tips|Twitch|Now playing/,
+    /Charity|Merchandise|Tips/,
   );
+  await page.getByRole("button", { name: "Twitch chat", exact: true }).waitFor();
+  assert.match(await page.locator("#widget-requirement-chat").textContent(), /Enable Twitch/);
   await page.locator('[data-close="catalogDialog"]').click();
   await add("Custom HTML / CSS / JS");
   await page.locator('[data-field="html"]').fill('<div id="value">Before</div>');
@@ -858,4 +860,43 @@ test("canvas options stay in the top toolbar and widget sections stay on the lef
   await page.setViewportSize({ width: 740, height: 920 });
   await page.waitForTimeout(50);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+test("picker refreshes live prerequisites after background package activation", async (t) => {
+  let connected = false;
+  const provider = {
+    status: () => ({ connected, userId: "123", scopes: connected ? ["user:read:chat"] : [] }),
+  };
+  const { page } = await setup(t, provider);
+  await page.locator("#add").click();
+  await page.locator("#widget-requirement-chat").filter({ hasText: "Connect Twitch" }).waitFor();
+  await page.locator('[data-close="catalogDialog"]').click();
+  connected = true;
+  await page.locator("#add").click();
+  await page.locator("#widget-requirement-chat").waitFor({ state: "detached" });
+  assert.equal(await page.getByRole("button", { name: "Twitch chat", exact: true }).count(), 1);
+});
+
+test("goal presets remain editable and stacked or text-only styles persist in OBS", async (t) => {
+  const { page, add, service, base, browser } = await setup(t);
+  await add("Goal");
+  await page.getByLabel("Goal setup", { exact: true }).selectOption("followers");
+  assert.equal(
+    await page.getByLabel("Progress counter", { exact: true }).inputValue(),
+    "goal-followers",
+  );
+  await page.getByLabel("Progress source", { exact: true }).selectOption("manual");
+  await page.getByLabel("Current amount", { exact: true }).fill("7");
+  await page.getByLabel("Current amount", { exact: true }).press("Tab");
+  await page.locator('[data-inspector="style"]').click();
+  await page.getByLabel("Design preset", { exact: true }).selectOption("Stacked text");
+  await page.locator("#canvas").getByText("7/20", { exact: true }).waitFor();
+  assert.equal(await page.locator("#canvas progress").count(), 0);
+  await page.locator("#save").click();
+  await page.locator("#notice").filter({ hasText: "Overlay saved" }).waitFor();
+  const [saved] = service.store.snapshot().documents;
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + saved.id);
+  await output.getByText("Followers", { exact: true }).waitFor();
+  await output.getByText("7/20", { exact: true }).waitFor();
+  assert.equal(await output.locator("progress").count(), 0);
 });

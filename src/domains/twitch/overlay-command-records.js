@@ -9,18 +9,25 @@ module.exports = ({ widgets, owner, counterOwner, community }) => {
   const names = widgets
     .filter((w) => w.visible)
     .flatMap((w) =>
-      w.type === "counter"
-        ? [w.counterName]
-        : w.type === "player-card" && /^[a-z0-9_]{1,25}$/.test(w.player)
-          ? fields(w).map((field) => "player " + w.player + " " + field)
-          : [],
+      w.type === "goal" && w.goalSource === "counter"
+        ? [w.goalCounter, w.goalTargetCounter].filter(Boolean)
+        : w.type === "counter"
+          ? [w.counterName]
+          : w.type === "player-card" && /^[a-z0-9_]{1,25}$/.test(w.player)
+            ? fields(w).map((field) => "player " + w.player + " " + field)
+            : [],
     );
   const values = counter.readMany(names);
   for (const w of widgets) {
-    if (!w.visible || !["leaderboard", "player-card", "counter"].includes(w.type)) continue;
+    if (!w.visible || !["leaderboard", "player-card", "counter", "goal"].includes(w.type)) continue;
     const key = recordKey(w);
     if (Object.hasOwn(result, key)) continue;
     if (w.type === "counter") result[key] = { value: values.get(w.counterName) ?? 0 };
+    if (w.type === "goal" && w.goalSource === "counter")
+      result[key] = {
+        value: values.get(w.goalCounter) ?? 0,
+        target: values.get(w.goalTargetCounter) ?? 0,
+      };
     if (w.type === "leaderboard")
       result[key] = {
         entries:

@@ -48,7 +48,58 @@ const timer = (id, name, minutes, message, minMessages = 0) => ({
   cooldownSeconds: 0,
   userCooldownSeconds: 0,
 });
+const goalRecipe = (message) => ({
+  actionId: "twitch.action.recipe",
+  params: { message },
+  delayMs: 0,
+});
+const goals = [
+  ["followers", "Followers", "channel.follow", "${countgoal-followers}"],
+  ["subscribers", "New subscriptions", "channel.subscribe", "${countgoal-subscribers}"],
+  ["bits", "Bits", "channel.cheer", "${addcount goal-bits ${bits}}"],
+];
+const goalControl = (id, name, command, description, source) => ({
+  ...recordCommand(id, name, command, description, source),
+  group: "Goals",
+  cooldownSeconds: 0,
+  userCooldownSeconds: 0,
+});
 module.exports = [
+  ...goals.map(([id, label, type, source]) =>
+    event(
+      "goal-" + id,
+      label + " goal",
+      type,
+      "Updates the goal-" +
+        id +
+        " counter. In Overlay Designer add a Goal and select the " +
+        label +
+        " setup.",
+      [goalRecipe(source)],
+      "Goals",
+    ),
+  ),
+  goalControl(
+    "goal-donations",
+    "Donation goal: record an amount",
+    "!adddonation",
+    "Broadcaster only. Record a received donation in minor units. Example !adddonation 1250 adds 12.50 in a two-decimal currency. Select Donations in the overlay and set the currency you use.",
+    "${if ${1} > 0}Donation total in minor units: ${addcount goal-donations ${1}}.${else}Use !adddonation followed by a positive amount in minor units.${end}",
+  ),
+  goalControl(
+    "goal-target",
+    "Set a goal target",
+    "!goaltarget",
+    "Broadcaster only. Example !goaltarget followers 20. Built-in goal names are followers, subscribers, bits and donations. Use minor units for donations.",
+    "${if ${2} > 0}Goal target saved: ${setcount goal-${1}-target ${2}}.${else}Use !goaltarget followed by a goal name and positive target.${end}",
+  ),
+  goalControl(
+    "goal-progress",
+    "Correct or reset goal progress",
+    "!goalprogress",
+    "Broadcaster only. Example !goalprogress followers 0. Use minor units for donations. This sets the current amount and keeps the target.",
+    '${if same ${2} ""}Use !goalprogress followed by a goal name and amount.${else}${if ${2} >= 0}Goal progress saved: ${setcount goal-${1} ${2}}.${else}Use a nonnegative amount.${end}${end}',
+  ),
   {
     id: "xp-seasons",
     name: "XP season: every two months",

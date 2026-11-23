@@ -37,7 +37,7 @@ module.exports = ({
   const cooldowns = new Map(),
     history = [],
     runs = new Map();
-  const raidBacklog = require("./raid-flow-backlog")({
+  const eventBacklog = require("./event-flow-backlog")({
     isBusy: (id) => runs.has(id),
     getRows: () => data.rows,
     getOwner: () => account(),
@@ -392,7 +392,9 @@ module.exports = ({
     return true;
   }
   function launch(row, event, context) {
-    return raidBacklog.start(row, context, () => launchNow(row, event, context));
+    const result = eventBacklog.start(row, context, () => launchNow(row, event, context));
+    if (result.result?.code === "twitch_event_queue_full") record(row, result.result);
+    return result;
   }
   function launchNow(row, event, context) {
     context = templateContext(
@@ -436,7 +438,7 @@ module.exports = ({
         runs.delete(row.id);
         record(row, { ok: false, code: "twitch_automation_outcome_unknown" });
       })
-      .finally(() => raidBacklog.ready());
+      .finally(() => eventBacklog.ready());
     void completion;
     return { accepted: true };
   }
@@ -669,7 +671,7 @@ module.exports = ({
       await liveRewards.sync();
     },
     event(type, ...args) {
-      raidBacklog.event(type);
+      eventBacklog.event(type);
       community.observeEvent(type, args[0]);
       liveRewards.observe(type, args[0]);
       return triggers.event(type, ...args);
@@ -693,7 +695,7 @@ module.exports = ({
       community.setActive(!closed && value);
       triggers.setActive(!closed && value);
       if (!value) {
-        raidBacklog.clear();
+        eventBacklog.clear();
         for (const run of runs.values()) deck.cancel(run.runId);
       }
     },
@@ -707,7 +709,7 @@ module.exports = ({
     },
     shutdown() {
       liveRewards.setActive(false);
-      raidBacklog.clear();
+      eventBacklog.clear();
       community.shutdown();
       triggers.close();
       closed = true;

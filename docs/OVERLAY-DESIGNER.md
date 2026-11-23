@@ -49,6 +49,30 @@ font** to use a WOFF, WOFF2, TTF or OTF file up to 5 MB that you can use on stre
 The editor and local OBS output load the same file. Layout exports reference
 the file stored on this server.
 
+## Goals
+
+Open **Add widget → Goal**. Choose a goal setup for Followers, New subscriptions,
+Bits or Donations. Then open **Twitch Integration → Rewards & automations →
+Example commands & starter recipes → Goals** and load the matching automation.
+Review it, save it and use its row switch to enable it. The automation writes a
+named counter, and the widget reads it in the editor and OBS.
+
+Use **Set a goal target** and **Correct or reset goal progress** to change a goal
+through broadcaster-only commands such as `!goaltarget followers 20` and
+`!goalprogress followers 0`. A goal starts counting from when its automation is
+enabled. The donation recipe records amounts you enter using `!adddonation`. For
+example, `!adddonation 1250` adds 12.50 in a two-decimal currency. Choose the same
+currency throughout a cash goal. To build a new goal from scratch, give the
+widget and a recipe the same counter name, or enter amounts in the layer itself.
+
+Choose **Inline text**, **Stacked text** or **Progress card** in **Style &
+text** as an editable starting point. You can also show only the number or only
+the title, style a progress bar, or put the title and amount in separate layers
+bound to the same counter.
+
+The widget picker shows setup hints for unavailable live sources. Switch **Data**
+to **Sample** to design before connecting an account.
+
 ## Available widgets and their sources
 
 Save a visible **Bingo board** to see it under **Dashboard > Button deck > Bingo**.

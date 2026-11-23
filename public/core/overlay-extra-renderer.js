@@ -24,6 +24,49 @@
     if (text !== undefined) n.textContent = text;
     return n;
   };
+  function goal(w, data) {
+    const body = el("div");
+    const record = w.goalSource === "counter" && data.records?.[OverlayModel.recordKey(w)];
+    if (w.goalSource === "counter" && !record && !data.sample) return body;
+    const money = w.goalSource === "counter" && w.goalCurrency;
+    const formatter = money
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: w.goalCurrency })
+      : new Intl.NumberFormat();
+    const scale = money ? 10 ** formatter.resolvedOptions().maximumFractionDigits : 1;
+    const target = record?.target > 0 ? record.target / scale : w.target;
+    const current = Math.max(
+      0,
+      record
+        ? record.value / scale
+        : data.sample && w.goalSource === "counter"
+          ? target * 0.35
+          : w.current,
+    );
+    const amount = formatter.format(current) + "/" + formatter.format(target);
+    const title = w.text || "Goal";
+    if (w.goalFormat === "stacked") body.append(el("div", title), el("div", amount));
+    else
+      body.append(
+        el(
+          "span",
+          w.goalFormat === "amount"
+            ? amount
+            : w.goalFormat === "title"
+              ? title
+              : title + ": " + amount,
+        ),
+      );
+    if (w.goalBar) {
+      const progress = el("progress");
+      progress.max = target;
+      progress.value = current;
+      progress.setAttribute("aria-label", title);
+      progress.style.height = w.goalBarHeight + "px";
+      progress.style.accentColor = w.goalBarColor;
+      body.append(progress);
+    }
+    return body;
+  }
   const state = (w, data) =>
     data.game ||
     (data.sample
@@ -115,6 +158,7 @@
     if (entries.length > 40) body.append(el("small", entries.length + " entries"));
   }
   function render(w, data, now) {
+    if (w.type === "goal") return goal(w, data);
     if (!types.has(w.type)) return null;
     const body = el("div");
     body.className = "extraWidget extra-" + w.type;

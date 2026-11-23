@@ -99,6 +99,13 @@ must recognise that command. [Twitch shoutout API](https://dev.twitch.tv/docs/ap
 - **Quotes** lets you edit the numbered list and preview pasted StreamElements quotes before importing them. Use `!quote` in chat to read a random quote, or `!quote #3` for a specific one.
 - **Watchtime & points** lets you choose follower eligibility and a storage budget. Watchtime estimates live chat presence. [Watchtime settings and privacy](USER_GUIDE.md#watchtime-and-loyalty-privacy)
 
+## Goal recipes
+
+The **Goals** group in **Example commands & starter recipes** includes follower,
+subscription, Bits and manual donation goals. Each editable flow updates an
+ordinary counter. The overlay reads that counter; the same recipe works with a
+custom layout or additional actions. [Set up goal overlays](OVERLAY-DESIGNER.md#goals)
+
 ## Actions and stopping
 
 Every deck action is available through its existing owner and permissions:

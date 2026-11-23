@@ -103,7 +103,7 @@ globalThis.setupOverlayInspector = function (a) {
               : type === "number" || type === "range"
                 ? Number(input.value)
                 : input.value;
-      }, key === "font");
+      }, ["font", "goalSource", "goalTargetCounter", "goalBar"].includes(key));
     };
     input.oninput = () => input.setCustomValidity("");
     row.append(input);
@@ -172,8 +172,61 @@ globalThis.setupOverlayInspector = function (a) {
       host.append(reset);
     }
     if (w.type === "goal") {
-      num("Current amount", "current", 0, 1000000000);
-      num("Target amount", "target", 1, 1000000000);
+      const setups = [
+        ["followers", "Followers", 20, ""],
+        ["subscribers", "New subscriptions", 10, ""],
+        ["bits", "Bits", 1000, ""],
+        ["donations", "Donations", 100, "USD"],
+      ];
+      const setup = document.createElement("select");
+      setup.setAttribute("aria-label", "Goal setup");
+      setup.append(new Option("Choose a goal setup", ""));
+      for (const [id, title] of setups) setup.append(new Option(title, id));
+      setup.onchange = () => {
+        const chosen = setups.find(([id]) => id === setup.value);
+        if (!chosen) return;
+        const [id, title, target, currency] = chosen;
+        a.change(() =>
+          Object.assign(w, {
+            text: title,
+            target,
+            goalSource: "counter",
+            goalCounter: "goal-" + id,
+            goalTargetCounter: "goal-" + id + "-target",
+            goalCurrency: currency,
+          }),
+        );
+      };
+      const row = document.createElement("label");
+      row.append("Goal setup", setup);
+      host.append(row);
+      select("Progress source", "goalSource", [
+        ["manual", "Edit in this overlay"],
+        ["counter", "Automation counters"],
+      ]);
+      if (w.goalSource === "counter") {
+        field("Progress counter", "goalCounter", "text", { maxLength: 64 });
+        field("Target counter (optional)", "goalTargetCounter", "text", { maxLength: 64 });
+        select("Amount format", "goalCurrency", [
+          ["", "Number"],
+          ["USD", "USD"],
+          ["EUR", "EUR"],
+          ["GBP", "GBP"],
+          ["CAD", "CAD"],
+          ["AUD", "AUD"],
+          ["JPY", "JPY"],
+          ["BRL", "BRL"],
+          ...(!["", "USD", "EUR", "GBP", "CAD", "AUD", "JPY", "BRL"].includes(w.goalCurrency)
+            ? [[w.goalCurrency, w.goalCurrency]]
+            : []),
+        ]);
+      } else num("Current amount", "current", 0, 1000000000).step = "any";
+      num(
+        w.goalSource === "counter" && w.goalTargetCounter ? "Starting target" : "Target amount",
+        "target",
+        0.01,
+        1000000000,
+      ).step = "any";
     }
     if (!["shape", "text", "image", "video", "custom", "goal"].includes(w.type))
       field("Optional label", "label");
@@ -334,6 +387,35 @@ globalThis.setupOverlayInspector = function (a) {
           },
         ],
       ];
+      if (w.type === "goal") {
+        looks.unshift(
+          ["Inline text", { goalFormat: "inline", goalBar: false, backgroundOpacity: 0 }],
+          ["Stacked text", { goalFormat: "stacked", goalBar: false, backgroundOpacity: 0 }],
+          [
+            "Progress card",
+            {
+              goalFormat: "stacked",
+              goalBar: true,
+              goalBarColor: "#c55ff4",
+              background: "#101827",
+              backgroundOpacity: 90,
+              color: "#edf4ff",
+              radius: 16,
+            },
+          ],
+        );
+        select("Goal text layout", "goalFormat", [
+          ["inline", "Title and number on one line"],
+          ["stacked", "Title above number"],
+          ["amount", "Number only"],
+          ["title", "Title only"],
+        ]);
+        check("Show progress bar", "goalBar");
+        if (w.goalBar) {
+          field("Progress bar color", "goalBarColor", "color");
+          num("Progress bar height", "goalBarHeight", 2, 80);
+        }
+      }
       if (!["image", "video", "custom"].includes(w.type)) {
         const label = document.createElement("label"),
           picker = document.createElement("select");
