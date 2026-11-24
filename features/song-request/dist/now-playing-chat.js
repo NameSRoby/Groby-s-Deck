@@ -56,7 +56,9 @@ module.exports = function createNowPlayingChat({
       );
       if (!stored?.ok) return;
       last = signature;
-      await send(
+      // Chat delivery is tracked by the feature lifecycle, independently of the
+      // playback observer's shorter IPC deadline.
+      send(
         { method: "acknowledge", payload: {} },
         {
           ok: true,

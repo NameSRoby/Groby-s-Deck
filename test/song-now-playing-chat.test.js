@@ -148,6 +148,25 @@ test("failed dedupe storage does not send a message that could repeat after rest
   assert.equal(f.messages.length, 1);
 });
 
+test("slow chat transport does not hold the playback observation open", async () => {
+  const f = fixture();
+  let finishSend;
+  f.options.send = () =>
+    new Promise((resolve) => {
+      finishSend = resolve;
+    });
+  const chat = f.create();
+  await chat.load();
+  let completed = false;
+  const observed = chat.observe(observation("tidal")).then(() => {
+    completed = true;
+  });
+  await new Promise(setImmediate);
+  assert.equal(completed, true);
+  finishSend();
+  await observed;
+});
+
 test("feature announces ordinary selected-player songs without any requests or desktop companion", async () => {
   for (const player of ["tidal", "spotify", "soundcloud", "youtube"]) {
     const storage = new Map([["player-preferences-v1", { player }]]),
