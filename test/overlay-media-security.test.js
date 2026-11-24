@@ -55,7 +55,27 @@ test("media rejects non-scalar and inherited MIME keys before coercion or disk a
     assert.throws(() => f.media.add(type, png), /supported|valid/, String(typeof type));
   }
   assert.equal(fs.existsSync(f.dir), false);
-  assert.throws(() => f.media.add("image/png", "not a buffer"), /valid/);
+  const poisonousBody = {
+    get length() {
+      throw Error("must not read a non-Buffer length");
+    },
+  };
+  for (const body of [
+    "not a buffer",
+    [],
+    Array.from(png),
+    {},
+    { length: png.length },
+    new Uint8Array(png),
+    poisonousBody,
+  ]) {
+    assert.throws(() => f.media.add("image/png", body), /valid/);
+  }
+  assert.equal(
+    fs.existsSync(f.dir),
+    false,
+    "non-Buffer bodies must be rejected before filesystem access",
+  );
   assert.throws(() => f.media.add("image/png", Buffer.alloc(4)), /valid/);
   const asset = f.media.add("IMAGE/PNG; charset=binary", png);
   assert.deepEqual(fs.readFileSync(f.media.locate(asset.url.split("/").pop()).file), png);
