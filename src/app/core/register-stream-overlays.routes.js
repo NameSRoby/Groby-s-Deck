@@ -1,7 +1,10 @@
 /** The designer writes documents; OBS receives only read-only public presentation data. */
 const { requireLocalOperator } = require("../runtime/local-operator.middleware");
 const { rateLimit } = require("express-rate-limit");
-module.exports = function registerOverlays(app, { service, runtimeDir, express }) {
+module.exports = function registerOverlays(
+  app,
+  { service, runtimeDir, express, mediaReadLimitOptions = {} },
+) {
   app.use("/api/stream-overlays", requireLocalOperator, (_req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     next();
@@ -113,10 +116,19 @@ module.exports = function registerOverlays(app, { service, runtimeDir, express }
       express.raw({ type: ["image/*", "video/*", "audio/*"], limit: "50mb" }),
       route((req) => media.add(req.get("Content-Type"), req.body)),
     );
-    app.get("/api/stream-overlays/media/:name", (req, res) => {
+    const mediaReads = rateLimit({
+      windowMs: 60000,
+      limit: 1200,
+      keyGenerator: () => "overlay-media-reads",
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      ...mediaReadLimitOptions,
+    });
+    app.get("/api/stream-overlays/media/:name", mediaReads, (req, res) => {
       const asset = media.locate(req.params.name);
       if (!asset) return res.status(404).end();
-      res.type(asset.type).sendFile(asset.file);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.type(asset.type).sendFile(asset.name, { root: asset.root, dotfiles: "deny" });
     });
   }
 };

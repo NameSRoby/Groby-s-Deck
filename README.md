@@ -15,17 +15,17 @@ Build a modular control surface for your stream, desktop, phone or tablet:
 
 Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
 
-[Download 0.8.1a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1a) |
+[Download 0.8.1b](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1b) |
 [User guide](docs/USER_GUIDE.md) |
 [Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
 ## Install
 
-1. Download **Grobys-Deck-Windows-v0.8.1a-setup-installer.exe**.
+1. Download **Grobys-Deck-Windows-v0.8.1b-setup-installer.exe**.
 2. Run Setup and choose the features you want.
 3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
 
-**Portable:** extract **Grobys-Deck-Windows-v0.8.1a-self-contained.zip** completely,
+**Portable:** extract **Grobys-Deck-Windows-v0.8.1b-self-contained.zip** completely,
 then run **Groby's Deck.exe**.
 
 The runtime and optional packages are included. No developer tools are needed.
@@ -178,7 +178,10 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
-## What's fixed in 0.8.1a
+## What's fixed in 0.8.1b
+
+- Hardens overlay media content types, generated filenames and file access; rejects redirected media folders and linked assets.
+- Rate-limits media downloads while retaining image, font, sound, video and Range support. Reviews and documents test-only CodeQL alerts.
 
 - Now-playing chat announcements follow the selected player's actual song, including personal playlists and songs that were never requested. Polling, pause/resume and restarts do not repeat the same announcement. Verified requests retain requester credit.
 - Includes the earlier 0.8.1 fixes:
@@ -236,7 +239,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 ## Earlier versions
 
 Groby’s Deck 0.8 is the current release. Previous releases remain available in the
-[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.1a for new installations.
+[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.1b for new installations.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
 The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.
