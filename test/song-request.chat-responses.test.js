@@ -87,7 +87,7 @@ test("response classification covers moderation success and failure without raw 
   );
 });
 
-test("now-playing replies require a Twitch-origin queue entry", () => {
+test("now-playing composition requires an eligible playback notification", () => {
   const request = { method: "acknowledge", payload: {} };
   assert.equal(
     composeChatResponse(

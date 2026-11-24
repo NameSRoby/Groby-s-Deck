@@ -142,10 +142,13 @@ test("every player replies to Twitch intake, failures and confirmed playback exa
             sourceId: "fixture",
             available: true,
             status: "playing",
-            title: candidate.title,
+            title: "Personal song",
           };
           await harness.request("song.playback.observe.v1", "observe", observation);
-          assert.equal(sent.length, 3, "handoff is not playback");
+          assert.equal(sent.length, 4, "the personal song announces independently of the handoff");
+          assert.match(sent[3].message, /Now playing "Personal song"/);
+          assert.doesNotMatch(sent[3].message, /requested by/);
+          observation.title = candidate.title;
           handoffs[0].phase = "playing";
           current = {
             uid: "requested",
@@ -164,19 +167,22 @@ test("every player replies to Twitch intake, failures and confirmed playback exa
         }
         assert.equal(
           sent.length,
-          4,
+          ["tidal", "spotify"].includes(player) ? 5 : 4,
           "confirmed playback announces once across polling and restart",
         );
-        assert.match(sent[3].message, /Now playing "Shared song - Artist", requested by @Viewer/);
+        assert.match(
+          sent.at(-1).message,
+          /Now playing "Shared song - Artist", requested by @Viewer/,
+        );
         reject = "throw";
         const unavailable = await harness.request("song.queue.submit.v1", "submit", {
           ...payload,
           requestId: "unavailable",
         });
         assert.equal(unavailable.ok, false);
-        assert.equal(sent.length, 5);
-        assert.match(sent[4].message, /Song Request failed/);
-        assert.equal(sent[4].message.includes("private provider exception"), false);
+        assert.equal(sent.length, ["tidal", "spotify"].includes(player) ? 6 : 5);
+        assert.match(sent.at(-1).message, /Song Request failed/);
+        assert.equal(sent.at(-1).message.includes("private provider exception"), false);
       } finally {
         await harness.stop();
       }
