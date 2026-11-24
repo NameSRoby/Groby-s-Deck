@@ -3,11 +3,10 @@
  * Developer context and change constraints:
  * docs/DEVELOPMENT.md#song-requests-providers-and-playback
  */
-// A desktop handoff confirms queue insertion, not playback. Announce only when
-// the companion identifies that exact request as the current native occurrence.
+// A desktop handoff confirms queue insertion, not playback. Attribute and settle
+// requests only when the companion identifies their current native occurrence.
 module.exports = function createDesktopChatResponses({
   context,
-  send,
   started = async () => {},
   youtubeBrowserSelected = async () => false,
 }) {
@@ -46,7 +45,7 @@ module.exports = function createDesktopChatResponses({
   }
   async function record(entry) {
     if (entry?.candidate?.provider === "youtube" && !(await youtubeBrowserSelected())) return;
-    if (!supported(entry) || !entry.chatNotify || entries.has(entry.id)) return;
+    if (!supported(entry) || entries.has(entry.id)) return;
     entries.set(entry.id, {
       id: entry.id,
       requesterLabel: entry.requesterLabel,
@@ -68,9 +67,7 @@ module.exports = function createDesktopChatResponses({
       observation?.available === false ||
       observation?.status !== "playing" ||
       (provider !== "youtube" &&
-        ![...entries.values()].some(
-          (entry) => !entry.announced && entry.candidate.provider === provider,
-        ))
+        ![...entries.values()].some((entry) => entry.candidate.provider === provider))
     )
       return;
     checking = true;
@@ -94,14 +91,13 @@ module.exports = function createDesktopChatResponses({
         await started({ id: receipt.entryId });
       }
       const entry = entries.get(current.entryId || receipt?.entryId);
-      if (!entry || entry.announced || entry.candidate.provider !== provider) return;
-      await started(entry);
-      entry.announced = true;
-      await store();
-      send(
-        { method: "acknowledge", payload: {} },
-        { ok: true, code: "started", notifyChat: true, entry },
-      );
+      if (!entry || entry.candidate.provider !== provider) return;
+      if (!entry.announced) {
+        await started(entry);
+        entry.announced = true;
+        await store();
+      }
+      return entry;
     } catch {
     } finally {
       checking = false;

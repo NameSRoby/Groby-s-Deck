@@ -1,11 +1,10 @@
 # Release archive
 
-[Groby's Deck 0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) is retained for release history. Use [0.8.1](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1) for the current bug fixes.
+Use [0.8.1a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1a) for current bug fixes and new installations.
 
+[0.8.1](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1) and [0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) remain available for release history.
 
-[Groby’s Deck 0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) is the current release.
-
-Earlier RaveLink Core releases remain available as historical snapshots with their original tags, release notes and downloads. Use 0.8 for new installations.
+Earlier RaveLink Core releases remain available as historical snapshots with their original tags, release notes and downloads.
 
 ## Historical downloads
 

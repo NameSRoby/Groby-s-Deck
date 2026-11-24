@@ -5,7 +5,13 @@
  */
 // Community submissions recurse through the operation layer. Only the outer
 // request boundary owns chat output and desktop announcement tracking.
-module.exports = async function requestChatResponses(request, result, send, desktopChat) {
+module.exports = async function requestChatResponses(
+  request,
+  result,
+  send,
+  desktopChat,
+  nowPlayingChat,
+) {
   const providers = [
     "song.tidal.experimental.v1",
     "song.spotify.player.v1",
@@ -21,11 +27,15 @@ module.exports = async function requestChatResponses(request, result, send, desk
       "song.queue.admin.v1",
       "song.playback.driver.v1",
       ...providers,
-    ].includes(request.capability)
+    ].includes(request.capability) &&
+    !(request.capability === "song.playback.driver.v1" && result?.code === "started")
   )
     send(responseRequest, result);
-  if (responseRequest.method === "submit" && result?.ok && request.payload?.notifyChat === true)
-    await desktopChat.record(result.entry);
-  if (request.capability === "song.playback.observe.v1" && result?.ok)
-    await desktopChat.observe(request.payload);
+  if (responseRequest.method === "submit" && result?.ok) await desktopChat.record(result.entry);
+  if (request.capability === "song.playback.observe.v1" && result?.ok) {
+    const entry = await desktopChat.observe(request.payload);
+    await nowPlayingChat.observe(request.payload, entry);
+  }
+  if (request.capability === "song.playback.driver.v1" && result?.ok && result.code === "started")
+    await nowPlayingChat.managed();
 };

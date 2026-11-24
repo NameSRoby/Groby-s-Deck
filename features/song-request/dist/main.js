@@ -21,7 +21,7 @@ const OPTIONAL = Object.freeze({
 let context;
 let queue;
 let experimentalTidal, spotify, playerRouting, community, desktopChat, rewardOutcomes;
-let youtubeBrowser;
+let youtubeBrowser, nowPlayingChat;
 let playlists, profileStorage, flushing, playerPreferences, soundcloud;
 let persistTimer;
 let dirty = false;
@@ -310,6 +310,13 @@ async function activate(nextContext) {
       (await playerPreferences("status", null)).youtubePlayback === "browser",
   });
   await desktopChat.load();
+  nowPlayingChat = require("./now-playing-chat")({
+    context,
+    queue,
+    preferences: playerPreferences,
+    send: sendResponse,
+  });
+  await nowPlayingChat.load();
   await playlists.activate();
   community = playlists.createCommunity({
     changed: () => publishChange({ ok: true, code: "community_updated" }, { method: "community" }),
@@ -348,7 +355,7 @@ async function activate(nextContext) {
 function sendResponse(request, result) {
   const chat = composeChatResponse(request, result, queue.status());
   if (chat)
-    optionalCall("chat", {
+    return optionalCall("chat", {
       message: chat.message,
       ...(chat.replyParentMessageId ? { replyParentMessageId: chat.replyParentMessageId } : {}),
     });
@@ -365,7 +372,13 @@ async function handleRequest(request) {
       ok: false,
     });
   }
-  await require("./request-chat-responses")(request, result, sendResponse, desktopChat);
+  await require("./request-chat-responses")(
+    request,
+    result,
+    sendResponse,
+    desktopChat,
+    nowPlayingChat,
+  );
   return result;
 }
 async function handleOperation(request) {
