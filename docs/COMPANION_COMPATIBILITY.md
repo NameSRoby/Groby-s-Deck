@@ -24,6 +24,11 @@ cannot be launched as verified companions.
 
 ## Portability and privacy review
 
+Spotify entry discovery and insertion use `parse5` rather than HTML tag regular
+expressions. Regression fixtures cover whitespace and attributes on end tags,
+quoted angle brackets, entity-encoded URLs, comments and dormant template loaders.
+This also corrects CodeQL alert 34 (`js/bad-tag-filter`) without suppressing it.
+
 Additional regressions cover Unicode and shell punctuation through Windows
 PowerShell, UTF-8 vault-map keys, read-only hardlinked source assets, and
 catalog-bound pairing verification across Core restart. Files owned by Groby’s

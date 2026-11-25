@@ -28,6 +28,7 @@ RaveLink Core includes or interoperates with the following third-party component
 - **Node.js 24.13.0 Windows runtime** - Node.js license. The executable is renamed `RaveLink-Core-Node.exe` and its Windows description is branded for RaveLink; its complete license is installed as `runtime/NODE-LICENSE.txt`.
 - **axios** - MIT License.
 - **bonjour-service** - MIT License. Used for bounded Philips Hue discovery.
+- **parse5** and **entities** - MIT License. Parse Spotify entry documents using HTML syntax rules; upstream license texts remain in their bundled npm packages.
 - **qrcode** - MIT License. Generates LAN sharing QR codes locally; no external QR service is used. Upstream: https://github.com/soldair/node-qrcode .
 - **obscenity** (0.4.6) - MIT License. Offline clip title moderation, including the English dataset adapted from the MIT-licensed cuss project. Upstream: https://github.com/jo3-l/obscenity . Package license and dataset attribution remain in the installed dependency.
 - **cross-fetch** - MIT License. Used by Hue Entertainment support.

@@ -46,6 +46,38 @@ test("Spotify refuses a syntactically broken hook before preparing a launch", as
   await assert.rejects(prepareArchive(original, ""), /spotify_platform_patch_invalid/);
 });
 
+test("Spotify discovers active HTML scripts with browser parsing rules and ignores dormant loaders", async () => {
+  for (const ending of ["</script >", "</ScRiPt\n>", '</script ignored="yes">']) {
+    const dormant =
+      '<!-- <script src="/xpui-modules.js"></script> --><template><script src="/xpui-modules.js"></script></template>';
+    const tag = '<SCRIPT data-label=">" defer src=./xpui-snapshot.js?v=1&amp;x=2>' + ending;
+    const original = await clientArchive(
+      "<html><head></head><body>" + dormant + tag + "</body></html>",
+      {
+        "xpui-modules.js": script,
+        "xpui-snapshot.js": "globalThis.started=true;",
+      },
+    );
+    const result = await prepareArchive(original, "globalThis.companion=true;");
+    const html = (await readArchive(result.archive))
+      .find((row) => row.name === "index.html")
+      .data.toString();
+    const { parse } = await import("parse5");
+    const active = [];
+    const visit = (node) => {
+      if (node.tagName === "script") active.push(node.attrs.find((a) => a.name === "src")?.value);
+      for (const child of node.childNodes || []) visit(child);
+    };
+    visit(parse(html));
+    assert.deepEqual(active, [
+      "/ravelink-spotify.js",
+      "/xpui-modules.js",
+      "./xpui-snapshot.js?v=1&x=2",
+    ]);
+    assert.equal(result.platformAsset, "xpui-modules.js");
+  }
+});
+
 test("Spotify rejects a deferred dependency before a synchronous snapshot, and accepts ordered classic script types", async () => {
   for (const snapshot of [
     '<script src="/xpui-snapshot.js"></script>',
