@@ -170,6 +170,19 @@ dialog::backdrop {
   color: var(--text);
   font-weight: 600;
 }
+.automationExamples summary + .toolbar {
+  margin-top: 4px;
+}
+.presetActions {
+  align-items: flex-end;
+}
+.presetActions label {
+  flex: 0 1 27rem;
+  min-width: 0;
+}
+.presetActions select {
+  width: 100%;
+}
 .automationListToolbar {
   display: flex;
   align-items: end;

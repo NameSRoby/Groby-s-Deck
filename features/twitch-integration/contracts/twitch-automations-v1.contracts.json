@@ -339,7 +339,10 @@
             "additionalProperties": false,
             "properties": {
               "operation": {
-                "enum": ["list", "add", "edit", "delete"]
+                "enum": ["list", "add", "edit", "delete", "settings"]
+              },
+              "enabled": {
+                "type": "boolean"
               },
               "offset": {
                 "type": "integer",
@@ -377,6 +380,9 @@
             "required": ["ok"],
             "properties": {
               "ok": {
+                "type": "boolean"
+              },
+              "enabled": {
                 "type": "boolean"
               },
               "total": {
@@ -446,7 +452,7 @@
             "additionalProperties": false,
             "properties": {
               "mode": {
-                "enum": ["followers", "subscribed-followers"]
+                "enum": ["off", "followers", "subscribed-followers"]
               },
               "storageLimitBytes": {
                 "type": "integer",

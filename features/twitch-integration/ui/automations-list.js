@@ -33,8 +33,14 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
     );
   }
   return (snapshot, selected, editor, query = "", type = "command") => {
-    if (!["command", "reward", "automation", "timer", "event"].includes(type)) type = "command";
-    const next = JSON.stringify([snapshot.rows, selected?.id, query, type]);
+    const next = JSON.stringify([
+      snapshot.rows,
+      snapshot.builtinPolicies,
+      snapshot.connected,
+      selected?.id,
+      query,
+      type,
+    ]);
     if (next !== key) {
       key = next;
       parking.append(editor);
@@ -51,61 +57,44 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
       ])
         heading.append(el("span", "", text));
       host.append(heading);
-      const builtin = (row) => Boolean(snapshot.builtinPolicies?.[row.handler]);
-      const group = (row) =>
-        builtin(row)
-          ? "builtin"
-          : row.trigger.type === "command"
-            ? "command"
-            : row.trigger.type === "reward"
-              ? "reward"
-              : "automation";
-      const order = { builtin: -1, command: 0, reward: 1, automation: 2 },
-        labels = {
-          builtin: "Built-in features",
-          command: "Chat commands",
-          reward: "Channel Points",
-          automation: "Timers & events",
-        };
+      const builtin = (row) => GrobyBuiltinPresets.find((preset) => preset.handler === row.handler);
+      const category = (row) => (builtin(row) ? "builtin" : row.trigger.type);
+      const labels = {
+        builtin: "Built-in features",
+        command: "Chat commands",
+        reward: "Channel Points",
+        automation: "Timers & events",
+        timer: "Timers",
+        event: "Events",
+      };
       const search = query.toLowerCase();
       const visible = snapshot.rows
         .filter(
           (row) =>
-            (builtin(row) ||
-              row.trigger.type === type ||
-              (type === "automation" && group(row) === "automation")) &&
-            [row.name, row.trigger.command, row.trigger.event, summary(row)]
+            (category(row) === type ||
+              (type === "automation" && ["timer", "event"].includes(category(row)))) &&
+            [row.name, row.trigger.command, row.trigger.event, builtin(row)?.command, summary(row)]
               .join(" ")
               .toLowerCase()
               .includes(search),
         )
         .sort(
           (a, b) =>
-            order[group(a)] - order[group(b)] ||
             (a.trigger.command || a.name).localeCompare(b.trigger.command || b.name, undefined, {
               numeric: true,
               sensitivity: "base",
-            }) ||
-            a.id.localeCompare(b.id),
+            }) || a.id.localeCompare(b.id),
         );
-      let priorGroup = "";
+      if (visible.length)
+        host.append(el("h3", "automationGroupHeading", labels[type] + " · " + visible.length));
       for (const row of visible) {
-        if (group(row) !== priorGroup) {
-          priorGroup = group(row);
-          const label = el(
-            "h3",
-            "automationGroupHeading",
-            labels[priorGroup] +
-              " · " +
-              visible.filter((item) => group(item) === priorGroup).length,
-          );
-          host.append(label);
-        }
-        const item = el("div", "automationItem"),
+        const preset = builtin(row),
+          policy = snapshot.builtinPolicies?.[row.handler],
+          item = el("div", "automationItem"),
           line = el("div", "automationColumns"),
           control = el("button", "automationEnable");
         control.type = "button";
-        control.disabled = snapshot.connected === false;
+        control.disabled = snapshot.connected === false || policy?.available === false;
         control.setAttribute("role", "switch");
         control.setAttribute("aria-checked", String(row.enabled));
         control.setAttribute("aria-label", row.enabled ? "Pause automation" : "Start automation");
@@ -135,17 +124,19 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         if (row.trigger.type === "command" && row.name === row.trigger.command)
           title.querySelector("small").remove();
         title.onclick = () => edit(row);
-        if (builtin(row)) {
-          const preset = GrobyBuiltinPresets.find((preset) => preset.handler === row.handler);
-          const policy = snapshot.builtinPolicies[row.handler];
-          title.querySelector("small").textContent = policy.chatEnabled
-            ? "Chat · " +
-              preset.command +
-              (policy.commandPreferred ? " · selected in Song Request Setup" : " · no reward bound")
-            : policy.enabled && row.trigger.rewardId
-              ? "Channel Points"
-              : "Chat fallback · " + preset.command;
-        }
+        if (preset)
+          title.querySelector("small").textContent =
+            policy?.available === false
+              ? "Enable Song Request in Packages"
+              : policy?.chatEnabled
+                ? "Chat · " +
+                  preset.command +
+                  (policy.commandPreferred
+                    ? " · selected in Song Request Setup"
+                    : " · no reward bound")
+                : row.trigger.rewardId
+                  ? "Channel Points"
+                  : "Chat fallback · " + preset.command;
         const description = summary(row);
         const response = el("span", "automationResponse", description);
         response.title = description;
@@ -157,7 +148,7 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         trash.setAttribute("aria-label", "Remove " + row.name);
         trash.onclick = () => remove(row);
         actions.append(expand);
-        if (!builtin(row)) actions.append(trash);
+        if (!preset || !policy) actions.append(trash);
         line.append(
           control,
           title,

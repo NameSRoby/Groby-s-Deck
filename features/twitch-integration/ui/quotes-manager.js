@@ -14,6 +14,7 @@
     q("quoteListStatus").textContent = text;
   };
   function controls() {
+    q("quoteChatEnabled").disabled = busy || state.enabled === undefined;
     for (const id of ["quoteNew", "quoteRefresh", "quoteSave", "quoteDeleteConfirm"])
       q(id).disabled = busy;
     q("quotePrevious").disabled = busy || state.offset === 0;
@@ -61,6 +62,7 @@
     if (!ready)
       throw Error("Restart Core to load the editable quote list. Your saved quotes are kept.");
     state = await rpc({ operation: "list", offset, limit: 25, search: q("quoteSearch").value });
+    updateQuoteSetting();
     q("quoteNew").hidden = false;
     q("quoteRows").replaceChildren(
       ...state.rows.map((row) => {
@@ -117,6 +119,23 @@
     }
     void task(() => load(offset));
   }
+  function updateQuoteSetting() {
+    q("quoteChatEnabled").checked = state.enabled === true;
+    q("quoteChatStatus").textContent = state.enabled
+      ? "!quote, !quote add and !deletequote are enabled in chat."
+      : "Chat quote commands are off. You can still manage saved quotes here.";
+  }
+  q("quoteChatEnabled").onchange = () => {
+    const enabled = q("quoteChatEnabled").checked;
+    void task(async () => {
+      try {
+        const result = await rpc({ operation: "settings", enabled });
+        state.enabled = result.enabled;
+      } finally {
+        updateQuoteSetting();
+      }
+    });
+  };
   q("quoteRefresh").onclick = () => browse(state.offset);
   q("quotePrevious").onclick = () => browse(Math.max(0, state.offset - 25));
   q("quoteNext").onclick = () => browse(state.offset + 25);

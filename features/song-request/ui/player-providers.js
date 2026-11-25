@@ -136,7 +136,7 @@
   const intakePanel = document.createElement("section");
   intakePanel.className = "playerSetupCard";
   intakePanel.innerHTML =
-    '<h3>Viewer song requests</h3><label>Request method<select id="songRequestIntakeChoice"><option value="false">Channel Points</option><option value="true">Chat commands: !sr / !songrequest</option></select></label><button type="button">Save request method</button><p role="status">Loading request settings...</p>';
+    '<h3>Viewer song requests</h3><div class="actions"><label>Request method<select id="songRequestIntakeChoice"><option value="false">Channel Points</option><option value="true">Chat commands: !sr / !songrequest</option></select></label><button type="button">Save request method</button></div><p role="status">Loading request settings...</p>';
   setupPage.append(intakePanel);
   const intakeChoice = intakePanel.querySelector("select"),
     intakeSave = intakePanel.querySelector("button"),
@@ -169,7 +169,8 @@
       intakeNotice.textContent = error.message;
     }
   };
-  const related = document.createElement("p");
+  const related = document.createElement("div");
+  related.className = "actions";
   for (const [destination, title] of [
     ["twitch", "Twitch connection"],
     ["presets", "Commands & rewards"],
