@@ -28,6 +28,13 @@ The documentation captures show the shipping UI in the default Midnight theme.
 The online Packages catalog uses an immutable GitHub revision containing the
 same Twitch Integration and Song Request versions as the offline installer.
 
+The final development sweep passed 1,422 cases with two skips. The Windows
+public suite exercised 419 cases with one skip. Both package downloads were
+also verified against the public GitHub source with an empty package cache.
+Hosted release validation uses separate Windows runners for the installer,
+portable archive, and source setup. Integration coverage uses simulated
+accounts and hardware, including the audio and desktop player test fixtures.
+
 ## 0.8.2a - 2026-11-25
 
 Setup progress is derived from real pairing, connection and saved configuration

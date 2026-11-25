@@ -120,6 +120,10 @@ contain production runtime material; their source tests, build caches, captures,
 logs and personal settings are excluded. Compare the installer and ZIP contents,
 verify their checksums, and wait for the exact release commit's GitHub checks
 before publishing. Record actual results and remaining limits in the health report.
+Verify both official features through the online Packages catalog with an empty
+local cache. Keep its pinned package commit in the release history and check
+that the advertised versions match the offline bundles. Pin source setup to the
+final Windows ZIP and verify that download after the release is public.
 
 ## Fixture output ownership
 
