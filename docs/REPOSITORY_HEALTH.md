@@ -24,6 +24,12 @@ the precise request-mode rules are documented in [Setup and public presets](SETU
 The affected remote PC's exact error was unavailable. The reproduced startup
 defect is fixed; its relationship to that particular report remains unconfirmed.
 
+The local end-user suite completed 410 cases: 409 passed and one Windows
+file-symlink privilege check skipped. The latest affected automation, mode,
+catalog and browser checks passed all 50 cases. Source structure, lint, generated
+payload verification and the dependency audit passed. Published source and
+download contents are separately checked for private values and machine paths.
+
 ## 0.8.1c - 2026-11-25
 
 The [compatibility audit](COMPANION_COMPATIBILITY.md) records companion startup,
