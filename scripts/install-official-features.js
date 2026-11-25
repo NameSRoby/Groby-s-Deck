@@ -3,6 +3,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const createFeaturePackageManager = require("../src/capabilities/feature-platform/packages/feature-package-manager");
+const createFeatureStateStore = require("../src/capabilities/feature-platform/packages/feature-state-store");
 const {
   OFFICIAL_FEATURE_SOURCES,
 } = require("../src/capabilities/feature-platform/packages/official-feature-sources");
@@ -20,32 +21,50 @@ function selectedFeatureIds(values) {
 
 async function installSelectedFeatures(options = {}) {
   const rootDir = path.resolve(options.rootDir || path.join(__dirname, ".."));
+  const installedRoot = path.join(rootDir, "features", "installed");
+  const runtimeRoot = path.join(rootDir, "runtime", "features");
   const featureIds = selectedFeatureIds(options.featureIds);
+  const state = createFeatureStateStore({ storePath: path.join(runtimeRoot, "state.json") });
+  if (options.skip) {
+    return featureIds.map((featureId) => {
+      if (!fs.existsSync(path.join(installedRoot, featureId)) && !state.get(featureId).configured)
+        state.setEnabled(featureId, false, "setup-skipped");
+      return { ok: true, featureId, operation: "skipped" };
+    });
+  }
   const manager =
     options.manager ||
     createFeaturePackageManager({
-      installedRoot: path.join(rootDir, "features", "installed"),
+      installedRoot,
       packageRoots: [path.join(rootDir, "optional-components", "feature-packages")],
       remoteSources: options.offline ? [] : OFFICIAL_FEATURE_SOURCES,
-      runtimeRoot: path.join(rootDir, "runtime", "features"),
+      runtimeRoot,
     });
   const catalog = await manager.listAvailable();
   const available = new Map((catalog.features || []).map((row) => [row.id, row]));
   const results = [];
+  const restoreSkipped = (id) => {
+    if (state.get(id).reason === "setup-skipped") state.setEnabled(id, true, "setup-selected");
+  };
   for (const featureId of featureIds) {
+    if (state.get(featureId).reason === "uninstalled") {
+      results.push({ ok: true, featureId, operation: "kept_removed" });
+      continue;
+    }
     const row = available.get(featureId);
     if (!row) throw new Error(`feature_package_not_available:${featureId}`);
-    if (row.installed && !row.updateAvailable) {
+    if (row.installedVersion && !row.updateAvailable) {
       results.push({
         ok: true,
         featureId,
         operation: "already_current",
         version: row.installedVersion,
       });
+      restoreSkipped(featureId);
       continue;
     }
     const result = row.installed
-      ? await manager.update(featureId)
+      ? await manager.update(featureId, { bundledOnly: options.offline, repairInvalid: true })
       : await manager.install(featureId);
     if (!result?.ok)
       throw new Error(
@@ -54,9 +73,10 @@ async function installSelectedFeatures(options = {}) {
     results.push({
       ok: true,
       featureId,
-      operation: row.installed ? "updated" : "installed",
+      operation: result.operation || (row.installed ? "updated" : "installed"),
       version: String(result.version || row.version || ""),
     });
+    restoreSkipped(featureId);
   }
   return results;
 }
@@ -72,9 +92,11 @@ async function main() {
     } catch {}
   };
   try {
+    const args = process.argv.slice(2);
     const results = await installSelectedFeatures({
-      featureIds: process.argv.slice(2).filter((value) => value !== "--offline"),
-      offline: process.argv.includes("--offline"),
+      featureIds: args.filter((value) => !["--offline", "--skip"].includes(value)),
+      offline: args.includes("--offline"),
+      skip: args.includes("--skip"),
     });
     for (const row of results) {
       process.stdout.write(`[FEATURE SETUP] ${row.featureId} ${row.operation}\n`);

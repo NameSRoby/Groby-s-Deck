@@ -388,15 +388,15 @@ export function initControlDeck(panel, onOverview = () => {}) {
     led.setAttribute("aria-hidden", "true");
     face.setAttribute("aria-hidden", "true");
     tile.append(led, face);
-    tile.style.setProperty("--deck-color", a.color || "#a90036");
+    tile.style.setProperty("--deck-color", a.color || "#e43662");
     tile.style.setProperty("--deck-text", a.textColor || "#ffffff");
     tile.style.setProperty("--deck-backlight", (a.backlight ?? 65) / 100);
     const colors = a.cycleColors || [];
     tile.dataset.cycling = String(colors.length > 1);
     if (colors.length > 1) tile.style.animationName = colorAnimation(button.id);
-    tile.style.setProperty("--deck-cycle-a", colors[0] || a.color || "#a90036");
-    tile.style.setProperty("--deck-cycle-b", colors[1] || colors[0] || a.color || "#a90036");
-    tile.style.setProperty("--deck-cycle-c", colors[2] || colors[0] || a.color || "#a90036");
+    tile.style.setProperty("--deck-cycle-a", colors[0] || a.color || "#e43662");
+    tile.style.setProperty("--deck-cycle-b", colors[1] || colors[0] || a.color || "#e43662");
+    tile.style.setProperty("--deck-cycle-c", colors[2] || colors[0] || a.color || "#e43662");
     tile.style.setProperty("--deck-cycle-time", (a.cycleMs || 6000) + "ms");
     tile.dataset.textMode = a.textMode || "image-text";
     if (a.imageId) {

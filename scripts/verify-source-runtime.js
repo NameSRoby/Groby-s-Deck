@@ -21,9 +21,24 @@ function verify(source, runtime) {
     "runtime/Grobys-Deck-Node.exe",
     "runtime/music-to-light/cargo/release/groby-audio-probe.exe",
     "runtime/NODE-LICENSE.txt",
+    "runtime/desktop/Microsoft.Web.WebView2.Core.dll",
+    "runtime/desktop/Microsoft.Web.WebView2.WinForms.dll",
+    "runtime/desktop/WebView2Loader.dll",
+    "runtime/desktop/LICENSE.WebView2.txt",
   ]) {
     if (!fs.statSync(path.join(runtime, file)).isFile()) throw new Error(`Missing ${file}`);
   }
+  const { webview2 } = JSON.parse(
+    fs.readFileSync(path.join(source, "desktop/windows-host/prerequisites.json"), "utf8"),
+  );
+  const installer = fs.statSync(
+    path.join(runtime, "optional-components/prerequisites", webview2.file),
+    {
+      throwIfNoEntry: false,
+    },
+  );
+  if (!installer?.isFile() || installer.size !== webview2.size)
+    throw Error("The cached offline WebView2 installer is missing or incomplete.");
 }
 
 module.exports = { verify };

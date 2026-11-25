@@ -2,16 +2,17 @@
 const presets = require("./builtin-presets");
 const { fault } = require("../control-deck/control-deck-config");
 module.exports = ({ available, getRows, getConnection, isPaused, isClosed, identity }) => ({
-  addRows(owner, result) {
+  addRows(owner, result, includeUnavailable) {
     if (!available) return result;
     for (const preset of presets) {
-      if (!available(preset.handler) || result.some((row) => row.handler === preset.handler))
+      const ready = available(preset.handler);
+      if ((!ready && !includeUnavailable) || result.some((row) => row.handler === preset.handler))
         continue;
       result.push({
         id: identity(owner || "public", preset.id),
         accountId: owner || "",
         name: preset.name,
-        enabled: true,
+        enabled: ready,
         trigger: { type: "reward", rewardId: "" },
         handler: preset.handler,
         steps: [],

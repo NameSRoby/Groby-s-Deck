@@ -13,22 +13,22 @@ Build a modular control surface for your stream, desktop, phone or tablet:
 - **Song requests:** shared moderation for supported music players and Twitch request sources.
 - **Smart lighting:** Hue, WiZ and Govee LAN controls, saved scenes and Music-to-Light.
 
-Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
+Runs locally on Windows with bundled Twitch Integration and Song Request. Your settings and account credentials stay on your PC.
 
-[Download 0.8.2a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2a) |
+[Download the latest release](https://github.com/NameSRoby/Groby-s-Deck/releases/latest) |
 [User guide](docs/USER_GUIDE.md) |
 [Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
 ## Install
 
-1. Download **Grobys-Deck-Windows-v0.8.2a-setup-installer.exe**.
-2. Run Setup and choose the features you want.
+1. Download the Windows setup installer.
+2. Run Setup. Twitch Integration and Song Request are selected by default.
 3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
 
-**Portable:** extract **Grobys-Deck-Windows-v0.8.2a-self-contained.zip** completely,
-then run **Groby's Deck.exe**.
+**Portable:** extract the self-contained Windows ZIP completely, then run **Groby's Deck.exe**.
+First launch installs the bundled Twitch Integration and Song Request packages offline.
 
-The runtime and optional packages are included. No developer tools are needed.
+The runtime and feature packages are included. No developer tools are needed.
 Your account sign-ins and online music services still need internet.
 
 <details>
@@ -78,9 +78,20 @@ Add pages and folders when you need more space.
 Choose icons, text, images, GIFs and backlight colors.
 Use **Fullscreen** for a dedicated control surface on desktop, phone or tablet.
 
+The screenshots show 0.8.2b in the default **Midnight** theme. Connected examples
+use demo data. New decks use rounded acrylic buttons with crimson backlighting
+and icons with text.
+
 [<img src="assets/screenshots/dashboard.png" alt="Button deck with music widgets and lighting controls" width="920">](assets/screenshots/dashboard.png)
 
 [Button deck setup and customization](docs/CONTROL_DECK.md)
+
+<details>
+<summary>See the public button presets</summary>
+
+[<img src="assets/screenshots/button-presets.png" alt="Public button presets in the button editor" width="760">](assets/screenshots/button-presets.png)
+
+</details>
 
 <details>
 <summary>See the OBS button builder</summary>
@@ -96,7 +107,7 @@ button editor. OBS 28+ includes the required WebSocket server.
 
 ### Send soundboard audio to a microphone input
 
-Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter. 
+Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter.
 
 ## Make your lights follow music
 
@@ -115,7 +126,7 @@ and saved effects.
 
 ## Take song requests
 
-Install **Song Request** from **Packages**, choose a player and follow its Setup page.
+Open **Song Request**, choose a player and follow its Setup page.
 
 Manage requests, moderate viewers and songs, organize playlists, review transfers
 and design a now-playing overlay for OBS.
@@ -130,7 +141,7 @@ and design a now-playing overlay for OBS.
 Availability, accounts, ads and playback restrictions depend on the provider.
 Desktop companions may need updating after player changes.
 
-[<img src="assets/screenshots/song-request.png" alt="Song Request player and queue" width="920">](assets/screenshots/song-request.png)
+[<img src="assets/screenshots/song-request.png" alt="Song Request player setup and request options" width="920">](assets/screenshots/song-request.png)
 
 [Player setup and limitations](docs/USER_GUIDE.md#optional-features) |
 [Playlists and transfers](docs/USER_GUIDE.md#playlists-and-transfers)
@@ -146,7 +157,7 @@ Select an object, adjust its layout and choose **Save overlay** to apply changes
 
 ## Connect Twitch
 
-Install **Twitch Integration** from **Packages** and connect your account.
+Open **Twitch Integration** and connect your account.
 Choose which permissions you want before signing in.
 
 You can enable:
@@ -170,6 +181,13 @@ revoke permissions already granted on Twitch.
 
 [Community playlist rewards](docs/USER_GUIDE.md#community-playlist-reward)
 
+<details>
+<summary>See Twitch automations and built-in features</summary>
+
+[<img src="assets/screenshots/twitch-automations.png" alt="Public automation presets and the Built-in features tab" width="920">](assets/screenshots/twitch-automations.png)
+
+</details>
+
 ## Use a phone or tablet
 
 Click the **network icon** to enable access on your private network.
@@ -178,10 +196,12 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
-## What's fixed in 0.8.2a
+## What's fixed in 0.8.2b
 
-- Public automation and button presets load on fresh installations without personal runtime files.
-- Built-in feature controls stay available; missing rewards fall back to chat commands.
+- Fresh installations provision the Twitch Integration and Song Request packages from the bundle.
+- Public automation examples and button presets are visible before account setup.
+- **Built-in features** has its own tab under **Rewards & automations**. Enabled features with no reward binding can fall back to chat commands.
+- Turn off watchtime tracking in **Watchtime & points** or disable Twitch quote commands in **Quotes**. Both settings keep existing records.
 - Song Request's saved chat mode takes precedence, with mode switching and pause controls preserved.
 - Keeps public presets and profiles, and fixes selected source cards and room-layout colors across every app palette.
 - Tracks setup in a compact dismissible progress bar, with persistent per-feature skips. Lighting starts with pairing and fixture assignment.
@@ -239,7 +259,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 ## Earlier versions
 
 Groby’s Deck 0.8 is the current release. Previous releases remain available in the
-[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.2a for new installations.
+[release archive](docs/RELEASE_ARCHIVE.md) for reference.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
 The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.

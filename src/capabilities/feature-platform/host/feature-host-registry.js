@@ -442,13 +442,26 @@ module.exports = function createFeatureHostRegistry(options = {}) {
     return started;
   }
 
-  async function startInstalled() {
+  async function startInstalled(defaultFeatureIds = []) {
     await require("../../../shared/fs/migrate-package-manifests")(
       featuresRoot,
       "feature",
       verifyFeaturePackageDirectory,
     );
     await discover();
+    let restoredDefaults = false;
+    for (const id of defaultFeatureIds) {
+      await serialize(async () => {
+        if (!stateStore.get(id).enabled || catalog.has(id)) return;
+        const result = fs.existsSync(path.join(featuresRoot, id))
+          ? await packageManager.update(id, { bundledOnly: true, repairInvalid: true })
+          : await packageManager.install(id, { bundledOnly: true });
+        if (result.ok || result.error === "feature_already_installed") restoredDefaults = true;
+        if (!result.ok && result.error !== "feature_already_installed")
+          console.warn("[FEATURE] Could not install bundled " + id + ": " + result.error);
+      })(id);
+    }
+    if (restoredDefaults) await discover();
     const older = [...catalog.values()].filter(needsUpdate);
     for (const row of older) await packageManager.update(row.id, { bundledOnly: true });
     if (older.length) await discover();

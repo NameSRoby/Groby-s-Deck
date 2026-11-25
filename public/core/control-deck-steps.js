@@ -274,12 +274,14 @@ export function buildActionSteps(host, title, initial, catalog, sendKey, options
       const wait = waiting && durationField(step.params.durationMs, "Wait for");
       const parameters = waiting
         ? null
-        : parameterForm(
-            params,
-            action?.parameters || {},
-            step.params,
-            action?.id === "native.hotkey" ? sendKey : undefined,
-          );
+        : action
+          ? parameterForm(
+              params,
+              action.parameters || {},
+              step.params,
+              action.id === "native.hotkey" ? sendKey : undefined,
+            )
+          : () => clone(step.params || {});
       // Earlier before-action delays remain editable; new sequences use visible wait blocks.
       const delay = step.delayMs ? durationField(step.delayMs, "Wait before action") : null;
       const controls = controlsFor(index);

@@ -15,6 +15,7 @@ startCoreServer({
   capabilities: { features: true, mods: true },
   extend: createFeaturePlatformExtension({
     rootDir,
+    installBundledDefaults: true,
     maxActiveMods: Number(process.env.RAVELINK_MAX_ACTIVE_MODS || 4),
     allowUnsafeRuntime: process.env.RAVELINK_ALLOW_UNSAFE_FEATURE_RUNTIME !== "0",
   }),

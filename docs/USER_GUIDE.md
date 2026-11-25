@@ -348,7 +348,7 @@ and [Discord formatting guide](https://support.discord.com/hc/en-us/articles/210
 
 ## Optional features
 
-Install, update, roll back or remove features in **Packages**. Hiding a tab changes navigation only; it does not stop or uninstall a feature.
+Twitch Integration and Song Request are installed by default. Install, update, roll back or remove features in **Packages**. Hiding a tab changes navigation only; it does not stop or uninstall a feature.
 
 **Twitch Integration** provides OAuth, EventSub, chat, managed Channel Points rewards, completion/refunds and optional chat responses. It works independently of Song Request.
 
@@ -484,7 +484,7 @@ Twitch Integration > Watchtime & points lets the streamer choose **Followers** o
 
 The selected mode never changes automatically based on chat size or a raid. Subscriber history comes from verified follower chat badges and current Twitch subscriptions; Twitch does not supply a complete history of expired subscriptions before tracking began. Watchtime and points are stored on disk indefinitely, with an 8 GiB default runtime-history budget. Set the cap in Watchtime & points. At capacity, the least recently active users are removed first across accounts. Quotes and settings are protected; there is no fixed user-count cutoff. Indexed storage uses a bounded memory cache. Arena XP remains separate.
 
-The example clip mod is in `mods/twitch-clips`. It follows the same drag-and-drop, review, approval and enable steps as any community mod. No special bundled-mod approval or automatic startup is used.
+**Twitch Clip Button** is bundled and appears in **Mods** for review. Approve and enable it there to use its deck actions. The public clipping button preset can be saved before this setup.
 
 ### Music favorites
 

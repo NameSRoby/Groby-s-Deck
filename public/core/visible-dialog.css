@@ -25,6 +25,9 @@ dialog.visibleDialog[open] {
 }
 dialog.visibleDialog > .toolbar {
   flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0;
 }
 dialog.visibleDialog > .toolbar button {

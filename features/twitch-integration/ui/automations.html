@@ -44,6 +44,7 @@
 }
 .deckEditorTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 20px;
   border-bottom: 1px solid var(--edge);
@@ -75,6 +76,9 @@
 .deckButtonEditor .deckEditorLayout {
   gap: 20px;
   align-items: start;
+}
+.deckPresetField {
+  max-width: 440px;
 }
 .deckButtonEditor .deckActionLibrary {
   position: sticky;
@@ -304,7 +308,7 @@
   gap: 4px;
   padding: clamp(6px, 6%, 16px);
   border: 1px solid color-mix(in srgb, var(--deck-color) 65%, #ffffff);
-  border-radius: var(--deck-radius, 28px);
+  border-radius: var(--deck-radius, 30px);
   background: var(--deck-color);
   color: var(--deck-text);
   text-align: center;
@@ -765,7 +769,7 @@
 .deckAddButton {
   aspect-ratio: var(--deck-aspect, 1);
   border: 1px dashed var(--edge);
-  border-radius: var(--deck-radius, 28px);
+  border-radius: var(--deck-radius, 30px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1447,7 +1451,7 @@
 @property --deck-color {
   syntax: "<color>";
   inherits: true;
-  initial-value: #a90036;
+  initial-value: #e43662;
 }
 .deckGrid .deckButton,
 .deckAppearancePreview {
@@ -1662,6 +1666,7 @@
 }
 .deckSettingsTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 20px 0;
 }
@@ -3720,6 +3725,9 @@ dialog.visibleDialog[open] {
 }
 dialog.visibleDialog > .toolbar {
   flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0;
 }
 dialog.visibleDialog > .toolbar button {
@@ -4045,6 +4053,19 @@ dialog::backdrop {
 .automationExamples summary {
   color: var(--text);
   font-weight: 600;
+}
+.automationExamples summary + .toolbar {
+  margin-top: 4px;
+}
+.presetActions {
+  align-items: flex-end;
+}
+.presetActions label {
+  flex: 0 1 27rem;
+  min-width: 0;
+}
+.presetActions select {
+  width: 100%;
 }
 .automationListToolbar {
   display: flex;
@@ -4432,12 +4453,12 @@ dialog::backdrop {
 
       
 
-<details class="automationExamples"><summary>Public presets &amp; starter recipes</summary><div class="toolbar"><span>Start with:</span><button id="presetTimer">Chat timer</button><button id="presetSub">Subscriber thank-you</button><button id="presetRaid">Native raid shoutout</button></div><p>Choose a preset, customize it and save when ready. Selecting a preset never runs it.</p><div class="toolbar"><label>Preset<select id="commandExamples"></select></label><button id="useCommandExample">Use preset as a draft</button></div><p id="commandExampleHelp"></p></details>
+<details class="automationExamples" open><summary>Public presets &amp; starter recipes</summary><div class="toolbar"><span>Start with:</span><button id="presetTimer">Chat timer</button><button id="presetSub">Subscriber thank-you</button><button id="presetRaid">Native raid shoutout</button></div><p>Choose a preset, customize it and save when ready. Selecting a preset never runs it.</p><div class="toolbar presetActions"><label>Preset<select id="commandExamples"></select></label><button id="useCommandExample">Use preset as a draft</button></div><p id="commandExampleHelp"></p></details>
 <div id="notice" role="status" aria-live="polite"></div>
       <div id="runs" aria-live="polite"></div>
       <div class="workspace">
-<div class="automationListToolbar"><h2>Your automations</h2><label>Search<input id="automationSearch" type="search" placeholder="Find a command, reward or flow"></label><label>Show<select id="automationFilter"><option value="command">Chat commands</option><option value="reward">Channel Points</option><option value="automation">Timers &amp; events</option><option value="timer">Timers only</option><option value="event">Events</option></select></label></div>
-        <div class="automationCategories" aria-label="Automation categories"><button data-automation-category="command" aria-pressed="true">Chat commands</button><button data-automation-category="reward" aria-pressed="false">Channel Points</button><button data-automation-category="automation" aria-pressed="false">Timers &amp; events</button></div><div id="automationList"></div><details><summary>Recent results</summary><ol id="history"></ol></details><div id="editorParking">
+<div class="automationListToolbar"><h2>Your automations</h2><label>Search<input id="automationSearch" type="search" placeholder="Find a command, reward or flow"></label><label>Show<select id="automationFilter"><option value="command">Chat commands</option><option value="reward">Channel Points</option><option value="automation">Timers &amp; events</option><option value="builtin">Built-in features</option><option value="timer">Timers only</option><option value="event">Events</option></select></label></div>
+        <div class="automationCategories" aria-label="Automation categories"><button data-automation-category="command" aria-pressed="true">Chat commands</button><button data-automation-category="reward" aria-pressed="false">Channel Points</button><button data-automation-category="automation" aria-pressed="false">Timers &amp; events</button><button data-automation-category="builtin" aria-pressed="false">Built-in features</button></div><div id="automationList"></div><details><summary>Recent results</summary><ol id="history"></ol></details><div id="editorParking">
         <section id="editor" hidden>
           <h2 id="editorTitle">New automation</h2>
           <form id="automationForm">
@@ -4496,7 +4517,7 @@ dialog::backdrop {
 </div>
       </div>
       <dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmText"><div class="visibleDialogContent"><h2 id="confirmTitle"></h2><p id="confirmText"></p></div><div class="toolbar"><button id="confirmCancel" autofocus>Cancel</button><button id="confirmProceed" class="danger">Delete</button></div></dialog>
-<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.64</span></p>
+<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.66</span></p>
     </main>
     
 <!-- TWITCH_FLOW_SCRIPT_START -->
@@ -5171,8 +5192,14 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
     );
   }
   return (snapshot, selected, editor, query = "", type = "command") => {
-    if (!["command", "reward", "automation", "timer", "event"].includes(type)) type = "command";
-    const next = JSON.stringify([snapshot.rows, selected?.id, query, type]);
+    const next = JSON.stringify([
+      snapshot.rows,
+      snapshot.builtinPolicies,
+      snapshot.connected,
+      selected?.id,
+      query,
+      type,
+    ]);
     if (next !== key) {
       key = next;
       parking.append(editor);
@@ -5189,61 +5216,44 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
       ])
         heading.append(el("span", "", text));
       host.append(heading);
-      const builtin = (row) => Boolean(snapshot.builtinPolicies?.[row.handler]);
-      const group = (row) =>
-        builtin(row)
-          ? "builtin"
-          : row.trigger.type === "command"
-            ? "command"
-            : row.trigger.type === "reward"
-              ? "reward"
-              : "automation";
-      const order = { builtin: -1, command: 0, reward: 1, automation: 2 },
-        labels = {
-          builtin: "Built-in features",
-          command: "Chat commands",
-          reward: "Channel Points",
-          automation: "Timers & events",
-        };
+      const builtin = (row) => GrobyBuiltinPresets.find((preset) => preset.handler === row.handler);
+      const category = (row) => (builtin(row) ? "builtin" : row.trigger.type);
+      const labels = {
+        builtin: "Built-in features",
+        command: "Chat commands",
+        reward: "Channel Points",
+        automation: "Timers & events",
+        timer: "Timers",
+        event: "Events",
+      };
       const search = query.toLowerCase();
       const visible = snapshot.rows
         .filter(
           (row) =>
-            (builtin(row) ||
-              row.trigger.type === type ||
-              (type === "automation" && group(row) === "automation")) &&
-            [row.name, row.trigger.command, row.trigger.event, summary(row)]
+            (category(row) === type ||
+              (type === "automation" && ["timer", "event"].includes(category(row)))) &&
+            [row.name, row.trigger.command, row.trigger.event, builtin(row)?.command, summary(row)]
               .join(" ")
               .toLowerCase()
               .includes(search),
         )
         .sort(
           (a, b) =>
-            order[group(a)] - order[group(b)] ||
             (a.trigger.command || a.name).localeCompare(b.trigger.command || b.name, undefined, {
               numeric: true,
               sensitivity: "base",
-            }) ||
-            a.id.localeCompare(b.id),
+            }) || a.id.localeCompare(b.id),
         );
-      let priorGroup = "";
+      if (visible.length)
+        host.append(el("h3", "automationGroupHeading", labels[type] + " · " + visible.length));
       for (const row of visible) {
-        if (group(row) !== priorGroup) {
-          priorGroup = group(row);
-          const label = el(
-            "h3",
-            "automationGroupHeading",
-            labels[priorGroup] +
-              " · " +
-              visible.filter((item) => group(item) === priorGroup).length,
-          );
-          host.append(label);
-        }
-        const item = el("div", "automationItem"),
+        const preset = builtin(row),
+          policy = snapshot.builtinPolicies?.[row.handler],
+          item = el("div", "automationItem"),
           line = el("div", "automationColumns"),
           control = el("button", "automationEnable");
         control.type = "button";
-        control.disabled = snapshot.connected === false;
+        control.disabled = snapshot.connected === false || policy?.available === false;
         control.setAttribute("role", "switch");
         control.setAttribute("aria-checked", String(row.enabled));
         control.setAttribute("aria-label", row.enabled ? "Pause automation" : "Start automation");
@@ -5273,17 +5283,19 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         if (row.trigger.type === "command" && row.name === row.trigger.command)
           title.querySelector("small").remove();
         title.onclick = () => edit(row);
-        if (builtin(row)) {
-          const preset = GrobyBuiltinPresets.find((preset) => preset.handler === row.handler);
-          const policy = snapshot.builtinPolicies[row.handler];
-          title.querySelector("small").textContent = policy.chatEnabled
-            ? "Chat · " +
-              preset.command +
-              (policy.commandPreferred ? " · selected in Song Request Setup" : " · no reward bound")
-            : policy.enabled && row.trigger.rewardId
-              ? "Channel Points"
-              : "Chat fallback · " + preset.command;
-        }
+        if (preset)
+          title.querySelector("small").textContent =
+            policy?.available === false
+              ? "Enable Song Request in Packages"
+              : policy?.chatEnabled
+                ? "Chat · " +
+                  preset.command +
+                  (policy.commandPreferred
+                    ? " · selected in Song Request Setup"
+                    : " · no reward bound")
+                : row.trigger.rewardId
+                  ? "Channel Points"
+                  : "Chat fallback · " + preset.command;
         const description = summary(row);
         const response = el("span", "automationResponse", description);
         response.title = description;
@@ -5295,7 +5307,7 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         trash.setAttribute("aria-label", "Remove " + row.name);
         trash.onclick = () => remove(row);
         actions.append(expand);
-        if (!builtin(row)) actions.append(trash);
+        if (!preset || !policy) actions.append(trash);
         line.append(
           control,
           title,
@@ -6401,12 +6413,14 @@ function buildActionSteps(host, title, initial, catalog, sendKey, options = {}) 
       const wait = waiting && durationField(step.params.durationMs, "Wait for");
       const parameters = waiting
         ? null
-        : parameterForm(
-            params,
-            action?.parameters || {},
-            step.params,
-            action?.id === "native.hotkey" ? sendKey : undefined,
-          );
+        : action
+          ? parameterForm(
+              params,
+              action.parameters || {},
+              step.params,
+              action.id === "native.hotkey" ? sendKey : undefined,
+            )
+          : () => clone(step.params || {});
       // Earlier before-action delays remain editable; new sequences use visible wait blocks.
       const delay = step.delayMs ? durationField(step.delayMs, "Wait before action") : null;
       const controls = controlsFor(index);
@@ -6528,11 +6542,13 @@ function buildActionSteps(host, title, initial, catalog, sendKey, options = {}) 
 Object.assign(DeckFlow,{buildActionSteps});
 })();
 /** Operator UI. Capabilities cross the sandbox bridge; credentials never enter it. */
-/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, GrobyBuiltinPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
+/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
     CHANNEL = "ravelink-feature-ui-v1",
-    pending = new Map();
+    pending = new Map(),
+    categoryFilter = $("automationFilter"),
+    listSearch = $("automationSearch");
   const confirmation = createVisibleDialog($("confirm"));
   const connectLink = document.createElement("button");
   connectLink.type = "button";
@@ -6708,7 +6724,10 @@ Object.assign(DeckFlow,{buildActionSteps});
     const reward = selected && $("triggerType").value === "reward",
       saved = snapshot.rows.find((row) => row.id === selected?.id),
       bound = saved?.trigger.rewardId;
-    $("save").disabled = busy || !connected || rewardResultUnknown === selected?.id;
+    const policy = snapshot.builtinPolicies?.[$("handler").value];
+    $("remove").hidden = Boolean(policy);
+    $("save").disabled =
+      busy || !connected || policy?.available === false || rewardResultUnknown === selected?.id;
     $("save").textContent = reward
       ? $("rewardId").value
         ? "Save automation & reward"
@@ -6758,11 +6777,11 @@ Object.assign(DeckFlow,{buildActionSteps});
       removeAutomation(row);
     },
   });
-  $("automationSearch").oninput = () => {
+  listSearch.oninput = () => {
     closeEditor();
     render();
   };
-  $("automationFilter").onchange = () => {
+  categoryFilter.onchange = () => {
     closeEditor();
     render();
   };
@@ -6771,8 +6790,8 @@ Object.assign(DeckFlow,{buildActionSteps});
     (button) =>
       (button.onclick = () => {
         closeEditor();
-        $("automationFilter").value = button.dataset.automationCategory;
-        $("automationSearch").value = "";
+        categoryFilter.value = button.dataset.automationCategory;
+        listSearch.value = "";
         render();
       }),
   );
@@ -6782,21 +6801,10 @@ Object.assign(DeckFlow,{buildActionSteps});
       .forEach((button) =>
         button.setAttribute(
           "aria-pressed",
-          String(
-            button.dataset.automationCategory ===
-              (["timer", "event"].includes($("automationFilter").value)
-                ? "automation"
-                : $("automationFilter").value),
-          ),
+          String(button.dataset.automationCategory === automationCategory(categoryFilter.value)),
         ),
       );
-    drawRows(
-      snapshot,
-      selected,
-      $("editor"),
-      $("automationSearch").value,
-      $("automationFilter").value,
-    );
+    drawRows(snapshot, selected, $("editor"), listSearch.value, categoryFilter.value);
     $("runs").replaceChildren();
     if (snapshot.shoutouts?.pending) {
       const p = document.createElement("p"),
@@ -6848,7 +6856,6 @@ Object.assign(DeckFlow,{buildActionSteps});
   }
   function initializeExamples() {
     const presets = [
-      ...GrobyBuiltinPresets,
       ...GrobyAutomationPresets,
       ...GrobyVariablePresets.map((row) => ({
         ...row,
@@ -6954,19 +6961,10 @@ Object.assign(DeckFlow,{buildActionSteps});
   }
   function loadPreset(preset) {
     if (!preset || busy) return;
-    if (preset.handler && preset.handler !== "flow") {
-      const existing = snapshot.rows.find((row) => row.handler === preset.handler);
-      if (existing) {
-        open(existing);
-        notice(preset.description);
-        return;
-      }
-    }
-    $("newAutomation").click();
-    $("automationFilter").value = preset.trigger.type === "command" ? "command" : "automation";
-    $("automationSearch").value = "";
+    categoryFilter.value = automationCategory(preset.trigger.type);
+    listSearch.value = "";
     open({
-      ...selected,
+      id: draftId(),
       name: preset.name,
       enabled: false,
       trigger: preset.trigger,
@@ -7012,6 +7010,7 @@ Object.assign(DeckFlow,{buildActionSteps});
     $("rewardId").value = value || "";
   }
   function open(row) {
+    if (row.handler !== "flow") categoryFilter.value = "builtin";
     editRevision = snapshot.revision;
     selected = structuredClone(row);
     $("editor").hidden = false;
@@ -7210,19 +7209,27 @@ Object.assign(DeckFlow,{buildActionSteps});
   $("confirm").addEventListener("close", () => {
     confirmAction = null;
   });
-  $("newAutomation").onclick = () => {
+  function draftId() {
     const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
+    return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+  }
+  const automationCategory = (type) => (["timer", "event"].includes(type) ? "automation" : type);
+  $("newAutomation").onclick = () => {
+    if (categoryFilter.value === "builtin") {
+      categoryFilter.value = "reward";
+      listSearch.value = "";
+    }
     open({
-      id: [...bytes].map((value) => value.toString(16).padStart(2, "0")).join(""),
+      id: draftId(),
       name: "",
       enabled: true,
       trigger:
-        $("automationFilter").value === "command"
+        categoryFilter.value === "command"
           ? { type: "command", command: "!newcommand" }
-          : $("automationFilter").value === "reward"
+          : categoryFilter.value === "reward"
             ? { type: "reward", rewardId: "" }
-            : $("automationFilter").value === "event"
+            : categoryFilter.value === "event"
               ? { type: "event", event: "channel.subscribe" }
               : {
                   type: "timer",
@@ -7251,11 +7258,10 @@ Object.assign(DeckFlow,{buildActionSteps});
   $("search").oninput = renderLibrary;
   $("triggerType").onchange = () => {
     switchTrigger();
-    const category = $("triggerType").value,
-      group = ["timer", "event"].includes(category) ? "automation" : category;
-    if ($("automationFilter").value !== group) {
-      $("automationFilter").value = group;
-      $("automationSearch").value = "";
+    const group = automationCategory($("triggerType").value);
+    if (categoryFilter.value !== group) {
+      categoryFilter.value = group;
+      listSearch.value = "";
       render();
     }
   };
@@ -7298,6 +7304,9 @@ Object.assign(DeckFlow,{buildActionSteps});
       snapshot = await call("save", { revision: editRevision, automation: value });
       editRevision = snapshot.revision;
       selected = snapshot.rows.find((row) => row.id === value.id) || value;
+      if (selected.handler !== "flow") categoryFilter.value = "builtin";
+      else if (categoryFilter.value === "builtin")
+        categoryFilter.value = automationCategory(selected.trigger.type);
       $("editorTitle").textContent = "Edit automation";
       render();
       if (!fields) {

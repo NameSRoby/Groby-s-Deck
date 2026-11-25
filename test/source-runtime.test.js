@@ -25,16 +25,32 @@ test("source setup rejects a different runtime graph and missing production depe
     },
   };
   write(source, "package-lock.json", lock);
+  write(source, "desktop/windows-host/prerequisites.json", {
+    webview2: { file: "fixture-installer.exe", size: 7 },
+  });
   write(runtime, "package-lock.json", lock);
   for (const name of [
     "runtime/Grobys-Deck-Node.exe",
     "runtime/music-to-light/cargo/release/groby-audio-probe.exe",
     "runtime/NODE-LICENSE.txt",
+    "runtime/desktop/Microsoft.Web.WebView2.Core.dll",
+    "runtime/desktop/Microsoft.Web.WebView2.WinForms.dll",
+    "runtime/desktop/WebView2Loader.dll",
+    "runtime/desktop/LICENSE.WebView2.txt",
   ])
     write(runtime, name, "fixture");
   assert.throws(() => verify(source, runtime), /ENOENT/);
   write(runtime, "node_modules/required/package.json", { version: "1.0.0" });
+  const installer = "optional-components/prerequisites/fixture-installer.exe";
+  assert.throws(() => verify(source, runtime), /offline WebView2 installer/);
+  write(runtime, installer, "short");
+  assert.throws(() => verify(source, runtime), /offline WebView2 installer/);
+  write(runtime, installer, "fixture");
   assert.doesNotThrow(() => verify(source, runtime));
+  const loader = "runtime/desktop/WebView2Loader.dll";
+  fs.unlinkSync(path.join(runtime, loader));
+  assert.throws(() => verify(source, runtime), /WebView2Loader/);
+  write(runtime, loader, "fixture");
   lock.packages["node_modules/required"].integrity = "sha512-different";
   write(runtime, "package-lock.json", lock);
   assert.throws(() => verify(source, runtime), /differs from source lock/);

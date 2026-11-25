@@ -46,7 +46,8 @@
       }
       .actions {
         display: flex;
-        gap: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
       }
       .primary {
         background: #9a123d;
@@ -72,12 +73,13 @@
     </p>
     <label for="mode">Track watchtime for</label
     ><select id="mode">
+      <option value="off">Off</option>
       <option value="followers">Followers</option>
       <option value="subscribed-followers">Followers who have subscribed before</option>
     </select>
     <p>
-      People outside the chosen mode earn no time or points. Saving the subscriber-only mode removes
-      existing watchtime records without verified subscription history.
+      Off pauses new watchtime and points and keeps saved records. The subscriber-only mode removes
+      records without verified subscription history.
     </p>
     <label for="storageCap">Runtime history storage cap</label
     ><select id="storageCap">

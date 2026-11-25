@@ -19,11 +19,13 @@ All workspaces remain available in any order. A compact Setup bar stays above th
 | Song Request | `!sr artist song` (`!songrequest`) |
 | Add to playlist | `!addtoplaylist artist song` (`!playlistadd`, `!addsong`) |
 
-These controls stay in the automation list while their feature is available. Connecting a reward does not remove the built-in control. Deleting its reward returns an enabled control to chat fallback. Disabling a built-in control disables its fallback.
+Find these controls in **Twitch Integration → Rewards & automations → Built-in features**. The tab shows all four controls and indicates when Song Request needs to be enabled. Connecting a reward does not remove the built-in control. Deleting its reward returns an enabled control to chat fallback. Disabling a built-in control disables its fallback.
 
 The saved **Song Request → Setup → Request method** takes precedence: selecting **Chat commands** keeps `!sr` available even if the Channel Points automation is absent, disabled or paused. The request-mode deck button changes this same preference in both directions. Selecting Channel Points without a linked reward retains chat fallback until one is linked; it does not silently change the saved preference.
 
 **Pause rewards & chat intake** pauses viewer commands and managed redemptions, including on channels with no Channel Points rewards. Per-reward pause controls pause the corresponding built-in chat intake too. Switching request mode never clears this pause. Song Request's own queue pause, moderation and command access rules still apply. Resuming rewards cannot reopen a paused or unverified song queue.
+
+Set **Twitch Integration → Watchtime & points → Track watchtime for** to **Off** and save to pause tracking and silence the built-in `!watchtime` and `!points` commands. In **Quotes**, clear **Enable quote commands in Twitch chat** to silence the built-in quote commands. You can still review and edit saved quotes in the app. Both settings are remembered for each connected Twitch channel.
 
 ## Public catalogs and personal settings
 

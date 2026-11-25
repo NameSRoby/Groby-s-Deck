@@ -41,6 +41,10 @@ operate that host through the same action library.
 
 ## Make it yours
 
+Fresh decks use eight columns on desktop and tablet, two on phones, rounded
+acrylic buttons, crimson backlighting and icons with text. These are appearance
+defaults only; existing saved layouts, button actions and custom styles are retained.
+
 Choose the **+** tile, find an app or mod action, then save. **Edit** lets you drag
 buttons into order with a floating preview and live insertion position, tap them to customize, or remove them. **Undo** restores the
 last layout change. Add pages with **+ Page**, and choose a folder behavior to

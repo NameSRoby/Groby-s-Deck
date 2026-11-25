@@ -13,7 +13,7 @@ export function initDashboardLayout(panel) {
   gear.textContent = "Edit dashboard";
   gear.setAttribute("aria-pressed", "false");
   gear.disabled = true;
-  document.getElementById("themePanel").append(gear);
+  document.getElementById("themePanelActions").append(gear);
   const toolbar = document.createElement("div");
   toolbar.className = "dashboardEditBar";
   toolbar.innerHTML =

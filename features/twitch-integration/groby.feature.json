@@ -3,7 +3,7 @@
   "id": "twitch-integration",
   "name": "Twitch Integration",
   "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
-  "version": "0.12.64",
+  "version": "0.12.66",
   "publisher": "grobys-deck",
   "entry": "dist/main.js",
   "engine": {
@@ -133,7 +133,7 @@
   "integrity": {
     "algorithm": "sha256",
     "files": {
-      "contracts/twitch-automations-v1.contracts.json": "1f6ff0b606041981ea4fe4111ca854a7fe1127adcd458f2b1a7cccdd392d9aee",
+      "contracts/twitch-automations-v1.contracts.json": "b7eb32ec936ffa76e038760184cc3945edec9405dec44233f6ea905794cb2605",
       "contracts/twitch-integration-v1.contracts.json": "b2987b4f5e24a721c3a8e2abfd81e1e52c47b2872083bd6a03df4a6847be0ca8",
       "dist/arena-language.json": "39437a095d98790c98c2aae5869bd35230d75772cfb861449e549cb2878544d0",
       "dist/counter-syntax.js": "699a09e7073ffb02b9faec8c5963400fe49b7a152ebf12fa2a2cfcdd2f1f0741",
@@ -142,10 +142,10 @@
       "dist/variable-arguments.js": "779523f64d66cb60cf2f11ccb0a28c50759c2966d9c33e1e61a8a9754e90cf0b",
       "dist/variable-recipe-storage.js": "667e8e7749ebfde1ab443c96e33ec5d2e79e243be6d2cb35f907fb12f0c40c53",
       "dist/variable-recipe.js": "7ba0d02d35612c9d17481dd9d9587c857b8291a8528135368828f2825163cc56",
-      "ui/automations-controller.js": "e4b36a89bacf6d87d000f8374060b0726890846ab75dcec2438ea1cc1ad1dc43",
-      "ui/automations-layout.css": "fe063fccc9c0d14d975409bb04b4321ec15881136c10444590b25109165dca48",
-      "ui/automations-list.js": "68c4f78db907cd35f39f718f4497cb8f4d60663d02326a1831c6532bdd846898",
-      "ui/automations.html": "f6cb039a0fe2aee11855a5504a1bf984505616c02d5d730c86c9ce576fc98b91",
+      "ui/automations-controller.js": "e1626c98f1f182637a620de7ffa6ebf190f4445440cca92a9d4245578b7ed835",
+      "ui/automations-layout.css": "31177fe75fe6edd2d6a4ca703912e70309d0e11038d10a440c68f543892f73f9",
+      "ui/automations-list.js": "546fa88c6b0b586a2efca63eff3b068654a16eec05be3db668a3a6ba38985236",
+      "ui/automations.html": "1b4b978d749416b2a8f50fc3e9eb29218f7a6aa9ce6e372d684e385f04e16c71",
       "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
       "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
       "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",
@@ -153,12 +153,12 @@
       "ui/command-list.css": "40e1a5711d7cd76fcc7c2d8e930ea3bd3b346442cd917b94df76659e6c965ff8",
       "ui/command-list.html": "4e2b5b54ee7629028c12b3ac08e5a84fd8b1f005a928da601301d2e8ac2a0dd9",
       "ui/command-manual.html": "3f0c33f72f1336520a427cef7e25e0edbc7b56d2209ebae1c05ced5f25a2b7de",
-      "ui/connection.html": "c666d3eb171067b4e38665741aa885f0d332d2a3032093373ed1d326d1cebe69",
+      "ui/connection.html": "54275cbb316c8adcdbcf1aa45e18d2f8f34ded74059f4be00fc6fa0f58db8d33",
       "ui/duration-input.js": "d37303482538b419af104e660f99ffd2a89df0565f17b780a8ff6ed7979943a4",
-      "ui/quotes-manager.js": "165025d9ce7c3ef7231a24a14164b085a529bf09254b56f0fcef58ed6a55041b",
-      "ui/quotes.html": "f59980ea8b0e646809e88ba5cb7fac192476c2308546c197fd7f64937e9c69be",
+      "ui/quotes-manager.js": "109e9f73b4809ca2a233c5822e84002b80e84370d7894d288df3e91b8156c00a",
+      "ui/quotes.html": "2df75ac4c03835273076a93892cc38e4dae6004a8164604b5109ecdeb6649056",
       "ui/syntax.html": "a801830e54051accd9ed82ae78bd42c3b128998aa36109431057a20cd3382e7a",
-      "ui/watchtime.html": "0f794b81622df7eebd719ddf2cecbe4503cfcdca4d6e200388d63d72c8bb537c"
+      "ui/watchtime.html": "6dcafa05b4bb6a77a6085dbf109ad2b28933bc51c7b216a65d412e3527f76df5"
     }
   }
 }

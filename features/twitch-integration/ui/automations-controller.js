@@ -1,9 +1,11 @@
 /** Operator UI. Capabilities cross the sandbox bridge; credentials never enter it. */
-/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, GrobyBuiltinPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
+/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
     CHANNEL = "ravelink-feature-ui-v1",
-    pending = new Map();
+    pending = new Map(),
+    categoryFilter = $("automationFilter"),
+    listSearch = $("automationSearch");
   const confirmation = createVisibleDialog($("confirm"));
   const connectLink = document.createElement("button");
   connectLink.type = "button";
@@ -179,7 +181,10 @@
     const reward = selected && $("triggerType").value === "reward",
       saved = snapshot.rows.find((row) => row.id === selected?.id),
       bound = saved?.trigger.rewardId;
-    $("save").disabled = busy || !connected || rewardResultUnknown === selected?.id;
+    const policy = snapshot.builtinPolicies?.[$("handler").value];
+    $("remove").hidden = Boolean(policy);
+    $("save").disabled =
+      busy || !connected || policy?.available === false || rewardResultUnknown === selected?.id;
     $("save").textContent = reward
       ? $("rewardId").value
         ? "Save automation & reward"
@@ -229,11 +234,11 @@
       removeAutomation(row);
     },
   });
-  $("automationSearch").oninput = () => {
+  listSearch.oninput = () => {
     closeEditor();
     render();
   };
-  $("automationFilter").onchange = () => {
+  categoryFilter.onchange = () => {
     closeEditor();
     render();
   };
@@ -242,8 +247,8 @@
     (button) =>
       (button.onclick = () => {
         closeEditor();
-        $("automationFilter").value = button.dataset.automationCategory;
-        $("automationSearch").value = "";
+        categoryFilter.value = button.dataset.automationCategory;
+        listSearch.value = "";
         render();
       }),
   );
@@ -253,21 +258,10 @@
       .forEach((button) =>
         button.setAttribute(
           "aria-pressed",
-          String(
-            button.dataset.automationCategory ===
-              (["timer", "event"].includes($("automationFilter").value)
-                ? "automation"
-                : $("automationFilter").value),
-          ),
+          String(button.dataset.automationCategory === automationCategory(categoryFilter.value)),
         ),
       );
-    drawRows(
-      snapshot,
-      selected,
-      $("editor"),
-      $("automationSearch").value,
-      $("automationFilter").value,
-    );
+    drawRows(snapshot, selected, $("editor"), listSearch.value, categoryFilter.value);
     $("runs").replaceChildren();
     if (snapshot.shoutouts?.pending) {
       const p = document.createElement("p"),
@@ -319,7 +313,6 @@
   }
   function initializeExamples() {
     const presets = [
-      ...GrobyBuiltinPresets,
       ...GrobyAutomationPresets,
       ...GrobyVariablePresets.map((row) => ({
         ...row,
@@ -425,19 +418,10 @@
   }
   function loadPreset(preset) {
     if (!preset || busy) return;
-    if (preset.handler && preset.handler !== "flow") {
-      const existing = snapshot.rows.find((row) => row.handler === preset.handler);
-      if (existing) {
-        open(existing);
-        notice(preset.description);
-        return;
-      }
-    }
-    $("newAutomation").click();
-    $("automationFilter").value = preset.trigger.type === "command" ? "command" : "automation";
-    $("automationSearch").value = "";
+    categoryFilter.value = automationCategory(preset.trigger.type);
+    listSearch.value = "";
     open({
-      ...selected,
+      id: draftId(),
       name: preset.name,
       enabled: false,
       trigger: preset.trigger,
@@ -483,6 +467,7 @@
     $("rewardId").value = value || "";
   }
   function open(row) {
+    if (row.handler !== "flow") categoryFilter.value = "builtin";
     editRevision = snapshot.revision;
     selected = structuredClone(row);
     $("editor").hidden = false;
@@ -681,19 +666,27 @@
   $("confirm").addEventListener("close", () => {
     confirmAction = null;
   });
-  $("newAutomation").onclick = () => {
+  function draftId() {
     const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
+    return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+  }
+  const automationCategory = (type) => (["timer", "event"].includes(type) ? "automation" : type);
+  $("newAutomation").onclick = () => {
+    if (categoryFilter.value === "builtin") {
+      categoryFilter.value = "reward";
+      listSearch.value = "";
+    }
     open({
-      id: [...bytes].map((value) => value.toString(16).padStart(2, "0")).join(""),
+      id: draftId(),
       name: "",
       enabled: true,
       trigger:
-        $("automationFilter").value === "command"
+        categoryFilter.value === "command"
           ? { type: "command", command: "!newcommand" }
-          : $("automationFilter").value === "reward"
+          : categoryFilter.value === "reward"
             ? { type: "reward", rewardId: "" }
-            : $("automationFilter").value === "event"
+            : categoryFilter.value === "event"
               ? { type: "event", event: "channel.subscribe" }
               : {
                   type: "timer",
@@ -722,11 +715,10 @@
   $("search").oninput = renderLibrary;
   $("triggerType").onchange = () => {
     switchTrigger();
-    const category = $("triggerType").value,
-      group = ["timer", "event"].includes(category) ? "automation" : category;
-    if ($("automationFilter").value !== group) {
-      $("automationFilter").value = group;
-      $("automationSearch").value = "";
+    const group = automationCategory($("triggerType").value);
+    if (categoryFilter.value !== group) {
+      categoryFilter.value = group;
+      listSearch.value = "";
       render();
     }
   };
@@ -769,6 +761,9 @@
       snapshot = await call("save", { revision: editRevision, automation: value });
       editRevision = snapshot.revision;
       selected = snapshot.rows.find((row) => row.id === value.id) || value;
+      if (selected.handler !== "flow") categoryFilter.value = "builtin";
+      else if (categoryFilter.value === "builtin")
+        categoryFilter.value = automationCategory(selected.trigger.type);
       $("editorTitle").textContent = "Edit automation";
       render();
       if (!fields) {

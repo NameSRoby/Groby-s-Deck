@@ -36,7 +36,9 @@ class Stub { static int Main(string[] args) {
   string id = Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_ID");
   if (id == null || id.Length != 32) return 90;
   string key = "Software\\\\RaveLink\\\\SetupTests\\\\" + id;
-  using (var user = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry32)) {
+  var view = Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_64") == "1"
+    ? RegistryView.Registry64 : RegistryView.Registry32;
+  using (var user = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, view)) {
     if (args.Length > 0 && args[0] == "--cleanup") { user.DeleteSubKeyTree(key, false); return 0; }
     if (args.Length == 0 || args[0] != "--preinstall") File.WriteAllText(Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_MARKER"), "executed");
     if (Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_FAIL") == "1") return 19;
@@ -51,7 +53,7 @@ class Stub { static int Main(string[] args) {
     const digest = crypto.createHash("sha256").update(fs.readFileSync(stub)).digest("hex");
     const actualKey =
       "SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
-    for (const mode of ["missing", "existing", "old", "failure", "tampered"]) {
+    for (const mode of ["missing", "existing", "existing64", "old", "failure", "tampered"]) {
       const directory = path.join(root, mode);
       fs.mkdirSync(directory);
       const id = crypto.randomBytes(16).toString("hex");
@@ -61,10 +63,11 @@ class Stub { static int Main(string[] args) {
         RAVELINK_PREREQ_FIXTURE_MARKER: marker,
         RAVELINK_PREREQ_FIXTURE_FAIL: mode === "failure" ? "1" : "0",
         RAVELINK_PREREQ_FIXTURE_OLD: mode === "old" ? "1" : "0",
+        RAVELINK_PREREQ_FIXTURE_64: mode === "existing64" ? "1" : "0",
       };
       const fixtureKey = "Software\\RaveLink\\SetupTests\\" + id;
       try {
-        if (mode === "existing" || mode === "old")
+        if (mode.startsWith("existing") || mode === "old")
           assert.equal(run(stub, ["--preinstall"], env).status, 0);
         const code = require("../scripts/installer-prerequisite-code")()
           .join("\n")
@@ -116,7 +119,7 @@ begin Result := EnsureWebViewRuntime(NeedsRestart); end;
           ],
           env,
         );
-        const success = mode === "missing" || mode === "existing" || mode === "old";
+        const success = mode === "missing" || mode.startsWith("existing") || mode === "old";
         assert.equal(
           result.status === 0,
           success,
@@ -131,6 +134,64 @@ begin Result := EnsureWebViewRuntime(NeedsRestart); end;
       } finally {
         assert.equal(run(stub, ["--cleanup"], env).status, 0);
       }
+    }
+  },
+);
+
+test(
+  "Setup reports a failing post-install check and leaves navigation untouched",
+  { skip: process.platform !== "win32" || !compiler },
+  (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-setup-result-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const check = path.join(root, "check-installation.js");
+    const install = path.join(root, "install-official-features.js");
+    fs.writeFileSync(
+      check,
+      'process.exitCode = process.env.GROBY_TEST_SETUP_FAILURE === "check" ? 1 : 0;\n',
+    );
+    fs.writeFileSync(
+      install,
+      'process.exitCode = process.env.GROBY_TEST_SETUP_FAILURE === "feature" ? 1 : 0;\n',
+    );
+    const script = path.join(root, "setup.iss");
+    fs.writeFileSync(
+      script,
+      `[Setup]
+AppId=GrobySetupResult${crypto.randomBytes(8).toString("hex")}
+AppName=Groby's Deck setup result fixture
+AppVersion=1
+DefaultDirName=${path.join(root, "app")}
+OutputDir=${root}
+OutputBaseFilename=fixture
+PrivilegesRequired=lowest
+Uninstallable=no
+CreateUninstallRegKey=no
+Compression=none
+[Tasks]
+Name: "music_to_light"; Description: "Music-to-Light"; Flags: unchecked
+Name: "feature_twitch_integration_bundled"; Description: "Twitch Integration"
+Name: "feature_song_request_bundled"; Description: "Song Request"
+[Files]
+Source: "${process.execPath}"; DestDir: "{app}\\runtime"; DestName: "Grobys-Deck-Node.exe"
+Source: "${check}"; DestDir: "{app}\\scripts"
+Source: "${install}"; DestDir: "{app}\\scripts"
+[Code]
+${require("../scripts/installer-first-run-code")().join("\n")}
+${require("../scripts/installer-navigation-code")().join("\n")}
+`,
+    );
+    const compiled = run(compiler, ["/Qp", script]);
+    assert.equal(compiled.status, 0, compiled.stdout + compiled.stderr);
+    for (const mode of ["ok", "check", "feature"]) {
+      const app = path.join(root, mode);
+      const result = run(
+        path.join(root, "fixture.exe"),
+        ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/DIR=" + app],
+        { GROBY_TEST_SETUP_FAILURE: mode },
+      );
+      assert.equal(result.status, mode === "ok" ? 0 : 20, result.stdout + result.stderr);
+      assert.equal(fs.existsSync(path.join(app, "runtime/system/navigation.json")), mode === "ok");
     }
   },
 );

@@ -101,11 +101,17 @@ module.exports = (file, options = {}) => {
     tracking(owner, mode) {
       const target = account(owner);
       if (mode !== undefined) {
-        if (!["followers", "subscribed-followers"].includes(mode))
+        if (!["off", "followers", "subscribed-followers"].includes(mode))
           throw Error("Invalid tracking mode.");
+        const previous = target.trackingMode;
         target.trackingMode = mode;
         dirty = true;
-        flush();
+        try {
+          flush();
+        } catch (error) {
+          target.trackingMode = previous;
+          throw error;
+        }
       }
       return target.trackingMode || "followers";
     },

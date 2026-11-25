@@ -32,7 +32,7 @@
     draw();
     dialog.showModal();
   };
-  document.getElementById("themePanel").append(open);
+  document.getElementById("themePanelActions").append(open);
   const menuOpen = document.createElement("button");
   menuOpen.type = "button";
   menuOpen.textContent = "CHOOSE TABS";

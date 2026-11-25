@@ -47,6 +47,9 @@ module.exports = function createModPlatformExtension(options = {}) {
     const inbox = createModDropInbox({
       inboxRoot,
       legacyInboxRoot: options.inboxRoot ? undefined : path.join(rootDir, "mod"),
+      bundledInboxRoot: options.inboxRoot
+        ? undefined
+        : path.join(rootDir, "optional-components", "mod-packages"),
       packageManager,
       log: options.log || console,
     });

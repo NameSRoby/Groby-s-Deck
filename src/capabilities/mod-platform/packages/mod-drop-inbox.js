@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const EventEmitter = require("node:events");
+const contentFingerprint = require("./mod-content-fingerprint");
 
 const MAX_INBOX_ENTRIES = 128;
 const SCAN_DEBOUNCE_MS = 300;
@@ -15,11 +16,9 @@ function candidateId(name) {
 
 module.exports = function createModDropInbox(options = {}) {
   const inboxRoot = path.resolve(String(options.inboxRoot || path.join(process.cwd(), "mods")));
-  const roots = [
-    ...new Set(
-      [inboxRoot, options.legacyInboxRoot && path.resolve(options.legacyInboxRoot)].filter(Boolean),
-    ),
-  ];
+  const legacyRoot = options.legacyInboxRoot && path.resolve(options.legacyInboxRoot);
+  const bundledRoot = options.bundledInboxRoot && path.resolve(options.bundledInboxRoot);
+  const roots = [...new Set([bundledRoot, inboxRoot, legacyRoot].filter(Boolean))];
   const packageManager = options.packageManager;
   const log = options.log || console;
   if (!packageManager?.inspectSource || !packageManager?.inspectArchive) {
@@ -50,13 +49,12 @@ module.exports = function createModDropInbox(options = {}) {
       consumes: row.manifest ? [...row.manifest.consumes] : [],
       resources: row.manifest ? { ...row.manifest.resources } : null,
       fingerprint: row.approval?.fingerprint || "",
-      packageFingerprint: row.manifest ? require("./mod-content-fingerprint")(row.manifest) : "",
+      packageFingerprint: row.packageFingerprint || "",
     };
   }
 
-  async function inspectEntry(entry, root) {
+  async function inspectEntry(entry, root, sourceName) {
     const sourcePath = path.join(root, entry.name);
-    const sourceName = root === inboxRoot ? entry.name : "mod/" + entry.name;
     const kind = entry.isDirectory()
       ? "directory"
       : entry.isFile() && path.extname(entry.name).toLowerCase() === ".zip"
@@ -76,6 +74,7 @@ module.exports = function createModDropInbox(options = {}) {
       error: result.ok === true ? "" : String(result.error || "package_invalid"),
       manifest: result.ok === true ? result.manifest : null,
       approval: result.ok === true ? result.approval : null,
+      packageFingerprint: result.ok === true ? contentFingerprint(result.manifest) : "",
     };
   }
 
@@ -83,6 +82,7 @@ module.exports = function createModDropInbox(options = {}) {
     if (stopped) return list();
     await fs.promises.mkdir(inboxRoot, { recursive: true });
     const next = [];
+    const bundledFingerprints = new Set();
     for (const root of roots) {
       if (!fs.existsSync(root)) continue;
       const stat = await fs.promises.lstat(root);
@@ -92,13 +92,17 @@ module.exports = function createModDropInbox(options = {}) {
         .sort((a, b) => a.name.localeCompare(b.name))
         .slice(0, MAX_INBOX_ENTRIES - next.length);
       for (const entry of entries) {
+        const sourceName =
+          (root === inboxRoot ? "" : root === bundledRoot ? "bundled/" : "mod/") + entry.name;
         try {
-          const row = await inspectEntry(entry, root);
-          if (row) next.push(row);
+          const row = await inspectEntry(entry, root, sourceName);
+          if (!row || bundledFingerprints.has(row.packageFingerprint)) continue;
+          if (root === bundledRoot && row.valid) bundledFingerprints.add(row.packageFingerprint);
+          next.push(row);
         } catch (error) {
           next.push({
-            candidateId: candidateId(root === inboxRoot ? entry.name : "mod/" + entry.name),
-            sourceName: root === inboxRoot ? entry.name : "mod/" + entry.name,
+            candidateId: candidateId(sourceName),
+            sourceName,
             kind: "unknown",
             valid: false,
             error: String(error?.message || "package_inspection_failed").slice(0, 120),
@@ -137,7 +141,8 @@ module.exports = function createModDropInbox(options = {}) {
       await scan();
       if (stopped || watchers.length) return list();
       for (const root of roots) {
-        if (!fs.existsSync(root) || fs.lstatSync(root).isSymbolicLink()) continue;
+        if (root === bundledRoot || !fs.existsSync(root) || fs.lstatSync(root).isSymbolicLink())
+          continue;
         try {
           const watcher = fs.watch(root, { recursive: process.platform === "win32" }, scheduleScan);
           watchers.push(watcher);

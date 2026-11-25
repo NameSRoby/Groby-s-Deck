@@ -4,12 +4,15 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
     pendingChecks = new Map();
   let cursor = 0,
     cleaned = 0,
+    revision = 0,
     detail = "Waiting for the next live presence sample.";
   const owner = () => getProvider().status().userId;
   async function eligible(login, id, subscribed = false) {
     const account = owner(),
+      version = revision,
       key = account + ":" + login,
       cached = checks.get(key);
+    if (!account || store.tracking(account) === "off") return false;
     let followed;
     if (cached && cached.until > now()) followed = cached.followed;
     else {
@@ -27,7 +30,7 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
       } finally {
         if (pendingChecks.get(key) === request) pendingChecks.delete(key);
       }
-      if (!result?.ok || owner() !== account) return false;
+      if (!result?.ok || owner() !== account || revision !== version) return false;
       followed = !!result.followedAt;
       checks.set(key, { followed, until: now() + 1800000 });
       while (checks.size > 4096) checks.delete(checks.keys().next().value);
@@ -44,7 +47,7 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
     );
   }
   function maintenance() {
-    if (owner() && now() >= cleaned) {
+    if (owner() && store.tracking(owner()) !== "off" && now() >= cleaned) {
       store.prune(owner(), now());
       store.flush();
       cleaned = now() + 86400000;
@@ -52,10 +55,12 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
   }
   return {
     maintenance,
+    revision: () => revision,
     async sample(users, current = () => true) {
       const account = owner(),
         mode = store.tracking(account),
         subscribers = new Set();
+      if (mode === "off") return subscribers;
       const historicalSubscribers = store.subscribedLogins(
         account,
         users.map((row) => row.login),
@@ -84,7 +89,7 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
         if (mode === "subscribed-followers" && !subscribed) continue;
         const cached = checks.get(account + ":" + row.login);
         if ((!cached || cached.until <= now()) && budget-- <= 0) continue;
-        if (await eligible(row.login, row.id, subscribed)) {
+        if ((await eligible(row.login, row.id, subscribed)) && current() && owner() === account) {
           store.touch(account, row.login, now(), subscribed);
           accepted.add(row.login);
         }
@@ -99,11 +104,12 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
     observeChat(event) {
       if (!event.badges?.some((row) => ["subscriber", "founder"].includes(row.set_id))) return;
       const account = owner(),
+        version = revision,
         login = event.chatter_user_login;
       if (event.broadcaster_user_id !== account || !/^[a-z0-9_]{1,25}$/i.test(login || "")) return;
       void eligible(login.toLowerCase(), event.chatter_user_id, true)
         .then((allowed) => {
-          if (allowed && owner() === account) {
+          if (allowed && owner() === account && version === revision) {
             store.touch(account, login.toLowerCase(), now(), true);
             store.flush();
           }
@@ -122,8 +128,9 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
     settings(input = {}) {
       const account = owner();
       if (!account) throw Error("Connect Twitch first.");
-      if (input.mode !== undefined) {
+      if (input.mode !== undefined && input.mode !== store.tracking(account)) {
         store.tracking(account, input.mode);
+        revision++;
         if (input.mode === "subscribed-followers") {
           store.dropUnsubscribed(account);
           store.flush();
@@ -137,7 +144,10 @@ module.exports = ({ store, getProvider, now = Date.now }) => {
         retentionMonths: null,
         storage: store.storageBudget(input.storageLimitBytes),
         tracked: store.count(account),
-        detail,
+        detail:
+          store.tracking(account) === "off"
+            ? "Tracking is off. Existing records are kept."
+            : detail,
       };
     },
   };

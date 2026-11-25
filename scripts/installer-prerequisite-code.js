@@ -13,6 +13,8 @@ end;
 function WebViewRuntimePresent: Boolean;
 begin
   Result := WebViewRuntimeIn(HKLM32) or WebViewRuntimeIn(HKCU32);
+  if not Result and IsWin64 then
+    Result := WebViewRuntimeIn(HKLM64) or WebViewRuntimeIn(HKCU64);
 end;
 function EnsureWebViewRuntime(var NeedsRestart: Boolean): String;
 var ResultCode: Integer; InstallerPath: String;

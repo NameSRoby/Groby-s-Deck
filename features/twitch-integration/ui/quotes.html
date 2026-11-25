@@ -2,9 +2,13 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quotes</title>
 <style>
 body{margin:0;padding:24px;color-scheme:dark;background:var(--surface,#0b101b);color:var(--text,#edf1ff);font:15px/1.5 system-ui}main{max-width:1100px;margin:auto}h1{font-size:25px}p,small{color:var(--muted,#aab7d1)}button,input,select,textarea{font:inherit;color:inherit;background:#121a2a;border:1px solid #394762;border-radius:8px;padding:10px;box-sizing:border-box}button,select{min-height:44px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}textarea{width:100%;resize:vertical}label{display:block;margin:12px 0}#source{min-height:180px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{padding:12px 8px;border-bottom:1px solid #394762;text-align:left;vertical-align:top}td textarea{min-height:90px}td:first-child{width:60px}td:last-child{width:180px}input[type=checkbox]{width:24px;height:24px;accent-color:#b52057;cursor:pointer}.scroll{overflow-x:auto}#status{min-height:24px}details{margin:16px 0}summary{cursor:pointer;min-height:44px;align-content:center}@media(max-width:650px){body{padding:16px}table{min-width:560px}}
-.quoteRow{border-bottom:1px solid #394762;padding:16px 0}.quoteRow p{color:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}.quoteRow small{display:block;margin:8px 0}#quoteEditor{padding:16px;border:1px solid #394762;border-radius:10px}#quoteSearch{display:block;min-width:260px}dialog{max-width:440px;border:1px solid #394762;border-radius:12px;color:inherit;background:#121a2a}dialog::backdrop{background:#0009}</style></head><body><main>
+.quoteRow{border-bottom:1px solid #394762;padding:16px 0}.quoteRow p{color:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}.quoteRow small{display:block;margin:8px 0}#quoteEditor{padding:16px;border:1px solid #394762;border-radius:10px}#quoteSearch{display:block;width:100%}dialog{max-width:440px;border:1px solid #394762;border-radius:12px;color:inherit;background:#121a2a}dialog::backdrop{background:#0009}
+.quoteChatSetting{display:flex;align-items:center;gap:8px;min-height:44px;margin:0}.quoteChatSetting input{margin:0;flex:none}.quoteSearchActions{align-items:flex-end;margin-top:16px}.quoteSearchActions label{flex:0 1 260px;min-width:0;margin:0}.quoteSearchActions small{align-self:center}
+</style></head><body><main>
 <h1>Quotes</h1>
-<div class="toolbar"><label>Search<input id="quoteSearch" type="search" placeholder="Find a quote or number"></label><button id="quoteNew" type="button">Add quote</button><button id="quoteRefresh" type="button">Refresh</button><small id="quoteCount"></small></div>
+<label class="quoteChatSetting"><input id="quoteChatEnabled" type="checkbox" disabled> Enable quote commands in Twitch chat</label>
+<p id="quoteChatStatus" role="status"></p>
+<div class="toolbar quoteSearchActions"><label>Search<input id="quoteSearch" type="search" placeholder="Find a quote or number"></label><button id="quoteNew" type="button">Add quote</button><button id="quoteRefresh" type="button">Refresh</button><small id="quoteCount"></small></div>
 <p id="quoteListStatus" role="status"></p>
 <section id="quoteEditor" hidden><h2 id="quoteEditorTitle">Edit quote</h2><label>Quote text<textarea id="quoteText" rows="5" maxlength="2000"></textarea></label><p id="quoteEditStatus" role="status"></p><div class="toolbar"><button id="quoteSave" type="button">Save quote</button><button id="quoteCancel" type="button">Cancel</button></div></section>
 <div id="quoteRows"></div><div class="toolbar"><button id="quotePrevious" type="button" disabled>Previous</button><small id="quotePage"></small><button id="quoteNext" type="button" disabled>Next</button></div>
@@ -16,7 +20,7 @@ body{margin:0;padding:24px;color-scheme:dark;background:var(--surface,#0b101b);c
 <p id="status" role="status">Quote numbers, dates, categories and usernames are kept separate from the quote text.</p>
 <details id="notes" hidden><summary>Parsing notes</summary><ul id="warnings"></ul></details>
 <div class="scroll"><table id="review" hidden><thead><tr><th>Import</th><th>Quote</th><th>Original details</th></tr></thead><tbody id="rows"></tbody></table></div>
-<small>Imported quotes receive the next available numbers. Use !quote, !quote add and !deletequote in chat.</small>
+<small>Imported quotes receive the next available numbers.</small>
 </details></main>
 <!-- QUOTE_PARSER_START -->
 <script>const QuoteImport={parse:function parse(source, mode = "auto") {
@@ -191,6 +195,9 @@ dialog.visibleDialog[open] {
 }
 dialog.visibleDialog > .toolbar {
   flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0;
 }
 dialog.visibleDialog > .toolbar button {
@@ -289,6 +296,7 @@ function createVisibleDialog(dialog, { maxWidth = 480 } = {}) {
     q("quoteListStatus").textContent = text;
   };
   function controls() {
+    q("quoteChatEnabled").disabled = busy || state.enabled === undefined;
     for (const id of ["quoteNew", "quoteRefresh", "quoteSave", "quoteDeleteConfirm"])
       q(id).disabled = busy;
     q("quotePrevious").disabled = busy || state.offset === 0;
@@ -336,6 +344,7 @@ function createVisibleDialog(dialog, { maxWidth = 480 } = {}) {
     if (!ready)
       throw Error("Restart Core to load the editable quote list. Your saved quotes are kept.");
     state = await rpc({ operation: "list", offset, limit: 25, search: q("quoteSearch").value });
+    updateQuoteSetting();
     q("quoteNew").hidden = false;
     q("quoteRows").replaceChildren(
       ...state.rows.map((row) => {
@@ -392,6 +401,23 @@ function createVisibleDialog(dialog, { maxWidth = 480 } = {}) {
     }
     void task(() => load(offset));
   }
+  function updateQuoteSetting() {
+    q("quoteChatEnabled").checked = state.enabled === true;
+    q("quoteChatStatus").textContent = state.enabled
+      ? "!quote, !quote add and !deletequote are enabled in chat."
+      : "Chat quote commands are off. You can still manage saved quotes here.";
+  }
+  q("quoteChatEnabled").onchange = () => {
+    const enabled = q("quoteChatEnabled").checked;
+    void task(async () => {
+      try {
+        const result = await rpc({ operation: "settings", enabled });
+        state.enabled = result.enabled;
+      } finally {
+        updateQuoteSetting();
+      }
+    });
+  };
   q("quoteRefresh").onclick = () => browse(state.offset);
   q("quotePrevious").onclick = () => browse(Math.max(0, state.offset - 25));
   q("quoteNext").onclick = () => browse(state.offset + 25);

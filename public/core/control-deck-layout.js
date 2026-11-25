@@ -6,13 +6,13 @@ const screens = new WeakMap();
 const defaults = {
   backlight: 100,
   phoneColumns: 2,
-  tabletColumns: 4,
+  tabletColumns: 8,
   gap: 14,
-  radius: 28,
+  radius: 30,
   labelScale: 100,
   showStatus: true,
   shape: "square",
-  display: "auto",
+  display: "image-text",
   fullscreenMode: "scroll",
   fullscreenSwipe: false,
   fullscreenKeyboard: false,
@@ -258,7 +258,7 @@ export function createDeckLayout({ host, getConfig, save, explain, request }) {
   });
   dialog.addEventListener("close", () => applyDeckLayout(host, getConfig()));
   dialog.querySelector("#deckLayoutReset").onclick = () => {
-    fill({ columns: 5, layout: defaults });
+    fill({ columns: 8, layout: defaults });
     applyDeckLayout(host, read());
   };
   dialog.querySelector("form").onsubmit = async (event) => {

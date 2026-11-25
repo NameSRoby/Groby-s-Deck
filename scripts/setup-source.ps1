@@ -19,30 +19,50 @@ try {
   $cache = Join-Path $root 'runtime\source-setup'
   $stamp = Join-Path $cache 'ready.json'
   $node = Join-Path $root 'runtime\Grobys-Deck-Node.exe'
-  $probe = Join-Path $root 'runtime\music-to-light\cargo\release\groby-audio-probe.exe'
   $lockHash = (Get-FileHash -LiteralPath (Join-Path $root 'package-lock.json') -Algorithm SHA256).Hash
   $ready = $false
-  if (Test-Path -LiteralPath $stamp) {
-    $state = Get-Content -LiteralPath $stamp -Raw | ConvertFrom-Json
-    $ready = $state.lock -eq $lockHash -and $state.archive -eq $spec.sha256 -and
-      (Test-Path -LiteralPath $node) -and (Test-Path -LiteralPath $probe) -and
-      (Test-Path -LiteralPath (Join-Path $root 'node_modules\express\package.json'))
+  if ((Test-Path -LiteralPath $stamp) -and (Test-Path -LiteralPath $node -PathType Leaf)) {
+    try {
+      $state = Get-Content -LiteralPath $stamp -Raw | ConvertFrom-Json
+      if ($state.lock -eq $lockHash -and $state.archive -eq $spec.sha256) {
+        & $node (Join-Path $PSScriptRoot 'verify-source-runtime.js') $root $root
+        $ready = $LASTEXITCODE -eq 0
+      }
+    } catch {
+      Write-Host '[SETUP] Cached runtime could not be verified. Restoring the pinned bundle.'
+    }
   }
   if (!$ready) {
     New-Item -ItemType Directory -Path $cache -Force | Out-Null
     $archive = Join-Path $cache $spec.asset
     if ($ReleaseArchive) {
       $archive = (Resolve-Path -LiteralPath $ReleaseArchive).Path
-    } elseif (!(Test-Path -LiteralPath $archive)) {
+    } elseif (!(Test-Path -LiteralPath $archive -PathType Leaf) -or
+              (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $spec.sha256) {
       Write-Host '[SETUP] Downloading the official Windows runtime and offline prerequisites...'
-      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      $downloadUrl = "https://github.com/NameSRoby/Groby-s-Deck/releases/download/v$($spec.version)/$($spec.asset)"
       $download = "$archive.part"
       $previousProgress = $ProgressPreference
       try {
         $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/NameSRoby/Groby-s-Deck/releases/download/v$($spec.version)/$($spec.asset)" -OutFile $download
+        $curl = Join-Path $env:WINDIR 'System32\curl.exe'
+        if (Test-Path -LiteralPath $curl -PathType Leaf) {
+          & $curl --fail --location --silent --show-error --connect-timeout 15 --max-time 300 --retry 2 --output $download $downloadUrl
+          if ($LASTEXITCODE -ne 0) {
+            throw "Runtime download failed (curl exit code $LASTEXITCODE). Retry or use -ReleaseArchive with the pinned Windows ZIP."
+          }
+        } else {
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -OutFile $download -TimeoutSec 300
+        }
+        if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ine $spec.sha256) {
+          throw 'Downloaded runtime checksum mismatch. No downloaded code was run.'
+        }
         Move-Item -LiteralPath $download -Destination $archive -Force
-      } finally { $ProgressPreference = $previousProgress }
+      } finally {
+        $ProgressPreference = $previousProgress
+        if (Test-Path -LiteralPath $download -PathType Leaf) { Remove-Item -LiteralPath $download -Force }
+      }
     }
     if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $spec.sha256) {
       throw "Runtime checksum mismatch. No downloaded code was run. Remove the cached archive in runtime/source-setup and try again."
@@ -90,7 +110,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Windows launcher build failed. Exit Core before rebuilding changed launcher sources.' }
     Set-Content -LiteralPath $hostStamp -Value $hostHash -Encoding ASCII
   }
-  Write-Host '[SETUP] Ready. Node, production dependencies and audio capture are included. Optional packages can be installed from Packages.'
+  Write-Host '[SETUP] Ready. The app installs Twitch Integration and Song Request from the bundled files on first launch.'
   & (Join-Path $PSScriptRoot 'install-webview2.ps1')
   if ($LASTEXITCODE -notin @(0,3010)) { throw 'WebView2 setup failed.' }
   if (!$NoStart) { Start-Process -FilePath (Join-Path $root 'Groby''s Deck.exe') -WorkingDirectory $root -WindowStyle Hidden }
