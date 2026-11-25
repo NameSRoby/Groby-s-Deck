@@ -13,19 +13,31 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
     queued = 0,
     generation = 0;
   const duration = require("./watchtime-duration");
+  const trackingEnabled = (owner) => Boolean(owner && store.tracking(owner) !== "off");
+  function commandEnabled(owner, command) {
+    if (["watchtime", "points"].includes(command)) return trackingEnabled(owner);
+    if (["quote", "deletequote"].includes(command))
+      return store.account(owner).quotesEnabled !== false;
+    return true;
+  }
   async function tick() {
     if (!active || busy) return;
     busy = true;
     try {
       const provider = getProvider(),
-        status = provider.status();
-      if (!status.connected) {
+        status = provider.status(),
+        version = tracking.revision(),
+        current = () =>
+          active &&
+          getProvider().status().userId === status.userId &&
+          tracking.revision() === version;
+      if (!status.connected || !trackingEnabled(status.userId)) {
         last = null;
         return;
       }
       tracking.maintenance();
       const live = await provider.dashboardStream();
-      if (!live?.ok || !live.live) {
+      if (!live?.ok || !live.live || !current()) {
         last = null;
         return;
       }
@@ -38,21 +50,22 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
         last = null;
         return;
       }
-      if (!active || getProvider().status().userId !== status.userId) {
+      if (!current()) {
         last = null;
         return;
       }
-      const current = await tracking.sample(
+      const accepted = await tracking.sample(
         presence.users.map((row) => ({ ...row, login: row.login.toLowerCase() })),
-        () => active && getProvider().status().userId === status.userId,
+        current,
       );
+      if (!current()) return;
       if (last?.owner === status.userId && now() - last.at <= 360000) {
         const elapsed = Math.min(5, Math.max(0, (now() - last.at) / 60000));
-        for (const login of current)
+        for (const login of accepted)
           if (last.users.has(login)) store.credit(status.userId, login, elapsed);
         store.flush();
       }
-      last = { owner: status.userId, at: now(), users: current };
+      last = { owner: status.userId, at: now(), users: accepted };
     } catch {
       last = null;
     } finally {
@@ -71,6 +84,7 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
     return value;
   }
   async function perform(command, args, event, owner, moderator, current) {
+    if (!commandEnabled(owner, command)) return null;
     if (command === "command") {
       if (!moderator) throw Error("Only moderators and the broadcaster can manage commands.");
       if (!current() || getProvider().status().userId !== owner)
@@ -141,7 +155,12 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
   }
   return {
     store,
-    tracking: tracking.settings,
+    tracking(input) {
+      const version = tracking.revision();
+      const result = tracking.settings(input);
+      if (version !== tracking.revision()) last = null;
+      return result;
+    },
     observeChat: tracking.observeChat,
     observeEvent: tracking.observeEvent,
     events: () => ["channel.subscribe", "channel.subscription.message"],
@@ -175,6 +194,7 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
         !event.message_id
       )
         return { handled: false };
+      if (!commandEnabled(owner, command)) return { handled: true, accepted: false };
       const id = owner + ":" + event.message_id,
         key = owner + ":" + event.chatter_user_id;
       if (seen.has(id) || queued >= 32 || (cooldowns.get(key) || 0) > now())
@@ -189,7 +209,7 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
       const epoch = generation;
       const task = async () => {
         try {
-          if (epoch !== generation) return;
+          if (epoch !== generation || getProvider().status().userId !== owner) return;
           let message;
           try {
             message = await perform(
@@ -203,7 +223,12 @@ module.exports = ({ file, getProvider, manageCommand, now = Date.now }) => {
           } catch (error) {
             message = error.message;
           }
-          if (epoch === generation && getProvider().status().userId === owner)
+          if (
+            message !== null &&
+            epoch === generation &&
+            getProvider().status().userId === owner &&
+            commandEnabled(owner, command)
+          )
             await getProvider().sendChat({ message: String(message).slice(0, 500) });
         } finally {
           queued--;

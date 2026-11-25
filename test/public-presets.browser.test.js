@@ -7,19 +7,23 @@ const fs = require("node:fs"),
 const { chromium } = require("playwright");
 const createCore = require("../src/app/core/create-core-server");
 const createExtension = require("../src/app/optional/create-feature-platform-extension");
+const { stageOfflineFeatures } = require("../scripts/stage-offline-features");
 test("fresh offline installation has public presets, styles and free navigation without running actions", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-public-presets-"));
-  for (const id of ["song-request", "twitch-integration"])
-    fs.cpSync(path.join(__dirname, "../features", id), path.join(root, "installed", id), {
-      recursive: true,
-    });
+  const source = path.resolve(__dirname, "..");
+  const bundled = path.join(root, "optional-components", "feature-packages");
+  const installed = path.join(root, "features", "installed");
+  await stageOfflineFeatures(source, bundled);
+  assert.equal(fs.existsSync(installed), false);
   const created = createCore({
-    rootDir: path.resolve(__dirname, ".."),
+    rootDir: source,
     runtimeDir: path.join(root, "runtime"),
     dryRun: true,
     capabilities: { features: true },
     extend: createExtension({
-      featuresRoot: path.join(root, "installed"),
+      featuresRoot: installed,
+      packageRoots: [bundled],
+      installBundledDefaults: true,
       runtimeRoot: path.join(root, "workers"),
       allowUnsafeRuntime: false,
     }),
@@ -80,9 +84,24 @@ test("fresh offline installation has public presets, styles and free navigation 
     .click();
   const frame = page.frameLocator('iframe[data-page-id="automations"]').frameLocator("#surface");
   await frame.locator("#commandExamples option").first().waitFor({ state: "attached" });
+  assert.equal(await frame.locator("#commandExamples").isVisible(), true);
+  const [presetRect, draftRect] = await Promise.all([
+    frame.locator("#commandExamples").boundingBox(),
+    frame.locator("#useCommandExample").boundingBox(),
+  ]);
+  assert(Math.abs(presetRect.y + presetRect.height - draftRect.y - draftRect.height) < 2);
   assert((await frame.locator("#commandExamples option").count()) > 100);
-  await frame.getByText("Public presets & starter recipes", { exact: true }).click();
-  await frame.locator("#commandExamples").selectOption({ index: 1 });
+  assert.equal(await frame.locator(".automationItem").count(), 0);
+  await frame.getByRole("button", { name: "Built-in features", exact: true }).click();
+  assert.deepEqual(await frame.locator(".automationRowTitle strong").allTextContents(), [
+    "Add to playlist",
+    "Change lights",
+    "Song Request",
+    "Teach color",
+  ]);
+  await frame.getByRole("button", { name: "Channel Points", exact: true }).click();
+  assert.equal(await frame.locator(".automationItem").count(), 0);
+  await frame.locator("#commandExamples").selectOption("fight");
   await frame.locator("#useCommandExample").click();
   await frame.locator("#editor").waitFor({ state: "visible" });
   assert.equal(await frame.locator("#save").isDisabled(), true);
@@ -123,13 +142,41 @@ test("fresh offline installation has public presets, styles and free navigation 
   await page.locator("#showSetupGuide").waitFor({ state: "attached" });
   assert.equal(await page.locator("#setupGuide").isVisible(), false);
   await page.locator("#themeButton").click();
+  assert.equal(
+    await page.locator("#themePanelActions").evaluate((node) => getComputedStyle(node).gap),
+    "8px",
+  );
   await page.locator("#showSetupGuide").click();
   await page.locator("#setupGuide").waitFor({ state: "visible" });
   await page.locator("#deckButtonMode").click();
   await page.locator("#deckAddButton").click();
   const picker = page.getByLabel("Public button preset", { exact: true });
   await picker.waitFor();
+  assert.equal(await picker.locator("option").count(), catalog.value.presets.length + 1);
+  assert.equal(await picker.locator("option:disabled").count(), 0);
   await picker.selectOption("viewer-intake");
+  assert.equal(
+    await page.locator("#deckButtonName").inputValue(),
+    "Pause / resume rewards and chat",
+  );
   assert(!fs.existsSync(path.join(root, "runtime", "system", "twitch-intake-pause.json")));
+  await picker.selectOption("clip");
+  await page.locator("#deckSaveButton").click();
+  await picker.waitFor({ state: "hidden" });
+  const deck = await api("/api/control-deck");
+  const clip = deck.value.config.pages
+    .flatMap((entry) => entry.buttons)
+    .find((button) => button.title === "Clip the broadcast");
+  assert.deepEqual(clip.steps[0].params, { duration: 30 });
+  await page.locator("#deckEdit").click();
+  await page.getByRole("button", { name: "Button settings", exact: true }).click();
+  const styles = page.locator(".deckStyleProfiles");
+  await styles.locator("summary").click();
+  await styles.locator("select").selectOption("public-ocean");
+  const apply = styles.getByRole("button", { name: "Apply selected", exact: true });
+  await apply.click();
+  await styles.getByRole("status").filter({ hasText: "again to confirm" }).waitFor();
+  await apply.click();
+  await page.getByText(/Style profile restored/).waitFor();
   assert.deepEqual(errors, []);
 });

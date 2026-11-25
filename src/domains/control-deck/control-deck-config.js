@@ -71,7 +71,7 @@ function appearance(value = {}) {
     symbol: "✦",
     textMode: "auto",
     imageId: "",
-    color: "#a90036",
+    color: "#e43662",
     cycleColors: [],
     textColor: "#ffffff",
     cycleMs: 6000,
@@ -162,14 +162,14 @@ function layout(value = {}) {
     throw fault("control_deck_layout_invalid");
   const result = {
     phoneColumns: 2,
-    tabletColumns: 4,
+    tabletColumns: 8,
     gap: 14,
-    radius: 28,
+    radius: 30,
     labelScale: 100,
     showStatus: true,
     shape: "square",
     backlight: 100,
-    display: "auto",
+    display: "image-text",
     fullscreenMode: "scroll",
     fullscreenSwipe: false,
     fullscreenKeyboard: false,
@@ -401,7 +401,7 @@ function defaults() {
   return validate({
     version: 1,
     mode: "overview",
-    columns: 5,
+    columns: 8,
     pages: [
       {
         id: "quick-access",

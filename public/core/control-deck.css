@@ -36,6 +36,7 @@
 }
 .deckEditorTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 20px;
   border-bottom: 1px solid var(--edge);
@@ -67,6 +68,9 @@
 .deckButtonEditor .deckEditorLayout {
   gap: 20px;
   align-items: start;
+}
+.deckPresetField {
+  max-width: 440px;
 }
 .deckButtonEditor .deckActionLibrary {
   position: sticky;
@@ -296,7 +300,7 @@
   gap: 4px;
   padding: clamp(6px, 6%, 16px);
   border: 1px solid color-mix(in srgb, var(--deck-color) 65%, #ffffff);
-  border-radius: var(--deck-radius, 28px);
+  border-radius: var(--deck-radius, 30px);
   background: var(--deck-color);
   color: var(--deck-text);
   text-align: center;
@@ -757,7 +761,7 @@
 .deckAddButton {
   aspect-ratio: var(--deck-aspect, 1);
   border: 1px dashed var(--edge);
-  border-radius: var(--deck-radius, 28px);
+  border-radius: var(--deck-radius, 30px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1439,7 +1443,7 @@
 @property --deck-color {
   syntax: "<color>";
   inherits: true;
-  initial-value: #a90036;
+  initial-value: #e43662;
 }
 .deckGrid .deckButton,
 .deckAppearancePreview {
@@ -1654,6 +1658,7 @@
 }
 .deckSettingsTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 20px 0;
 }

@@ -544,7 +544,10 @@ function createFeaturePlatformExtension(options = {}) {
           getBuiltinRows: () => automations.status().rows,
         },
       );
-    const startup = registry.startInstalled().catch((error) => ({
+    const defaultFeatureIds = options.installBundledDefaults
+      ? OFFICIAL_FEATURE_SOURCES.map(({ id }) => id)
+      : [];
+    const startup = registry.startInstalled(defaultFeatureIds).catch((error) => ({
       ok: false,
       error: String(error?.message || error).slice(0, 160),
     }));

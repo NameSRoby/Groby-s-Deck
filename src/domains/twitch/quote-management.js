@@ -5,8 +5,23 @@ const token = (row) =>
 module.exports =
   ({ account, flush, markDirty }) =>
   (owner, input = {}) => {
-    const rows = account(owner).quotes,
+    const settings = account(owner),
+      rows = settings.quotes,
       operation = input.operation || "list";
+    if (operation === "settings") {
+      if (typeof input.enabled !== "boolean")
+        throw Error("Choose whether chat quotes are enabled.");
+      const previous = settings.quotesEnabled;
+      settings.quotesEnabled = input.enabled;
+      markDirty();
+      try {
+        flush();
+      } catch (error) {
+        settings.quotesEnabled = previous;
+        throw error;
+      }
+      return { ok: true, enabled: settings.quotesEnabled };
+    }
     if (operation === "list") {
       const query = String(input.search || "")
           .trim()
@@ -38,6 +53,7 @@ module.exports =
       const start = Math.min(offset, Math.max(0, Math.floor((matches.length - 1) / limit) * limit));
       return {
         ok: true,
+        enabled: settings.quotesEnabled !== false,
         total: rows.length,
         matched: matches.length,
         offset: start,

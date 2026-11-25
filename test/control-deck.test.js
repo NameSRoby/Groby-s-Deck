@@ -476,14 +476,14 @@ test("old layouts acquire responsive defaults and bounded custom layouts round-t
   delete config.layout;
   assert.deepEqual(validate(config).layout, {
     phoneColumns: 2,
-    tabletColumns: 4,
+    tabletColumns: 8,
     gap: 14,
-    radius: 28,
+    radius: 30,
     labelScale: 100,
     showStatus: true,
     shape: "square",
     backlight: 100,
-    display: "auto",
+    display: "image-text",
     fullscreenMode: "scroll",
     fullscreenSwipe: false,
     fullscreenKeyboard: false,
@@ -516,7 +516,7 @@ test("old layouts acquire responsive defaults and bounded custom layouts round-t
     sliderFill: false,
     hapticsEnabled: false,
     hapticsSensitivity: 50,
-    display: "auto",
+    display: "image-text",
     fullscreenMode: "scroll",
     fullscreenSwipe: false,
     fullscreenKeyboard: false,
@@ -581,7 +581,7 @@ test("display modes preserve explicit older button choices and normalize missing
   button.appearance.textMode = "image-text";
   delete config.layout.display;
   let restored = validate(config);
-  assert.equal(restored.layout.display, "auto");
+  assert.equal(restored.layout.display, "image-text");
   assert.equal(restored.pages[0].buttons[0].appearance.textMode, "image-text");
   for (const mode of ["auto", "per-button", "image-text", "image", "text", "alternate"]) {
     config.layout.display = mode;

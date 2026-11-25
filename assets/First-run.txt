@@ -3,7 +3,7 @@ Your stream. Your controls. Your deck.
 
 Open Groby's Deck.exe to start. Closing the window keeps it in the tray; choose Exit from the app menu to stop it.
 
-Build button decks, connect OBS, set up lights, and choose optional Twitch and Song Request packages. Account connections are completed inside the app. No developer tools are needed.
+Build button decks, connect OBS, and set up lights. Twitch Integration and Song Request are selected by default. Complete account connections inside the app. No developer tools are needed.
 
 Setup reuses Microsoft WebView2 Evergreen when installed. Otherwise it runs Microsoft’s bundled offline installer. Portable users can run scripts\install-webview2.ps1.
 

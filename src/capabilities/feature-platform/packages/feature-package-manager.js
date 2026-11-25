@@ -74,6 +74,7 @@ module.exports = function createFeaturePackageManager(options = {}) {
   async function availablePackages(selection = {}) {
     const packages = await bundledPackages();
     const warnings = [];
+    if (selection.bundledOnly) return { packages, warnings };
     for (const source of remoteSources) {
       if (selection.featureIds && !selection.featureIds.includes(source.id)) continue;
       const remote = await fetchRemoteManifest(source, {
@@ -152,9 +153,14 @@ module.exports = function createFeaturePackageManager(options = {}) {
         version: verified.manifest.version,
         description: verified.manifest.description,
         installed,
-        installedVersion: current?.ok ? current.manifest.version : "",
+        installedVersion:
+          current?.ok && current.manifest.id === verified.manifest.id
+            ? current.manifest.version
+            : "",
         updateAvailable: Boolean(
-          current?.ok && compareVersions(verified.manifest.version, current.manifest.version) > 0,
+          current?.ok &&
+          current.manifest.id === verified.manifest.id &&
+          compareVersions(verified.manifest.version, current.manifest.version) > 0,
         ),
         rollbackAvailable: await pathExists(path.join(rollbackRoot, verified.manifest.id)),
         permissions: { ...verified.manifest.permissions },
@@ -181,11 +187,11 @@ module.exports = function createFeaturePackageManager(options = {}) {
     return inside(installedRoot, rollbackPath) && fs.existsSync(rollbackPath);
   }
 
-  function install(featureIdRaw) {
+  function install(featureIdRaw, selection) {
     return serialize(async () => {
       const featureId = String(featureIdRaw || "");
       if (!FEATURE_ID_RE.test(featureId)) return { ok: false, error: "invalid_feature_id" };
-      const { packages } = await availablePackages();
+      const { packages } = await availablePackages({ ...selection, featureIds: [featureId] });
       const source = packages.get(featureId);
       if (!source) return { ok: false, error: "feature_package_not_available" };
       const target = path.join(installedRoot, featureId);
@@ -222,7 +228,7 @@ module.exports = function createFeaturePackageManager(options = {}) {
     });
   }
 
-  function update(featureIdRaw) {
+  function update(featureIdRaw, selection) {
     return serialize(async () => {
       const featureId = String(featureIdRaw || "");
       if (!FEATURE_ID_RE.test(featureId)) return { ok: false, error: "invalid_feature_id" };
@@ -233,16 +239,20 @@ module.exports = function createFeaturePackageManager(options = {}) {
       const current = await verifyFeaturePackageDirectory(target, {
         limits: options.packageLimits,
       });
-      if (!current.ok)
+      const validCurrent = current.ok && current.manifest.id === featureId;
+      if (!validCurrent && !(selection?.bundledOnly && selection?.repairInvalid))
         return {
           ok: false,
           error: "installed_feature_invalid",
           detail: current.error,
         };
-      const { packages } = await availablePackages();
+      const { packages } = await availablePackages({ ...selection, featureIds: [featureId] });
       const source = packages.get(featureId);
       if (!source) return { ok: false, error: "feature_package_not_available" };
-      if (compareVersions(source.verified.manifest.version, current.manifest.version) <= 0) {
+      if (
+        validCurrent &&
+        compareVersions(source.verified.manifest.version, current.manifest.version) <= 0
+      ) {
         return {
           ok: false,
           error: "feature_update_not_newer",
@@ -251,11 +261,13 @@ module.exports = function createFeaturePackageManager(options = {}) {
         };
       }
       await fs.promises.mkdir(installedRoot, { recursive: true });
-      await fs.promises.mkdir(rollbackRoot, { recursive: true });
+      if (validCurrent) await fs.promises.mkdir(rollbackRoot, { recursive: true });
       const staging = path.join(
         installedRoot,
         `.${featureId}.update-${process.pid}-${crypto.randomBytes(4).toString("hex")}`,
       );
+      // Preserve the damaged copy outside the valid rollback slot for recovery.
+      const backup = validCurrent ? rollback : staging + ".previous";
       let movedCurrent = false;
       try {
         await stagePackage(source, staging);
@@ -264,22 +276,22 @@ module.exports = function createFeaturePackageManager(options = {}) {
         });
         if (!staged.ok || staged.manifest.id !== featureId)
           throw new Error(staged.error || "feature_staging_verification_failed");
-        if (await pathExists(rollback))
-          await fs.promises.rm(rollback, { recursive: true, force: true });
-        await fs.promises.rename(target, rollback);
+        if (validCurrent && (await pathExists(backup)))
+          await fs.promises.rm(backup, { recursive: true, force: true });
+        await fs.promises.rename(target, backup);
         movedCurrent = true;
         await fs.promises.rename(staging, target);
         return {
           ok: true,
-          operation: "updated",
+          operation: validCurrent ? "updated" : "repaired",
           featureId,
           version: staged.manifest.version,
-          previousVersion: current.manifest.version,
-          rollbackAvailable: true,
+          previousVersion: validCurrent ? current.manifest.version : "",
+          rollbackAvailable: hasRollback(featureId),
         };
       } catch (error) {
-        if (movedCurrent && !(await pathExists(target)) && (await pathExists(rollback))) {
-          await fs.promises.rename(rollback, target).catch(() => undefined);
+        if (movedCurrent && !(await pathExists(target)) && (await pathExists(backup))) {
+          await fs.promises.rename(backup, target).catch(() => undefined);
         }
         return {
           ok: false,

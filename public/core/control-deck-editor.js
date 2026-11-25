@@ -175,7 +175,7 @@ export function createDeckEditor({
             symbol: "◆",
             textMode: "auto",
             imageId: "",
-            color: "#a90036",
+            color: "#e43662",
             cycleColors: [],
             textColor: "#ffffff",
             cycleMs: 6000,
@@ -382,7 +382,7 @@ export function createDeckEditor({
     displayHelp.id = "deckButtonDisplayHelp";
     display.setAttribute("aria-describedby", displayHelp.id);
     displayField.append(displayHelp);
-    const color = input("color", draft.appearance.color || "#a90036"),
+    const color = input("color", draft.appearance.color || "#e43662"),
       textColor = input("color", draft.appearance.textColor || "#ffffff");
     color.id = "deckButtonColor";
     textColor.id = "deckButtonTextColor";
@@ -599,12 +599,13 @@ export function createDeckEditor({
       redrawPreview();
     }
     profileColors.onchange = redrawPreview;
-    if (!current && getPresets().length) {
+    const publicPresets = getPresets();
+    if (!current && publicPresets.length) {
       const presets = node("select");
       presets.setAttribute("aria-label", "Public button preset");
       presets.add(new Option("Choose a public button preset…", ""));
       const groups = new Map();
-      for (const preset of getPresets()) {
+      for (const preset of publicPresets) {
         if (!groups.has(preset.group)) {
           const group = node("optgroup");
           group.label = preset.group;
@@ -617,15 +618,14 @@ export function createDeckEditor({
               ? preset.available
                 ? ""
                 : " · setup needed"
-              : " · enable its feature first"),
+              : " · action setup needed"),
           preset.id,
         );
-        option.disabled = !preset.configurable;
         groups.get(preset.group).append(option);
       }
       presets.onchange = () => {
-        const preset = getPresets().find((preset) => preset.id === presets.value);
-        if (!preset || busy || !preset.configurable) return;
+        const preset = publicPresets.find((preset) => preset.id === presets.value);
+        if (!preset || busy) return;
         behavior.value = "action";
         pressEditor.replace(clone(preset.steps));
         alternateEditor.replace([]);
@@ -636,9 +636,15 @@ export function createDeckEditor({
         redrawPreview();
         status.textContent =
           "Public preset loaded as a draft. Save to add the button. Nothing has run." +
-          (preset.available ? "" : " Complete the relevant connection setup before using it.");
+          (preset.available
+            ? ""
+            : preset.id === "clip"
+              ? " Install and enable Twitch Clip Button in Mods and connect Twitch before using it."
+              : " Complete the relevant feature setup before using it.");
       };
-      library.insertBefore(field("Public button presets", presets), search);
+      const presetField = field("Public button presets", presets);
+      presetField.classList.add("deckPresetField");
+      actionsPanel.prepend(presetField);
     }
     color.addEventListener("input", () => {
       profileColors.checked = false;

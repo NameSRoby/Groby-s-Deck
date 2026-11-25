@@ -88,7 +88,8 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
   for (const button of section.querySelectorAll("button"))
     button.onclick = async () => {
       const operation = button.dataset.profile;
-      if (operation !== "save" && !picker.value) {
+      const id = picker.value;
+      if (operation !== "save" && !id) {
         status.textContent = "Choose a profile first.";
         return;
       }
@@ -97,38 +98,33 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
         name.focus();
         return;
       }
+      if (operation !== "save" && button.dataset.confirm !== id) {
+        picker.onchange();
+        button.dataset.confirm = id;
+        status.textContent =
+          operation === "restore"
+            ? "Press Apply selected again to confirm."
+            : "Press Delete selected profile again to confirm.";
+        return;
+      }
       section.querySelectorAll("button").forEach((b) => (b.disabled = true));
       try {
         const current = await fetch("/api/control-deck", { cache: "no-store" }).then((r) =>
           r.json(),
         );
         const payload = {
-          id: picker.value,
+          id,
           name: name.value,
           profileRevision: state.revision,
           revision: current.value.revision,
         };
         if (operation === "restore") {
-          const confirmed =
-            section.querySelector('[data-profile="restore"]').dataset.confirm === picker.value;
-          if (!confirmed) {
-            button.dataset.confirm = picker.value;
-            status.textContent =
-              "Apply this profile's colors and animations? Actions stay as they are. Press Apply selected again to confirm.";
-            return;
-          }
           await request("POST", "/restore", payload);
           await refreshDeck(true);
           notice.textContent =
             "Style profile restored. The previous style is in recovery snapshots.";
         } else if (operation === "delete") {
-          if (button.dataset.confirm !== picker.value) {
-            button.dataset.confirm = picker.value;
-            status.textContent =
-              "Press Delete selected profile again to confirm. The current deck will stay unchanged.";
-            return;
-          }
-          await request("DELETE", "/" + encodeURIComponent(picker.value), payload);
+          await request("DELETE", "/" + encodeURIComponent(id), payload);
         } else {
           await request("POST", "", payload);
           name.value = "";

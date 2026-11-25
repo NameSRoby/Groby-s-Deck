@@ -66,7 +66,7 @@ export function paintButtonCycle(preview, colors, seconds) {
     preview.append(style);
   }
   const stops = cycling ? [...colors, colors[0]] : [];
-  const source = `@keyframes ${style.dataset.cyclePreview}{${stops.map((color, i) => `${(i * 100) / (stops.length - 1)}%{--deck-color:${/^#[a-f0-9]{6}$/i.test(color) ? color : "#a90036"}}`).join("")}}`;
+  const source = `@keyframes ${style.dataset.cyclePreview}{${stops.map((color, i) => `${(i * 100) / (stops.length - 1)}%{--deck-color:${/^#[a-f0-9]{6}$/i.test(color) ? color : "#e43662"}}`).join("")}}`;
   if (style.textContent !== source) style.textContent = source;
   preview.style.animationName = cycling ? style.dataset.cyclePreview : "none";
   preview.style.setProperty(

@@ -213,7 +213,7 @@ module.exports = ({
     identity: legacyId,
   });
   const builtinPolicy = builtins.policy;
-  function rows(owner) {
+  function rows(owner, includeUnavailable = false) {
     const own = data.rows.filter((row) => row.accountId === owner),
       detached = new Set(
         data.detached.filter((row) => row.accountId === owner).map((row) => row.rewardId),
@@ -241,7 +241,7 @@ module.exports = ({
           legacy: true,
         })),
     ];
-    return builtins.addRows(owner, result);
+    return builtins.addRows(owner, result, includeUnavailable);
   }
   function status() {
     const connection = getProvider().status();
@@ -263,7 +263,7 @@ module.exports = ({
         : {}),
       shoutouts: owner ? getShoutouts()?.snapshot() : undefined,
       livePausedRewardIds: owner ? liveRewards.pausedIds() : [],
-      rows: rows(owner).map(({ accountId, ...row }) => row),
+      rows: rows(owner, true).map(({ accountId, ...row }) => row),
       timers: triggers
         .snapshot()
         .filter((timer) => data.rows.some((row) => row.id === timer.id && row.accountId === owner)),

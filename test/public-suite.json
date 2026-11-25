@@ -51,6 +51,8 @@
   "streamer-automation-presets.test.js",
   "public-presets.test.js",
   "public-presets.browser.test.js",
+  "community-commands.test.js",
+  "twitch-automation-ipc.test.js",
   "control-deck.request-mode.test.js",
   "twitch-automation-triggers.test.js",
   "control-deck.test.js",

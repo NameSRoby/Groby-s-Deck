@@ -1,5 +1,33 @@
 # Repository health and security review
 
+## 0.8.2b
+
+Windows Setup, the portable archive and the public source tree now provision
+Twitch Integration and Song Request from verified local packages. Clean
+launches expose all 116 automation examples, four built-in Twitch controls,
+31 button presets, seven lighting profiles and ten button styles before
+account setup. Public automation examples and button presets open as drafts.
+
+The packaging audit found that Setup could reuse an old staged build, an
+update could omit the bundled clip mod, and source setup could trust a cache
+marker after a required dependency disappeared. Release and source exports now
+check generated files and resolve relative imports inside the staged artifact.
+The clip mod travels with the managed payload and still requires approval.
+Source setup verifies the installed runtime before accepting its cache.
+
+Deck regressions caught a second-click confirmation that cleared itself and
+unavailable action parameters that were discarded on save. Both paths now
+retain the operator's choices and have regression coverage.
+
+The second release pass exercised the default source download against the
+published runtime. Source setup retries the download and checks the archive
+before caching it. It restores the cached offline WebView2 installer if it is
+missing or incomplete. Windows Setup recognizes both registry views, reports
+failed post-install checks to callers, and respects prior package removals.
+The documentation captures show the shipping UI in the default Midnight theme.
+The online Packages catalog uses an immutable GitHub revision containing the
+same Twitch Integration and Song Request versions as the offline installer.
+
 ## 0.8.2a - 2026-11-25
 
 Setup progress is derived from real pairing, connection and saved configuration

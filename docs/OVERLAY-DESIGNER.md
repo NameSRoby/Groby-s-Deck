@@ -231,7 +231,7 @@ Text styles include broadcast headlines, lower thirds, caption strips, creator
 tags, section labels, scoreboards and outlined text. All remain editable: padding,
 vertical alignment, letter case, shadow color/blur/offset/opacity, outline width
 and accent edges are saved with the widget. A preset changes style, never the
-text or layer position. See the [style gallery](../assets/screenshots/overlay-text-styles.png).
+text or layer position. See the [text style controls](../assets/screenshots/overlay-text-styles.png).
 
 Leaderboard source controls are contextual. Custom stats show the saved stat
 name; watchtime offers seconds, minutes, hours, days, months, years or a readable

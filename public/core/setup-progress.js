@@ -144,7 +144,7 @@ export function createSetupGuide() {
     }
     document.getElementById("themePanel").hidden = true;
   };
-  document.getElementById("themePanel").append(show);
+  document.getElementById("themePanelActions").append(show);
   window.addEventListener("ravelink:feature-call-complete", () => {
     if (!guide.hidden) void refresh();
   });
