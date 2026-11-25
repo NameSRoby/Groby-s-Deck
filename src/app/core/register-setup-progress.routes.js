@@ -1,5 +1,6 @@
 /** Progress reports only readiness booleans; account and fixture details stay with their owners. */
 const { requireLocalOperator } = require("../runtime/local-operator.middleware");
+const { rateLimit } = require("express-rate-limit");
 module.exports = (app, { runtimeDir, core, getRegistry, getTwitch, getDeck, getOverlays }) => {
   const service = require("../../domains/system/setup-progress")({
     runtimeDir,
@@ -58,7 +59,14 @@ module.exports = (app, { runtimeDir, core, getRegistry, getTwitch, getDeck, getO
       next(error);
     }
   });
-  app.put("/api/presentation/setup", requireLocalOperator, async (req, res) => {
+  const saveLimit = rateLimit({
+    windowMs: 60000,
+    limit: 30,
+    keyGenerator: () => "setup-progress",
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  });
+  app.put("/api/presentation/setup", requireLocalOperator, saveLimit, async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     try {
       res.json(await service.update(req.body));
