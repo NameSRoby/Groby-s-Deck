@@ -1,13 +1,17 @@
 /** Profiles are discovered from the current installation; no fixture bindings ship here. */
-module.exports = function profileActions(profiles) {
+module.exports = function profileActions(profiles, fixtureIds = []) {
   return profiles.map((profile) => ({
     id: "lighting.profile:" + profile.id,
     label: profile.name,
     defaultTitle: profile.name,
     symbol: "💡",
     group: "Light profiles",
-    available: Object.keys(profile.fixtureTargets).length > 0,
-    description: `Apply ${profile.name}. Uses this profile's saved fixtures and settings.`,
+    available: profile.public
+      ? fixtureIds.length > 0
+      : Object.keys(profile.fixtureTargets).length > 0,
+    description: profile.public
+      ? `Apply the public ${profile.name} preset to configured stream lights.`
+      : `Apply ${profile.name}. Uses this profile's saved fixtures and settings.`,
     parameters: { type: "object", additionalProperties: false, properties: {} },
     defaults: {},
     profileLighting: Object.values(profile.fixtureTargets).map((fixtureTarget) => {

@@ -15,7 +15,7 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
   const section = document.createElement("details");
   section.className = "deckStyleProfiles";
   section.innerHTML =
-    '<summary>Saved style profiles & recovery</summary><p>Save the current colors and animations for each button. Restoring a profile keeps actions, labels and artwork.</p><label class="deckField">Profile<select></select></label><label class="deckField">New profile name<input maxlength="60" placeholder="For example: Stream colors"></label><div class="deckEditorActions"><button type="button" data-profile="save">Save current style</button><button type="button" data-profile="restore">Restore selected</button><button type="button" data-profile="delete">Delete selected profile</button></div><p role="status"></p>';
+    '<summary>Public styles, saved profiles & recovery</summary><p>Choose a public style or save your own colors and animations. Applying a profile keeps actions, labels and artwork.</p><label class="deckField">Profile<select></select></label><label class="deckField">New profile name<input maxlength="60" placeholder="For example: Stream colors"></label><div class="deckEditorActions"><button type="button" data-profile="save">Save current style</button><button type="button" data-profile="restore">Apply selected</button><button type="button" data-profile="delete">Delete selected profile</button></div><p role="status"></p>';
   dialog.querySelector("#deckSharedStyle").append(section);
   const picker = section.querySelector("select"),
     name = section.querySelector("input"),
@@ -60,16 +60,25 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
       name.disabled = false;
       const prior = picker.value;
       picker.replaceChildren(
-        new Option("Choose a saved style", ""),
+        new Option("Choose a public or saved style", ""),
         ...state.profiles.map(
           (p) =>
-            new Option(p.name + (p.automatic ? " - " + new Date(p.at).toLocaleString() : ""), p.id),
+            new Option(
+              p.name +
+                (p.public
+                  ? " · Public preset"
+                  : p.automatic
+                    ? " - " + new Date(p.at).toLocaleString()
+                    : ""),
+              p.id,
+            ),
         ),
       );
       picker.value = prior;
       status.textContent =
         "Before each style change, Core keeps a recovery snapshot. Up to 20 named profiles and five recovery snapshots.";
       section.querySelectorAll("button").forEach((b) => (b.disabled = false));
+      picker.onchange();
     } catch (error) {
       status.textContent = error.message;
       name.disabled = true;
@@ -105,7 +114,7 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
           if (!confirmed) {
             button.dataset.confirm = picker.value;
             status.textContent =
-              "Restore this profile's colors and animations? Actions stay as they are. Press Restore selected again to confirm.";
+              "Apply this profile's colors and animations? Actions stay as they are. Press Apply selected again to confirm.";
             return;
           }
           await request("POST", "/restore", payload);
@@ -130,10 +139,14 @@ export function createStyleProfiles({ dialog, refreshDeck, notice }) {
         status.textContent = error.message;
       } finally {
         section.querySelectorAll("button").forEach((b) => (b.disabled = false));
+        picker.onchange();
       }
     };
   picker.onchange = () => {
     section.querySelectorAll("[data-confirm]").forEach((b) => delete b.dataset.confirm);
+    section.querySelector('[data-profile="delete"]').disabled = Boolean(
+      state.profiles.find((profile) => profile.id === picker.value)?.public,
+    );
   };
   return { refresh };
 }

@@ -1,5 +1,35 @@
 # Repository health and security review
 
+## 0.8.2 - 2026-11-25
+
+Fresh-runtime browser checks cover both verified first-party packages with no
+account or personal settings, static public catalogs, editable drafts and
+cross-workspace setup links. The optional setup overview starts collapsed.
+Separate policy regressions cover missing rewards, explicitly selected chat,
+two-way mode switching, persistent pause admission and closed-queue holds.
+
+A reproduced slow-storage startup failure exceeded both a one-second storage
+read and the previous six-second worker startup deadline. Bounded storage and
+activation deadlines now allow ordinary cold Windows startup, and failed
+activation retains its original classified diagnosis. Real worker restart
+checks preserve player choice, queue configuration and overlay profiles.
+Unreadable settings remain recoverable without being overwritten.
+
+Public catalogs contain no account, credential, local device or OBS binding.
+The public test inventory remains reduced to 67 end-user regression files;
+development-only tests and private runtime data stay out of publications.
+The release keeps the required public OAuth client IDs. Design sources and
+the precise request-mode rules are documented in [Setup and public presets](SETUP_AND_PRESETS.md).
+
+The affected remote PC's exact error was unavailable. The reproduced startup
+defect is fixed; its relationship to that particular report remains unconfirmed.
+
+The local end-user suite completed 410 cases: 409 passed and one Windows
+file-symlink privilege check skipped. The latest affected automation, mode,
+catalog and browser checks passed all 50 cases. Source structure, lint, generated
+payload verification and the dependency audit passed. Published source and
+download contents are separately checked for private values and machine paths.
+
 ## 0.8.1c - 2026-11-25
 
 The [compatibility audit](COMPANION_COMPATIBILITY.md) records companion startup,

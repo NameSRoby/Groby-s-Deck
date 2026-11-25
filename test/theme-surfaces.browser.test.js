@@ -77,6 +77,11 @@ for (const engine of [chromium, firefox])
       "slate",
       "rosewood",
       "forest",
+      "graphite",
+      "violet",
+      "ice",
+      "copper",
+      "cobalt",
     ]) {
       await page.locator(`[data-theme="${preset}"]`).click();
       palette = derive(

@@ -3,7 +3,7 @@
   "id": "twitch-integration",
   "name": "Twitch Integration",
   "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
-  "version": "0.12.62",
+  "version": "0.12.63",
   "publisher": "grobys-deck",
   "entry": "dist/main.js",
   "engine": {
@@ -142,10 +142,10 @@
       "dist/variable-arguments.js": "779523f64d66cb60cf2f11ccb0a28c50759c2966d9c33e1e61a8a9754e90cf0b",
       "dist/variable-recipe-storage.js": "667e8e7749ebfde1ab443c96e33ec5d2e79e243be6d2cb35f907fb12f0c40c53",
       "dist/variable-recipe.js": "7ba0d02d35612c9d17481dd9d9587c857b8291a8528135368828f2825163cc56",
-      "ui/automations-controller.js": "5f52e959a11d0448c13fc794e1df1147717530d6c6e0944f41155bfc93de61ff",
+      "ui/automations-controller.js": "e4b36a89bacf6d87d000f8374060b0726890846ab75dcec2438ea1cc1ad1dc43",
       "ui/automations-layout.css": "fe063fccc9c0d14d975409bb04b4321ec15881136c10444590b25109165dca48",
-      "ui/automations-list.js": "aba990a8d3504cf3513b7cc7a5c5530b789402517dde769aa103220b0ef03d52",
-      "ui/automations.html": "ade4ec3d4fae3c22348092e5f014acea7af540e8798e671138d068a0fb0174ea",
+      "ui/automations-list.js": "68c4f78db907cd35f39f718f4497cb8f4d60663d02326a1831c6532bdd846898",
+      "ui/automations.html": "2b4e365c3f2d2080c1805a25a0858a04c23790d0d51af8269e91a7fe2a6b4b4f",
       "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
       "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
       "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",
@@ -157,7 +157,7 @@
       "ui/duration-input.js": "d37303482538b419af104e660f99ffd2a89df0565f17b780a8ff6ed7979943a4",
       "ui/quotes-manager.js": "165025d9ce7c3ef7231a24a14164b085a529bf09254b56f0fcef58ed6a55041b",
       "ui/quotes.html": "f59980ea8b0e646809e88ba5cb7fac192476c2308546c197fd7f64937e9c69be",
-      "ui/syntax.html": "025fa07916af77921c87f8e22e847f8a822c8aa05b8386ee4867a23c93c37d18",
+      "ui/syntax.html": "a801830e54051accd9ed82ae78bd42c3b128998aa36109431057a20cd3382e7a",
       "ui/watchtime.html": "0f794b81622df7eebd719ddf2cecbe4503cfcdca4d6e200388d63d72c8bb537c"
     }
   }

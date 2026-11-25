@@ -1,3 +1,4 @@
+import { deckNode as node } from "./control-deck-dom.js";
 import { explainDeckError as explain } from "./control-deck-errors.js";
 /** Dashboard button mode. Execution, permissions and macro state belong to Core.
  * Editing and page navigation never trigger an action. Poll only the visible deck.
@@ -26,6 +27,7 @@ import { openFeaturePage, selectMainTab } from "./feature-navigation.js";
 export function initControlDeck(panel, onOverview = () => {}) {
   let snapshot,
     catalog = [],
+    publicPresets = [],
     editing = false,
     pageId = "",
     statusConnected = true,
@@ -53,12 +55,6 @@ export function initControlDeck(panel, onOverview = () => {}) {
   const original = {
     title: panel.querySelector("h2").textContent,
     help: panel.querySelector(".dashboardHero p").textContent,
-  };
-  const node = (tag, className, text) => {
-    const el = document.createElement(tag);
-    if (className) el.className = className;
-    if (text !== undefined) el.textContent = text;
-    return el;
   };
   const mode = node("div", "deckModeSwitch");
   mode.setAttribute("role", "group");
@@ -173,6 +169,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     save,
     getConfig: () => snapshot.config,
     getCatalog: () => catalog,
+    getPresets: () => publicPresets,
     onPage: selectPage,
     note,
   });
@@ -767,6 +764,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     visible: isVisible,
     receive({ snapshot: next, catalog: choices }) {
       catalog = choices.actions;
+      publicPresets = choices.presets || [];
       statusConnected = true;
       const changed = !snapshot || next.revision !== snapshot.revision;
       snapshot = next;

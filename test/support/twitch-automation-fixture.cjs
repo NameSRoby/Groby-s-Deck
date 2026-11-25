@@ -2,7 +2,7 @@
 const fs = require("node:fs"),
   os = require("node:os"),
   path = require("node:path");
-module.exports = function fixture(t) {
+module.exports = function fixture(t, overrides = {}) {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "rvl-twitch-flows-")),
     file = path.join(runtimeDir, "system", "twitch-automations.json"),
     calls = [],
@@ -133,6 +133,7 @@ module.exports = function fixture(t) {
     },
   };
   const options = {
+    ...overrides,
     file,
     getProvider: () => provider,
     deck,

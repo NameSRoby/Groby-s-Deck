@@ -535,7 +535,11 @@ module.exports = function createProcessSupervisor(options = {}) {
       const at = Number(now());
       crashTimes.push(at);
       while (crashTimes.length && crashTimes[0] < at - crashWindowMs) crashTimes.shift();
-      state.lastError = `${workloadKind}_exit_${String(code ?? "null")}_${String(signal || "none")}`;
+      // Killing a timed-out or rejected startup must not erase its diagnosis.
+      state.lastError =
+        !state.lastError || state.lifecycle === "active"
+          ? `${workloadKind}_exit_${String(code ?? "null")}_${String(signal || "none")}`
+          : state.lastError;
       state.lifecycle = crashTimes.length >= crashLimit ? "quarantined" : "crashed";
     }
     settleStartup();

@@ -424,7 +424,8 @@ function createSystemWidgetEventController(deps = {}) {
       requesterId,
       requesterName: meta.userName,
       requesterRole: ["vip", "moderator"].includes(meta.userRole) ? meta.userRole : "viewer",
-      notifyChat: transport === "native",
+      notifyChat: transport === "native" || transport === "chat",
+      ...(transport === "chat" ? { responseMessageId: meta.redemptionId } : {}),
       ...(transport === "native" && action === "song_request" ? { rewardRedemption: true } : {}),
       query: meta.userInput,
       ...(videoId
@@ -621,40 +622,8 @@ function createSystemWidgetEventController(deps = {}) {
         chatDelivery = { ok: false, error: "twitch_chat_send_failed" };
       }
     }
-    if (action === "teach") {
-      const settings = {
-        preview: true,
-        chatSuccess: false,
-        chatFailure: false,
-        ...(getTeachSettings() || {}),
-      };
-      if (bridgeOk && body.changed === true && settings.preview === true) {
-        try {
-          teachPreview = await previewTaughtColor(body.hex);
-        } catch (error) {
-          teachPreview = {
-            ok: false,
-            scheduled: false,
-            reason: asString(error?.message || "teach_preview_failed").slice(0, 80),
-          };
-        }
-      }
-      if (
-        (bridgeOk && settings.chatSuccess === true) ||
-        (!bridgeOk && settings.chatFailure === true)
-      ) {
-        try {
-          chatDelivery = await sendChat({
-            message: teachChatMessage(meta, body, bridgeOk),
-          });
-        } catch (error) {
-          chatDelivery = {
-            ok: false,
-            error: asString(error?.message || "twitch_chat_send_failed").slice(0, 80),
-          };
-        }
-      }
-    }
+    if (action === "teach")
+      ({ teachPreview, chatDelivery } = await teachFeedback(meta, body, bridgeOk));
 
     return {
       status: 200,
@@ -690,6 +659,70 @@ function createSystemWidgetEventController(deps = {}) {
     }
   }
 
+  async function teachFeedback(meta, body, bridgeOk) {
+    let teachPreview, chatDelivery;
+    const settings = {
+      preview: true,
+      chatSuccess: false,
+      chatFailure: false,
+      ...(getTeachSettings() || {}),
+    };
+    if (bridgeOk && body.changed === true && settings.preview === true) {
+      try {
+        teachPreview = await previewTaughtColor(body.hex);
+      } catch (error) {
+        teachPreview = {
+          ok: false,
+          scheduled: false,
+          reason: asString(error?.message || "teach_preview_failed").slice(0, 80),
+        };
+      }
+    }
+    if (
+      (bridgeOk && settings.chatSuccess === true) ||
+      (!bridgeOk && settings.chatFailure === true)
+    ) {
+      try {
+        chatDelivery = await sendChat({
+          message: teachChatMessage(meta, body, bridgeOk),
+        });
+      } catch (error) {
+        chatDelivery = {
+          ok: false,
+          error: asString(error?.message || "twitch_chat_send_failed").slice(0, 80),
+        };
+      }
+    }
+
+    return { teachPreview, chatDelivery };
+  }
+
+  async function handleChatAction(input = {}) {
+    const action = { lights: "color", teach: "teach", add_to_playlist: "add_to_playlist" }[
+      input.purpose
+    ];
+    if (
+      !action ||
+      !asString(input.messageId) ||
+      !asString(input.requesterId) ||
+      !asString(input.input)
+    )
+      return { ok: false, error: "chat_action_invalid" };
+    // Authenticated chat uses the same handlers, without creating a redemption
+    // receipt or attempting to settle/refund a nonexistent Channel Points event.
+    const meta = {
+      redemptionId: asString(input.messageId),
+      userId: asString(input.requesterId),
+      userName: asString(input.requesterName),
+      userRole: input.requesterRole,
+      userInput: asString(input.input),
+    };
+    const result = await executeReward(meta, {}, action, "chat");
+    const body = resultBody(result);
+    if (action === "teach") await teachFeedback(meta, body, body.ok === true);
+    return body;
+  }
+
   function getDiagnostics() {
     return {
       ok: true,
@@ -709,6 +742,7 @@ function createSystemWidgetEventController(deps = {}) {
 
   return {
     handleWidgetEvent,
+    handleChatAction,
     getDiagnostics,
     recordRejected,
     parseRedemptionEnvelope,

@@ -4,6 +4,9 @@
  */
 const COMMANDS = Object.freeze([
   "request",
+  "playlist",
+  "lights",
+  "teach",
   "song",
   "songqueue",
   "queue",
@@ -32,7 +35,17 @@ function normalizeCommandPermissions(input) {
           typeof input?.[command]?.[role] === "boolean"
             ? input[command][role]
             : role === "moderator" ||
-              ["request", "skip", "remove", "song", "songqueue", "queue"].includes(command),
+              [
+                "request",
+                "playlist",
+                "lights",
+                "teach",
+                "skip",
+                "remove",
+                "song",
+                "songqueue",
+                "queue",
+              ].includes(command),
         ]),
       ),
     ]),

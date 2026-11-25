@@ -150,8 +150,10 @@
         state.twitchAvailable === undefined
           ? "Restart Core to load request intake settings."
           : state.twitchAvailable
-            ? "Rewards use the source selected in Widget."
-            : "Widget fallback is active. Enable Twitch Integration to use chat requests.";
+            ? state.songRequestChatEnabled
+              ? "Chat requests use !sr or !songrequest. Pausing viewer intake also pauses these commands."
+              : "Channel Points uses your song reward. Until a reward is linked, !sr and !songrequest remain available."
+            : "Enable Twitch Integration to accept viewer requests. You can still use the player.";
     } catch (error) {
       intakeNotice.textContent = error.message;
       intakeSave.disabled = true;
@@ -167,6 +169,23 @@
       intakeNotice.textContent = error.message;
     }
   };
+  const related = document.createElement("p");
+  for (const [destination, title] of [
+    ["twitch", "Twitch connection"],
+    ["presets", "Commands & rewards"],
+  ]) {
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "subtle";
+    link.textContent = title;
+    link.onclick = () =>
+      parent.postMessage(
+        { channel: "ravelink-feature-ui-v1", type: "setup-link", destination },
+        "*",
+      );
+    related.append(link);
+  }
+  intakePanel.append(related);
   void refreshIntake();
 
   $("catalogSettings").open = true;

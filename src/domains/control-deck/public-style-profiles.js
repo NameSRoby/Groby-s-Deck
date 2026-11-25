@@ -1,0 +1,30 @@
+/** Public appearance templates apply to any deck, without personal button IDs. */
+module.exports = [
+  ["midnight", "Midnight", "#8b001f", "#eaeaea", "static", "none"],
+  ["ocean", "Ocean", "#227b9d", "#f4faff", "static", "smoke"],
+  ["aurora", "Aurora", "#7755ac", "#f8f3ff", "cycle", "aurora"],
+  ["ember", "Ember", "#b95538", "#fff2e8", "static", "embers"],
+  ["forest", "Forest", "#577640", "#f1f5eb", "static", "smoke"],
+  ["graphite", "Graphite", "#647181", "#ffffff", "static", "none"],
+  ["violet", "Violet", "#8658c9", "#ffffff", "cycle", "orbit"],
+  ["ice", "Ice", "#68b5c9", "#ffffff", "static", "ripple"],
+  ["copper", "Copper", "#b16e49", "#fff8ef", "static", "sparkle"],
+  ["cobalt", "Cobalt", "#3e65b5", "#ffffff", "static", "scan"],
+].map(([key, name, color, textColor, motion, backgroundProfile]) => ({
+  id: "public-" + key,
+  name,
+  public: true,
+  automatic: false,
+  at: 0,
+  appearance: {
+    color,
+    textColor,
+    backlight: 65,
+    profileBacklight: "custom",
+    cycleColors: motion === "cycle" ? [color, "#48b0bd", "#ab68c7"] : [],
+    cycleMs: 12000,
+    backgroundProfile,
+    backgroundSpeed: 35,
+    backgroundStrength: 35,
+  },
+}));

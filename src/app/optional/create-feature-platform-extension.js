@@ -41,7 +41,12 @@ function createFeaturePlatformExtension(options = {}) {
           .catch(() => {});
       },
     });
+    const intakePause = require("../../domains/twitch/intake-pause-policy")(
+      path.join(context.runtimeDir, "system", "twitch-intake-pause.json"),
+    );
     const chatCommands = createTwitchChatCommandRouter({
+      builtinPolicy: (purpose) => automations.builtinPolicy(purpose),
+      builtinCommand: (payload) => context.widgetController.handleChatAction(payload),
       reply: (payload) => twitchProvider().sendChat(payload),
       querySongRequest: (payload) =>
         registry.request("song-request", "song.chat.commands.v1", "query", payload, {
@@ -93,6 +98,8 @@ function createFeaturePlatformExtension(options = {}) {
           onChatPresentation: (event, metadata) =>
             context.streamOverlays?.receive("channel.chat.message", event, metadata),
           onChat: async (event, monitorConfig) => {
+            if (intakePause.paused(twitchProvider().status().userId, "all"))
+              return { handled: true, accepted: false, code: "twitch_intake_paused" };
             const automation = await automations.chat(event);
             if (automation.handled) return automation;
             const handled = await chatCommands.handle(event, monitorConfig);
@@ -124,7 +131,15 @@ function createFeaturePlatformExtension(options = {}) {
         cancel: (id) => context.controlDeck.cancel(id),
       },
       legacy: legacyRedemption,
+      builtinAvailable: (purpose) =>
+        !["song_request", "add_to_playlist"].includes(purpose) ||
+        Boolean(
+          registry
+            ?.list()
+            .features.some((row) => row.id === "song-request" && row.lifecycle === "active"),
+        ),
       getShoutouts: () => twitchFlowActions?.shoutouts,
+      intakePaused: (purpose) => intakePause.paused(twitchProvider().status().userId, purpose),
     });
     twitchFlowActions = require("../../domains/twitch/twitch-flow-actions")({
       getProvider: twitchProvider,
@@ -522,7 +537,12 @@ function createFeaturePlatformExtension(options = {}) {
     const dashboardRewards =
       require("../../capabilities/feature-platform/http/register-dashboard-rewards.routes")(
         context.app,
-        { registry, getProvider: twitchProvider },
+        {
+          registry,
+          getProvider: twitchProvider,
+          intakePause,
+          getBuiltinRows: () => automations.status().rows,
+        },
       );
     const startup = registry.startInstalled().catch((error) => ({
       ok: false,

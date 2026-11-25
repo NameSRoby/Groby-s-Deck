@@ -5,13 +5,13 @@
  */
 // A release must download every manifest and payload from one immutable tree.
 // A moving branch can be cached per file by GitHub and briefly mix revisions.
-const OFFICIAL_FEATURE_REVISION = "fd42a1498452a59d4e50ae8deeb00ce1989c053f";
+const OFFICIAL_FEATURE_REVISION = "647fdaa321cf4ace496f49b3517050883c247dbf";
 const GITHUB_RAW_ROOT = `https://raw.githubusercontent.com/NameSRoby/Groby-s-Deck/${OFFICIAL_FEATURE_REVISION}/features/`;
 
 const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   Object.freeze({
     id: "song-request",
-    minimumVersion: "0.45.26",
+    minimumVersion: "0.45.27",
     name: "Song Request",
     description:
       "YouTube, Spotify, TIDAL and SoundCloud requests, community playlists, reviewed transfers, moderation and OBS overlays.",
@@ -20,7 +20,7 @@ const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   }),
   Object.freeze({
     id: "twitch-integration",
-    minimumVersion: "0.12.62",
+    minimumVersion: "0.12.63",
     name: "Twitch Integration",
     description:
       "Twitch OAuth, EventSub, Channel Points rewards, chat responses, and redemption settlement.",

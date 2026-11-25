@@ -322,32 +322,17 @@ function escapeHtml(value) {
 
 document.querySelectorAll("[data-tab]").forEach((button) =>
   button.addEventListener("click", () => {
-    document
-      .querySelectorAll("[data-tab]")
-      .forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-tab]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+      item.setAttribute("aria-selected", String(item === button));
+    });
     document.querySelectorAll("main > [data-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.panel !== button.dataset.tab;
     });
   }),
 );
 
-const themes = {
-  midnight: {
-    accent: "#8b001f",
-    bg: "#050507",
-    surface: "#19191f",
-    text: "#eaeaea",
-    glow: 65,
-  },
-  ember: { accent: "#b95538", bg: "#100e10", surface: "#251e22", text: "#f8ede9", glow: 28 },
-  ocean: { accent: "#227b9d", bg: "#0b111b", surface: "#172638", text: "#e9f3fc", glow: 24 },
-  matrix: { accent: "#287d61", bg: "#0b1311", surface: "#192a25", text: "#edf7f1", glow: 20 },
-  aurora: { accent: "#7755ac", bg: "#100e1a", surface: "#241f36", text: "#f3eefc", glow: 28 },
-  solar: { accent: "#876626", bg: "#14120d", surface: "#2c261b", text: "#fbf4df", glow: 20 },
-  slate: { accent: "#516a94", bg: "#0e1219", surface: "#202a39", text: "#eef2f8", glow: 16 },
-  rosewood: { accent: "#a04b68", bg: "#160e14", surface: "#2d1e29", text: "#faedf3", glow: 24 },
-  forest: { accent: "#577640", bg: "#10140f", surface: "#242d20", text: "#f1f5eb", glow: 18 },
-};
+const themes = window.GrobyPresentationProfiles;
 
 let themeEditRevision = 0;
 const saveSharedTheme = createSharedThemeSaver(() => {
