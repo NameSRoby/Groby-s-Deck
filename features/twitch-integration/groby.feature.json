@@ -3,7 +3,7 @@
   "id": "twitch-integration",
   "name": "Twitch Integration",
   "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
-  "version": "0.12.63",
+  "version": "0.12.64",
   "publisher": "grobys-deck",
   "entry": "dist/main.js",
   "engine": {
@@ -145,7 +145,7 @@
       "ui/automations-controller.js": "e4b36a89bacf6d87d000f8374060b0726890846ab75dcec2438ea1cc1ad1dc43",
       "ui/automations-layout.css": "fe063fccc9c0d14d975409bb04b4321ec15881136c10444590b25109165dca48",
       "ui/automations-list.js": "68c4f78db907cd35f39f718f4497cb8f4d60663d02326a1831c6532bdd846898",
-      "ui/automations.html": "2b4e365c3f2d2080c1805a25a0858a04c23790d0d51af8269e91a7fe2a6b4b4f",
+      "ui/automations.html": "f6cb039a0fe2aee11855a5504a1bf984505616c02d5d730c86c9ce576fc98b91",
       "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
       "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
       "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",

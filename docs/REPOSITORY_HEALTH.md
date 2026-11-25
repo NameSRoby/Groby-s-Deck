@@ -1,5 +1,20 @@
 # Repository health and security review
 
+## 0.8.2a - 2026-11-25
+
+Setup progress is derived from real pairing, connection and saved configuration
+state, with durable per-feature skips and dismissal. Completed setup remains
+completed across restarts. The guide cannot pair hardware, launch playback,
+disable features or execute buttons. Progress responses contain only fixed
+feature identifiers and booleans. Invalid state is preserved for recovery.
+
+Fixture pairing is the first lighting setup destination. Repeated Related setup
+rows are removed. Selected source cards, lighting surfaces, room-map markers and
+borders use theme variables. Chromium and Firefox regressions exercise every
+palette, including the previously fixed-blue source selection. Setup navigation,
+persistence, skips, dismissal and HTTP origin checks are covered by the existing
+67-file public regression inventory.
+
 ## 0.8.2 - 2026-11-25
 
 Fresh-runtime browser checks cover both verified first-party packages with no

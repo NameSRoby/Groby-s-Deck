@@ -15,17 +15,17 @@ Build a modular control surface for your stream, desktop, phone or tablet:
 
 Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
 
-[Download 0.8.2](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2) |
+[Download 0.8.2a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2a) |
 [User guide](docs/USER_GUIDE.md) |
 [Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
 ## Install
 
-1. Download **Grobys-Deck-Windows-v0.8.2-setup-installer.exe**.
+1. Download **Grobys-Deck-Windows-v0.8.2a-setup-installer.exe**.
 2. Run Setup and choose the features you want.
 3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
 
-**Portable:** extract **Grobys-Deck-Windows-v0.8.2-self-contained.zip** completely,
+**Portable:** extract **Grobys-Deck-Windows-v0.8.2a-self-contained.zip** completely,
 then run **Groby's Deck.exe**.
 
 The runtime and optional packages are included. No developer tools are needed.
@@ -178,13 +178,13 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
-## What's fixed in 0.8.2
+## What's fixed in 0.8.2a
 
 - Public automation and button presets load on fresh installations without personal runtime files.
 - Built-in feature controls stay available; missing rewards fall back to chat commands.
 - Song Request's saved chat mode takes precedence, with mode switching and pause controls preserved.
-- Adds public lighting and deck appearance profiles, more command recipes and five app palettes.
-- Connects related setup pages with quiet links and an optional collapsed overview. All tabs and advanced controls remain accessible.
+- Keeps public presets and profiles, and fixes selected source cards and room-layout colors across every app palette.
+- Tracks setup in a compact dismissible progress bar, with persistent per-feature skips. Lighting starts with pairing and fixture assignment.
 - Gives slow settings reads time to complete and shows private-data-free startup reports.
 - Keeps the reduced end-user regression inventory and existing companion, privacy and security fixes.
 
@@ -239,7 +239,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 ## Earlier versions
 
 Groby’s Deck 0.8 is the current release. Previous releases remain available in the
-[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.2 for new installations.
+[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.2a for new installations.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
 The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.

@@ -565,69 +565,93 @@ body.overlayStudioOpen #overlayDesignerFrame {
   margin: 8px 0;
 }
 .setupGuide {
-  margin: 10px 0;
+  max-width: 1480px;
+  margin: 8px auto 12px;
   border-block: 1px solid var(--edge);
-  padding: 0 4px;
-}
-.setupGuide summary {
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 11px 0;
   color: var(--text);
 }
-.setupGuideSummaryHint {
-  margin-inline-start: 12px;
+.setupGuide[hidden] {
+  display: none;
+}
+.setupGuideHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.setupProgress {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 400;
 }
-.setupGuideSteps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-  gap: 6px 14px;
-  padding-bottom: 12px;
-}
-.setupGuideShortcut {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 12px;
-  text-align: start;
-  padding: 10px 12px;
-  background: transparent;
+.setupGuide button {
+  min-height: 30px;
+  padding: 4px 8px;
   border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
   box-shadow: none;
 }
-.setupGuideShortcut strong {
-  font-size: 13px;
-  font-weight: 600;
+.setupGuide .setupNext {
+  margin-inline-end: auto;
+  color: var(--text);
 }
-.setupGuideShortcut small {
-  grid-column: 1;
+.setupGuide button:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface);
+  box-shadow: none;
+}
+.setupGuide .setupDismiss {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 400;
 }
-.setupGuideArrow {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  align-self: center;
-  color: var(--muted);
-  font-size: 22px;
+.setupFeatureList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 10px;
+  max-width: 780px;
 }
-.relatedSetup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+.setupFeatureList li {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 54px 54px;
   gap: 8px;
-  margin: 8px 0;
-  border: 0;
-  padding: 4px 0;
-  background: transparent;
-  font-size: 0.85rem;
-  color: var(--muted);
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px solid var(--edge);
 }
-.relatedSetup .setupLink {
-  padding: 4px 8px;
-  font-size: 0.85rem;
+.setupFeatureLabel {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+.setupFeatureList button {
+  white-space: nowrap;
+  padding-inline: 6px;
+}
+.setupFeatureLabel small,
+.setupFeatureState {
+  color: var(--muted);
+  font-size: 11px;
+}
+.setupFeatureList [data-state="done"] .setupFeatureState {
+  color: var(--ok);
+}
+.setupGuideNotice {
+  font-size: 12px;
+  color: var(--warn);
+}
+@media (max-width: 520px) {
+  .setupGuideHead {
+    gap: 4px 8px;
+  }
+  .setupGuide .setupNext {
+    order: 2;
+    width: 100%;
+    text-align: start;
+  }
+  .setupFeatureList li {
+    grid-template-columns: 48px minmax(0, 1fr) 56px 48px;
+    gap: 4px;
+  }
 }

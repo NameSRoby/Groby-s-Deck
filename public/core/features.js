@@ -15,6 +15,9 @@ let lifecycleEvents;
 function acceptSnapshot(snapshot) {
   if (snapshot.instanceId === state.instanceId && snapshot.revision < state.revision) return;
   state = snapshot;
+  const overview = byId("dashboardOverview");
+  if (overview)
+    overview.textContent = `${state.features.filter((row) => row.lifecycle === "active").length} ACTIVE / ${state.features.length} INSTALLED`;
   render();
 }
 

@@ -2,7 +2,7 @@
 import { openFeaturePage, selectMainTab } from "./feature-navigation.js";
 import { initDashboardLayout } from "./dashboard-layout.js";
 import { initControlDeck } from "./control-deck.js";
-import { createSetupGuide } from "./setup-guide.js";
+import { createSetupGuide } from "./setup-progress.js";
 const panel = document.querySelector('[data-panel="dashboard"]');
 const layout = initDashboardLayout(panel);
 const deck = initControlDeck(panel, () => void refresh());
