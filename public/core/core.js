@@ -24,6 +24,8 @@ async function request(path, options = {}) {
   const response = await fetch(path, { ...options, headers });
   const body = await response.json().catch(() => ({ ok: false, error: `HTTP ${response.status}` }));
   if (!response.ok || body.ok === false) throw new Error(body.error || `HTTP ${response.status}`);
+  if (options.method && options.method !== "GET")
+    window.dispatchEvent(new Event("ravelink:setup-changed"));
   return body;
 }
 const { showResult, redactDisplayString } = globalThis.initCoreResults(byId);

@@ -118,6 +118,11 @@ export function openFeaturePage(featureId, pageId, setupTarget = "") {
 }
 
 export function openSetupDestination(destination) {
+  if (destination === "fixtures") {
+    selectMainTab("fixtures");
+    document.querySelector('[data-panel="fixtures"]')?.scrollIntoView({ block: "start" });
+    return;
+  }
   if (destination === "deck") {
     selectMainTab("dashboard");
     document.getElementById("deckButtonMode")?.click();
@@ -136,34 +141,6 @@ export function openSetupDestination(destination) {
   const target = targets[destination];
   if (target && openFeaturePage(...target)) return;
   selectMainTab("features");
-}
-
-function relatedSetup(featureId) {
-  const nav = document.createElement("nav");
-  nav.className = "relatedSetup";
-  nav.setAttribute("aria-label", "Related setup");
-  const label = document.createElement("span");
-  label.textContent = "Related setup:";
-  nav.append(label);
-  for (const [destination, title] of featureId === "song-request"
-    ? [
-        ["twitch", "Twitch connection"],
-        ["presets", "Rewards & chat presets"],
-        ["deck", "Button deck"],
-      ]
-    : [
-        ["songs", "Music player & request mode"],
-        ["lights", "Lights"],
-        ["deck", "Button deck"],
-      ]) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "setupLink";
-    button.textContent = title;
-    button.onclick = () => openSetupDestination(destination);
-    nav.append(button);
-  }
-  return nav;
 }
 
 export function selectMainTab(key) {
@@ -244,7 +221,7 @@ export function syncFeatureNavigation(features) {
     view.panel.replaceChildren();
     const heading = document.createElement("h2");
     heading.textContent = feature.name.toUpperCase();
-    view.panel.append(heading, relatedSetup(feature.id));
+    view.panel.append(heading);
     if (feature.lifecycle !== "active") {
       const notice = document.createElement("p");
       notice.setAttribute("role", "status");

@@ -428,6 +428,7 @@
       </section>
       <section class="panel" data-panel="lights" hidden="">
         <div class="actions lightSubtabs" role="tablist" aria-label="Lights workspaces">
+          <button data-light-setup type="button">PAIR &amp; ASSIGN</button>
           <button class="active" data-light-tab="control" type="button">DIRECT CONTROL</button>
           <button data-light-tab="viewer" type="button">VIEWER CONTROLS</button>
           <button data-light-tab="music" type="button">MUSIC-TO-LIGHT</button>
@@ -2021,17 +2022,14 @@
             <button id="saveLightingLayout" type="button">SAVE LAYOUT</button>
           </div>
           <p class="profileIntro">
-            Place fixtures on a simple overhead room map. Dynamic sweep, wave, and ripple effects
-            use these positions while every brand remains on the shared effect clock. Wi-Fi does not
-            measure a bulb's physical location, so placement is manual.
+            Drag fixtures to match your room. Sweep, wave and ripple effects follow these positions.
           </p>
-          <div class="cluster routingTestConsole">
+          <details class="cluster routingTestConsole">
+            <summary>Test viewer routing</summary>
             <div class="sectionHead">
               <div>
-                <h3>TEST SAVED TWITCH ROUTING</h3>
                 <p>
-                  Send a command through the same saved fixture groups, prefixes, effect allowlist,
-                  and adapters used by a real channel-point redemption.
+                  Send a command through your saved viewer routes. This test controls real lights.
                 </p>
               </div>
             </div>
@@ -2047,7 +2045,7 @@
               <button id="stopLayoutRoutingTest" type="button">STOP DEFAULT ROUTE EFFECTS</button>
             </div>
             <pre id="layoutRoutingTestResult" class="result" hidden=""></pre>
-          </div>
+          </details>
           <div class="layoutWorkspace cluster">
             <div>
               <div
@@ -2161,7 +2159,7 @@
         <div class="panelTitle">
           <div>
             <span>HARDWARE</span>
-            <h2>FIXTURE ROUTING</h2>
+            <h2>PAIR &amp; ASSIGN LIGHTS</h2>
           </div>
           <button id="refreshFixtures" type="button">REFRESH</button>
         </div>

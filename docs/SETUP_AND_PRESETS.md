@@ -1,13 +1,13 @@
 # Setup and public presets
 
-All workspaces remain available in any order. The optional **Setup & connections** section on Dashboard is collapsed initially. Small **Related setup** links connect a music player to Twitch, requests to automations, and automations to the button deck. They navigate without changing settings or running actions.
+All workspaces remain available in any order. A compact Setup bar stays above the workspaces until setup is complete or dismissed. It tracks saved pairings, connections, player choices, button availability and saved overlays. Expand Steps to skip individual features; skipping setup does not disable or remove their controls. Dismissals persist on this Core installation. Use Theme settings → Review setup to return to the guide. Completed setup stays complete across restarts.
 
 ## First use
 
 - **Song Request → Player → Setup:** choose a player and complete its connection. Choose how viewers request songs here. A desktop companion must be prepared before opening the music app through Groby's Deck.
 - **Twitch Integration → Connection:** connect your channel and select the permissions needed by the features you use.
 - **Twitch Integration → Rewards & automations:** public presets are available before login. Choose a preset to edit a draft; review permissions, save and enable it when ready. Channel Points rewards are optional.
-- **Lights:** add your own devices and explicitly apply a public lighting profile. Public profiles contain colors and brightness, with no device addresses or assignments.
+- **Lights → Pair & assign:** pair or add fixtures first, then assign them and try controls. Add your own devices and explicitly apply a public lighting profile. Public profiles contain colors and brightness, with no device addresses or assignments.
 - **Dashboard → Button deck:** Add a button offers public action presets. Deck settings includes public appearance profiles. Choosing a draft or style does not execute a button.
 
 ## Built-in viewer controls

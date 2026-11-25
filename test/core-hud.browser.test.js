@@ -138,6 +138,7 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
             "/api/presentation/theme",
             "/api/presentation/navigation",
             "/api/presentation/dashboard",
+            "/api/presentation/setup",
             "/api/dashboard",
             "/api/control-deck/state",
             "/api/control-deck/style-profiles",

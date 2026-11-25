@@ -65,6 +65,15 @@ for (const engine of [chromium, firefox])
     await page.route("https://www.youtube.com/**", (route) => route.abort());
     const base = "http://127.0.0.1:" + server.address().port;
     await page.goto(base, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-tab="feature:song-request"]').click();
+    await page
+      .locator('[data-panel="feature:song-request"]')
+      .getByRole("button", { name: "Now Playing Sources", exact: true })
+      .click();
+    const sources = page
+      .frameLocator('iframe[data-page-id="now-playing"]')
+      .frameLocator("#surface");
+    await sources.locator('.sourceCard[aria-pressed="true"]').waitFor();
     await page.locator("#themeButton").click();
     let palette;
     for (const preset of [
@@ -101,6 +110,38 @@ for (const engine of [chromium, firefox])
         await page.locator(`[data-theme="${preset}"]`).getAttribute("aria-pressed"),
         "true",
       );
+      await page.waitForFunction(
+        (expected) =>
+          getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() ===
+          expected,
+        palette.accent,
+      );
+      await sources.locator('.sourceCard[aria-pressed="true"]').evaluate(
+        (el, expected) =>
+          new Promise((resolve, reject) => {
+            let count = 0;
+            const check = () => {
+              if (getComputedStyle(el).borderTopColor === expected) resolve();
+              else if (++count > 120) reject(Error("Source card ignored theme"));
+              else requestAnimationFrame(check);
+            };
+            check();
+          }),
+        rgb(palette.accent),
+      );
+      assert.equal(
+        await sources
+          .locator(".section")
+          .first()
+          .evaluate((el) => getComputedStyle(el).backgroundColor),
+        rgb(palette.panel),
+      );
+      assert.equal(
+        await page
+          .locator("#lightingRoomMap")
+          .evaluate((el) => getComputedStyle(el).borderTopColor),
+        rgb(palette.edge),
+      );
     }
     await page.locator("h1").click();
     assert.equal(await page.locator("#themePanel").isVisible(), false);
@@ -134,10 +175,14 @@ for (const engine of [chromium, firefox])
     await page.locator("#hoverFixture").evaluate((el) => el.remove());
     await page.locator('[data-tab="feature:song-request"]').click();
     const feature = page
-      .locator('[data-panel="feature:song-request"] iframe')
+      .locator('[data-panel="feature:song-request"] iframe[data-page-id="player"]')
       .contentFrame()
       .locator("#surface")
       .contentFrame();
+    await page
+      .locator('[data-panel="feature:song-request"]')
+      .getByRole("button", { name: "Player", exact: true })
+      .click();
     await feature
       .locator(
         '[data-choice-for="songPlayerProvider"] [data-choice-value="spotify"]:not([disabled])',

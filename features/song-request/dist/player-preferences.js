@@ -7,6 +7,7 @@ module.exports = function playerPreferences(context) {
   let player = "youtube",
     youtubePlayback = "embed",
     loaded = false,
+    configured = false,
     serial = Promise.resolve();
   async function handle(method, input) {
     try {
@@ -26,8 +27,8 @@ module.exports = function playerPreferences(context) {
           if (error.code !== "provider_unavailable" || hostedStorage) throw error;
         }
         if (saved?.ok === false) throw new Error("player_preferences_unavailable");
-        if (["youtube", "tidal", "soundcloud", "spotify"].includes(saved?.value?.player))
-          player = saved.value.player;
+        configured = ["youtube", "tidal", "soundcloud", "spotify"].includes(saved?.value?.player);
+        if (configured) player = saved.value.player;
         loaded = true;
         if (saved?.value?.youtubePlayback === "browser") youtubePlayback = "browser";
       }
@@ -54,10 +55,11 @@ module.exports = function playerPreferences(context) {
         );
         if (saved?.ok === false) throw new Error("player_preferences_unavailable");
         player = input.player;
+        configured = true;
         youtubePlayback = input.youtubePlayback || youtubePlayback;
       } else if (method !== "status")
         return { ok: false, code: "player_preferences_method_invalid" };
-      return { ok: true, player, youtubePlayback };
+      return { ok: true, player, youtubePlayback, configured };
     } catch {
       return { ok: false, code: "player_preferences_unavailable" };
     }

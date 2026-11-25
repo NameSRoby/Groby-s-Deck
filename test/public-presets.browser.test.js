@@ -65,7 +65,13 @@ test("fresh offline installation has public presets, styles and free navigation 
   );
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.locator("#setupGuide").waitFor();
-  assert.equal(await page.locator("#setupGuide").evaluate((el) => el.open), false);
+  assert.equal(await page.locator("#setupFeatureList").isVisible(), false);
+  await page.locator(".setupNext").click();
+  assert.equal(await page.locator('[data-panel="fixtures"]').isVisible(), true);
+  assert.equal(
+    (await api("/api/presentation/setup")).features.find((f) => f.id === "lights").done,
+    false,
+  );
   assert.equal(await page.locator("[data-theme]").count(), 14);
   await page.locator('[data-tab="feature:twitch-integration"]').click();
   await page
@@ -82,10 +88,10 @@ test("fresh offline installation has public presets, styles and free navigation 
   assert.equal(await frame.locator("#save").isDisabled(), true);
   await frame.getByRole("button", { name: "Connect Twitch", exact: true }).click();
   await page.locator('iframe[data-page-id="connection"]').waitFor();
-  await page
-    .locator('[data-panel="feature:twitch-integration"]')
-    .getByRole("button", { name: "Music player & request mode", exact: true })
-    .click();
+  assert.equal(await page.locator(".relatedSetup").count(), 0);
+  await page.evaluate(async () => {
+    (await import("/feature-navigation.js")).openSetupDestination("songs");
+  });
   const player = page.frameLocator('iframe[data-page-id="player"]').frameLocator("#surface");
   await player.locator("#songSetupPage").waitFor({ state: "visible" });
   await player.getByRole("button", { name: "Commands & rewards", exact: true }).click();
@@ -103,10 +109,23 @@ test("fresh offline installation has public presets, styles and free navigation 
   assert.match(await awake.innerText(), /Off/);
   await wakeSwitch.check();
   assert.match(await awake.innerText(), /Fullscreen only/);
-  await page.locator("#setupGuide > summary").click();
-  assert((await page.locator("#setupGuide").boundingBox()).height < 240);
-  assert.equal(await page.locator("#setupGuide .setupGuideShortcut").count(), 6);
-  await page.locator("#setupGuide > summary").click();
+  assert((await page.locator("#setupGuide").boundingBox()).height < 85);
+  await page.locator(".setupStepsToggle").click();
+  assert.equal(await page.locator("#setupFeatureList li").count(), 5);
+  await page.getByRole("button", { name: "Skip Lights setup", exact: true }).click();
+  await page.locator('[data-setup-feature="lights"][data-state="skipped"]').waitFor();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".setupStepsToggle").click();
+  await page.locator('[data-setup-feature="lights"][data-state="skipped"]').waitFor();
+  await page.getByRole("button", { name: "Dismiss setup guidance", exact: true }).click();
+  await page.locator("#setupGuide").waitFor({ state: "hidden" });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator("#showSetupGuide").waitFor({ state: "attached" });
+  assert.equal(await page.locator("#setupGuide").isVisible(), false);
+  await page.locator("#themeButton").click();
+  await page.locator("#showSetupGuide").click();
+  await page.locator("#setupGuide").waitFor({ state: "visible" });
+  await page.locator("#deckButtonMode").click();
   await page.locator("#deckAddButton").click();
   const picker = page.getByLabel("Public button preset", { exact: true });
   await picker.waitFor();

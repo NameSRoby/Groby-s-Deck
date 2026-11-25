@@ -319,6 +319,14 @@ module.exports = function createCoreServer(options = {}) {
     options.windowsFirewall || require("../../domains/system/windows-firewall")({ rootDir }),
   );
   registerPresentationRoutes(app, { runtimeDir });
+  require("./register-setup-progress.routes")(app, {
+    runtimeDir,
+    core,
+    getRegistry: () => extension?.registry || extension?.features?.registry,
+    getTwitch: () => (extension?.twitchDashboard || extension?.features?.twitchDashboard)?.(),
+    getDeck: () => controlDeck.snapshot(),
+    getOverlays: () => streamOverlays,
+  });
   require("./register-music-to-light.routes")(app, { host: musicToLight });
   require("./register-navigation.routes")(app, { runtimeDir });
   require("./register-dashboard-layout.routes")(app, { runtimeDir });

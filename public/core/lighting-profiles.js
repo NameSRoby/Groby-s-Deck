@@ -373,6 +373,11 @@
     }
   };
 
+  document.querySelector("[data-light-setup]").onclick = () => {
+    void import("./feature-navigation.js").then(({ openSetupDestination }) =>
+      openSetupDestination("fixtures"),
+    );
+  };
   const lightTabs = [...document.querySelectorAll("[data-light-tab]")];
   const workspaceHelp = {
     control:
@@ -416,7 +421,7 @@
         row.tabIndex = row === button ? 0 : -1;
       });
       element("lightWorkspaceHelp").textContent = workspaceHelp[key];
-      element("lightWorkspaceHelp").hidden = ["music", "viewer"].includes(key);
+      element("lightWorkspaceHelp").hidden = ["music", "viewer", "layout"].includes(key);
       document.querySelectorAll("[data-light-panel]").forEach((panel) => {
         panel.hidden = panel.dataset.lightPanel !== button.dataset.lightTab;
       });

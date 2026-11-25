@@ -9,6 +9,7 @@
         color-scheme: dark;
         --bg: #050507;
         --panel: #0b101b;
+        --surface: #19191f;
         --edge: #263755;
         --text: #eef3ff;
         --muted: #8fa0be;
@@ -41,7 +42,7 @@
         justify-content: space-between;
         padding: 0 18px;
         border-bottom: 1px solid var(--edge);
-        background: #080b12;
+        background: var(--panel);
       }
       h1 {
         margin: 0;
@@ -68,12 +69,12 @@
         border: 1px solid var(--edge);
         border-radius: 8px;
         padding: 16px;
-        background: #090e18;
+        background: var(--panel);
       }
       h2 {
         margin: 0 0 5px;
         font-size: 12px;
-        color: #cdd8ee;
+        color: var(--text);
       }
       .sectionHelp {
         color: var(--muted);
@@ -103,9 +104,9 @@
         margin-top: 5px;
       }
       .sourceCard[aria-pressed="true"] {
-        border-color: #4b8dff;
-        background: #102348;
-        box-shadow: inset 0 0 0 1px #4b8dff;
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+        box-shadow: inset 0 0 0 1px var(--accent);
       }
       .srOnly {
         position: absolute;
@@ -123,7 +124,7 @@
         min-height: 38px;
         border: 1px solid var(--edge);
         border-radius: 5px;
-        background: #0a1020;
+        background: var(--surface);
         color: var(--text);
         padding: 8px 12px;
         font: inherit;
@@ -133,7 +134,7 @@
         cursor: pointer;
       }
       button:hover {
-        border-color: #5c76a4;
+        border-color: var(--accent);
       }
       button.primary {
         border-color: var(--accent);
@@ -190,7 +191,7 @@
       .track .provider {
         font-size: 10px;
         font-weight: 900;
-        color: #e21d48;
+        color: var(--accent);
         margin-bottom: 6px;
       }
       .actions {
