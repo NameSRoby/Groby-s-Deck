@@ -47,10 +47,21 @@ module.exports = function createSpotifyConnection(client, options = {}) {
     const chunks = [];
     let bytes = 0;
     if (!response.body) throw Error("spotify_bridge_reply_invalid");
-    for await (const chunk of response.body) {
-      bytes += chunk.byteLength;
-      if (bytes > 65536) throw Error("spotify_bridge_reply_invalid");
-      chunks.push(chunk);
+    // Older Spotify CEF builds expose getReader without stream async iteration.
+    const reader = response.body.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > 65536) {
+          void reader.cancel().catch(() => {});
+          throw Error("spotify_bridge_reply_invalid");
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
     }
     const joined = new Uint8Array(bytes);
     let offset = 0;

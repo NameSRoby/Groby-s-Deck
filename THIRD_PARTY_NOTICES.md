@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-RaveLink Core includes or interoperates with the following third-party components. Their respective licenses remain in effect.
+Groby's Deck includes or interoperates with the following third-party components. Their respective licenses remain in effect.
 
 - **Inrixia/TidaLuna** — Microsoft Public License (Ms-PL), revision
   `4b8c306737fb53423d5c0138e24a367f0c268cf0`. The RaveLink TIDAL companion adapts
@@ -25,9 +25,10 @@ RaveLink Core includes or interoperates with the following third-party component
   `LICENSE.SimpleIcons.txt`.
 
 - **Microsoft.Web.WebView2 1.0.4314.35 SDK** - Microsoft redistribution license. The managed WinForms bindings and x64 loader are installed under `runtime/desktop`; the license also ships at `desktop/windows-host/LICENSE.WebView2.txt` in source. The Microsoft Edge WebView2 Evergreen Runtime renders the desktop UI and receives Microsoft's runtime updates. Windows Setup bundles Microsoft's signed Evergreen Standalone Installer for offline prerequisite installation, under Microsoft's distribution terms: https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#offline-deployment . SDK: https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4314.35 .
-- **Node.js 24.13.0 Windows runtime** - Node.js license. The executable is renamed `RaveLink-Core-Node.exe` and its Windows description is branded for RaveLink; its complete license is installed as `runtime/NODE-LICENSE.txt`.
+- **Node.js 26.13.1 Windows runtime** - Node.js license. The executable is renamed `Grobys-Deck-Node.exe` and its Windows description is branded for Groby's Deck; its complete license is installed as `runtime/NODE-LICENSE.txt`.
 - **axios** - MIT License.
 - **bonjour-service** - MIT License. Used for bounded Philips Hue discovery.
+- **parse5** - MIT License; **entities** - BSD-2-Clause License. Parse Spotify entry documents using HTML syntax rules; upstream license texts remain in their bundled npm packages.
 - **qrcode** - MIT License. Generates LAN sharing QR codes locally; no external QR service is used. Upstream: https://github.com/soldair/node-qrcode .
 - **obscenity** (0.4.6) - MIT License. Offline clip title moderation, including the English dataset adapted from the MIT-licensed cuss project. Upstream: https://github.com/jo3-l/obscenity . Package license and dataset attribution remain in the installed dependency.
 - **cross-fetch** - MIT License. Used by Hue Entertainment support.

@@ -11,6 +11,23 @@ namespace Groby.Deck.WindowsHost
 {
     internal static class DesktopPolicy
     {
+        internal static int MinimumWebViewMajor(string root)
+        {
+            foreach (string file in new[] {
+                Path.Combine(root, "desktop", "windows-host", "prerequisites.json"),
+                Path.Combine(root, "scripts", "prerequisites.json")
+            })
+            {
+                try {
+                    var spec = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
+                    var runtime = spec["webview2"] as Dictionary<string, object>;
+                    int minimum = Convert.ToInt32(runtime["minimumMajor"]);
+                    if (minimum >= 114 && minimum <= 1000) return minimum;
+                } catch { }
+            }
+            return 114;
+        }
+
         internal static Assembly ResolveDependency(object sender, ResolveEventArgs args)
         {
             string name = new AssemblyName(args.Name).Name;

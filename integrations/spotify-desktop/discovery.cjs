@@ -9,7 +9,6 @@ const { spawnSync } = require("node:child_process");
 module.exports = function discoverSpotify(options = {}) {
   const roots = [];
   const appData = options.appData === undefined ? process.env.APPDATA : options.appData;
-  if (appData) roots.push(path.join(appData, "Spotify"));
   if ((options.platform || process.platform) === "win32") {
     const result = (options.spawn || spawnSync)(
       "powershell.exe",
@@ -17,7 +16,7 @@ module.exports = function discoverSpotify(options = {}) {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "$spotifyDiscoveryRoots=@(); Get-Process Spotify -ErrorAction SilentlyContinue | ForEach-Object { if ($_.Path) { $spotifyDiscoveryRoots+=(Split-Path -Parent $_.Path) } }; Get-AppxPackage -Name SpotifyAB.SpotifyMusic -ErrorAction SilentlyContinue | ForEach-Object { $spotifyDiscoveryRoots+=$_.InstallLocation }; @($spotifyDiscoveryRoots | Select-Object -Unique) | ConvertTo-Json -Compress",
+        '$env:PSModulePath = "$PSHOME\\Modules"; [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false); $spotifyDiscoveryRoots=@(); Get-Process Spotify -ErrorAction SilentlyContinue | ForEach-Object { if ($_.Path) { $spotifyDiscoveryRoots+=(Split-Path -Parent $_.Path) } }; Get-AppxPackage -Name SpotifyAB.SpotifyMusic -ErrorAction SilentlyContinue | ForEach-Object { $spotifyDiscoveryRoots+=$_.InstallLocation }; @($spotifyDiscoveryRoots | Select-Object -Unique) | ConvertTo-Json -Compress',
       ],
       { windowsHide: true, encoding: "utf8", timeout: 5000, maxBuffer: 32768 },
     );
@@ -30,6 +29,11 @@ module.exports = function discoverSpotify(options = {}) {
       } catch {}
     }
   }
+  // Prefer a discovered running/registered client over a stale roaming install.
+  if (appData) roots.push(path.join(appData, "Spotify"));
+  const localAppData =
+    options.localAppData === undefined ? process.env.LOCALAPPDATA : options.localAppData;
+  if (localAppData) roots.push(path.join(localAppData, "Spotify"));
   const seen = new Set(),
     found = [];
   for (const root of roots) {

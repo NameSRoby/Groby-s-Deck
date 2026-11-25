@@ -119,8 +119,9 @@ namespace Groby.Deck.WindowsHost
                 HostLog.Write(root, "Desktop viewer: " + error.GetType().Name + ": " + error.Message);
                 heading.Text = "Your workspace is still available";
                 message.Text = "The desktop viewer could not open. Retry, or open your workspace in a browser. Core continues running.";
-                runtimeLink.Visible = error is WebView2RuntimeNotFoundException;
-                if (runtimeLink.Visible) message.Text = "Install Microsoft Edge WebView2 to display Groby’s Deck in this window. You can use Open in browser while it is unavailable.";
+                runtimeLink.Visible = error is WebView2RuntimeNotFoundException ||
+                    (error is NotSupportedException && error.Message == "webview_runtime_outdated");
+                if (runtimeLink.Visible) message.Text = "Install or update Microsoft Edge WebView2 to display Groby’s Deck in this window. You can use Open in browser while it is unavailable.";
                 overlay.Show(); overlay.BringToFront();
             }
         }
@@ -136,6 +137,10 @@ namespace Groby.Deck.WindowsHost
                     loaderConfigured = true;
                 }
             }
+            string available = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            int major;
+            if (!Int32.TryParse(available.Split('.')[0], out major) || major < DesktopPolicy.MinimumWebViewMajor(root))
+                throw new NotSupportedException("webview_runtime_outdated");
             var environment = await CoreWebView2Environment.CreateAsync(null, DesktopPolicy.ProfilePath(root, port));
             if (disposed) return;
             browser = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = BackColor, AllowExternalDrop = false };

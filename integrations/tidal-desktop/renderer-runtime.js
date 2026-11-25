@@ -34,7 +34,7 @@
       return function (...args) {
         const creator = factory.apply(this, args),
           type = args[0];
-        if (!allowed.has(type)) return creator;
+        if (!allowed.has(type) || typeof creator !== "function") return creator;
         const wrapped = new Proxy(creator, {
           apply(target, receiver, payload) {
             const result = Reflect.apply(target, receiver, payload);

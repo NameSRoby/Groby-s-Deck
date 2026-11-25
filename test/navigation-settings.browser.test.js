@@ -66,7 +66,11 @@ test("tab placement saves locally, survives reload and supports moving tabs back
   await page.locator("#saveNavigation").click();
   await page.locator("#navigationNotice").filter({ hasText: "Tab layout saved." }).waitFor();
   await page.locator("#closeNavigation").click();
-  await page.locator("#closeTheme").click();
+  assert.equal(
+    await page.locator("#themePanel").isVisible(),
+    false,
+    "working in the dialog dismisses the floating theme panel",
+  );
   assert.equal(await page.locator('[data-tab="widget"]').isVisible(), false);
   assert.equal(await page.locator('#tabs > [data-tab="features"]').isVisible(), true);
   await page.locator("#moreNav > summary").click();

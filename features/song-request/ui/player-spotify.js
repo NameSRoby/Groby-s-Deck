@@ -24,6 +24,16 @@ function installSpotifyPlayer({ showView, volumeControls }) {
         "Delivery is unconfirmed. Check Spotify before sending this request again.",
       spotify_native_queue_full: "Spotify has 10 upcoming requests. This request will wait here.",
       spotify_source_changed: "Spotify was updated. Choose Prepare companion again.",
+      spotify_connection_timeout:
+        "Spotify opened but the companion did not connect. If its window is blank, quit Spotify completely and open it normally to recover playback, then Prepare companion again. Your Spotify installation and playlists are unchanged.",
+      spotify_platform_patch_invalid:
+        "This Spotify version cannot be patched safely. No companion was prepared. Use normal Spotify playback or the official Premium connection while this client version is reviewed.",
+      spotify_platform_hook_unavailable:
+        "This Spotify version has an unsupported desktop layout. Use normal Spotify playback or the official Premium connection.",
+      spotify_snapshot_loader_unavailable:
+        "This Spotify version has an unsupported startup layout. No companion was prepared. Use normal Spotify playback or the official Premium connection.",
+      spotify_store_alias_unavailable:
+        "Windows could not find the Spotify Store launch alias. Enable Spotify under Windows Settings > Apps > App execution aliases, or use the regular Spotify installer.",
       spotify_playback_restricted:
         "Spotify restricted this playback action for the current account or song.",
       spotify_mode_has_requests:
@@ -54,6 +64,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   setup.hidden = true;
   setup.innerHTML =
     '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with Groby’s Deck, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with Groby’s Deck</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with Groby’s Deck each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
+  setup.querySelector("#spotifyLaunch").disabled = true;
   $("songSetupPage").append(setup);
   const playback = document.createElement("section");
   playback.id = "spotifyPlayback";
@@ -65,6 +76,7 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   playbackLaunch.className = "primary";
   playbackLaunch.textContent = "Open Spotify with Groby’s Deck";
   playbackLaunch.hidden = true;
+  playbackLaunch.disabled = true;
   playback.querySelector(".actions").prepend(playbackLaunch);
   document.querySelector(".playerSide").prepend(playback);
   const current = document.createElement("div");
@@ -156,15 +168,17 @@ function installSpotifyPlayer({ showView, volumeControls }) {
               ? "Spotify is opening - waiting for the companion"
               : state.launchError
                 ? explain(state.launchError)
-                : state.ready
-                  ? "Connected · requests queue automatically"
-                  : state.connected && !state.localDevice
-                    ? "Connected · start playback on this computer in Spotify"
-                    : state.connected
-                      ? "Connected · waiting for Spotify queue information"
-                      : state.account?.connected
-                        ? "Premium connected - choose a playback device in Setup"
-                        : "Companion not connected · open Setup";
+                : state.installation?.error
+                  ? explain(state.installation.error)
+                  : state.ready
+                    ? "Connected · requests queue automatically"
+                    : state.connected && !state.localDevice
+                      ? "Connected · start playback on this computer in Spotify"
+                      : state.connected
+                        ? "Connected · waiting for Spotify queue information"
+                        : state.account?.connected
+                          ? "Premium connected - choose a playback device in Setup"
+                          : "Companion not connected · open Setup";
         $("spotifyConnection").textContent = $("spotifySetupStatus").textContent = message;
         $("spotifyLaunch").disabled =
           !state.installation?.prepared || state.connected || state.launching;

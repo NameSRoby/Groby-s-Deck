@@ -7,6 +7,8 @@ const yauzl = require("yauzl"),
   zlib = require("node:zlib");
 const { transform } = require("./vendor/spicetify/platform-hook.cjs");
 const snapshotSource = require("./snapshot-source.cjs");
+const { Script } = require("node:vm");
+const { parse } = require("parse5");
 const LIMITS = {
   archive: 96 * 1024 * 1024,
   total: 256 * 1024 * 1024,
@@ -170,14 +172,45 @@ async function writeArchive(rows) {
     throw Error("spotify_archive_size_invalid");
   return Buffer.concat([...local, directory, end]);
 }
-function injectHtml(text) {
-  if (/ravelink-spotify|spicetify/i.test(text) || /<base\b/i.test(text))
+function entryDocument(text) {
+  const document = parse(text, { sourceCodeLocationInfo: true, scriptingEnabled: true });
+  const scripts = [],
+    policies = [];
+  let hasBase = false;
+  const visit = (node) => {
+    if (node.namespaceURI === "http://www.w3.org/1999/xhtml" && node.sourceCodeLocation) {
+      const attributes = Object.fromEntries(node.attrs.map(({ name, value }) => [name, value]));
+      const { startOffset, endOffset } = node.sourceCodeLocation;
+      if (node.tagName === "base") hasBase = true;
+      if (
+        node.tagName === "meta" &&
+        attributes["http-equiv"]?.toLowerCase() === "content-security-policy"
+      )
+        policies.push({ index: startOffset, content: attributes.content });
+      if (node.tagName === "script") {
+        const url = attributes.src ? new URL(attributes.src, "https://spotify.invalid/") : null;
+        scripts.push({
+          name: url?.origin === "https://spotify.invalid" ? url.pathname.slice(1) : null,
+          tag: text.slice(startOffset, endOffset),
+          index: startOffset,
+          attributes,
+        });
+      }
+    }
+    // Comments and template contents are inactive; do not discover loaders in them.
+    for (const child of node.childNodes || []) visit(child);
+  };
+  visit(document);
+  scripts.sort((a, b) => a.index - b.index);
+  return { scripts, policies, hasBase };
+}
+function injectHtml(text, document = entryDocument(text)) {
+  if (/ravelink-spotify|spicetify/i.test(text) || document.hasBase)
     throw Error("spotify_html_modified");
-  const script = /<script\b/i.exec(text);
+  const script = document.scripts[0];
   if (!script) throw Error("spotify_html_bootstrap_unavailable");
-  for (const match of text.matchAll(/<meta\b[^>]*>/gi)) {
-    if (!/http-equiv\s*=\s*(["'])content-security-policy\1/i.test(match[0])) continue;
-    const policy = /\bcontent\s*=\s*(["'])([\s\S]*?)\1/i.exec(match[0])?.[2];
+  for (const match of document.policies) {
+    const policy = match.content;
     const directive =
       /(?:^|;)\s*script-src-elem\s+([^;]+)/i.exec(policy || "") ||
       /(?:^|;)\s*script-src\s+([^;]+)/i.exec(policy || "") ||
@@ -201,8 +234,18 @@ async function prepareArchive(original, renderer, options = {}) {
     throw Error("spotify_asset_already_patched");
   const html = rows.find((row) => row.name === "index.html");
   if (!html) throw Error("spotify_html_missing");
+  const text = html.data.toString("utf8");
+  if (!Buffer.from(text).equals(html.data)) throw Error("spotify_asset_encoding_invalid");
+  // Match actual entry scripts. A leftover bundle is not evidence that Spotify
+  // loads it, and an unrelated V8 snapshot must not replace a working JS entry.
+  const document = entryDocument(text);
+  const scripts = document.scripts.filter((script) => script.name);
+  const snapshots = scripts.filter((script) => script.name === "xpui-snapshot.js");
+  const modules = scripts.filter((script) => script.name === "xpui-modules.js");
+  if (snapshots.length > 1 || modules.length > 1)
+    throw Error("spotify_snapshot_loader_unavailable");
   let extracted = false;
-  if (!rows.some((row) => row.name === "xpui-modules.js") && options.snapshot) {
+  if (snapshots.length && !rows.some((row) => row.name === "xpui-modules.js") && options.snapshot) {
     rows.push({
       name: "xpui-modules.js",
       rawName: rows.some((row) => row.rawName?.startsWith("/"))
@@ -213,8 +256,25 @@ async function prepareArchive(original, renderer, options = {}) {
     });
     extracted = true;
   }
-  const targets = rows.filter((row) =>
-    ["xpui.js", "xpui-modules.js", "xpui-snapshot.js"].includes(row.name),
+  const moduleDependency = snapshots.length && rows.some((row) => row.name === "xpui-modules.js");
+  const moduleType = modules.length ? modules[0].attributes.type?.trim() : "";
+  if (
+    moduleDependency &&
+    modules.length &&
+    (modules[0].index > snapshots[0].index ||
+      Object.hasOwn(modules[0].attributes, "async") ||
+      (moduleType &&
+        !["text/javascript", "application/javascript"].includes(moduleType.toLowerCase())) ||
+      (Object.hasOwn(modules[0].attributes, "defer") &&
+        (!Object.hasOwn(snapshots[0].attributes, "defer") ||
+          Object.hasOwn(snapshots[0].attributes, "async"))))
+  )
+    throw Error("spotify_snapshot_loader_unavailable");
+  const loaded = new Set(scripts.map((script) => script.name));
+  if (moduleDependency) loaded.add("xpui-modules.js");
+  const targets = rows.filter(
+    (row) =>
+      loaded.has(row.name) && ["xpui.js", "xpui-modules.js", "xpui-snapshot.js"].includes(row.name),
   );
   let hook = null;
   for (const row of targets) {
@@ -223,20 +283,24 @@ async function prepareArchive(original, renderer, options = {}) {
     const result = transform(input);
     if (result.ok) {
       if (hook) throw Error("spotify_platform_hook_ambiguous");
+      // Compile only: never evaluate locally extracted Spotify code in Core.
+      // Regex matches alone cannot prove a patch is valid on a new client build.
+      try {
+        new Script(result.code, { filename: row.name });
+      } catch {
+        throw Error("spotify_platform_patch_invalid");
+      }
       hook = { row, result };
     } else if (result.error !== "spotify_platform_hook_unavailable") throw Error(result.error);
   }
   if (!hook) throw Error("spotify_platform_hook_unavailable");
-  const text = html.data.toString("utf8");
-  if (!Buffer.from(text).equals(html.data)) throw Error("spotify_asset_encoding_invalid");
-  let patchedHtml = injectHtml(text);
-  if (extracted) {
-    const loader = /<script\b[^>]*src\s*=\s*(["'])\/xpui-snapshot\.js\1[^>]*>\s*<\/script>/gi;
-    const matches = [...patchedHtml.matchAll(loader)];
-    if (matches.length !== 1) throw Error("spotify_snapshot_loader_unavailable");
+  let patchedHtml = injectHtml(text, document);
+  if (moduleDependency && !modules.length) {
+    // Needed for both pre-existing and extracted modules. A blocking dependency
+    // also runs first when the snapshot entry is not marked defer.
     patchedHtml = patchedHtml.replace(
-      loader,
-      '<script defer="defer" src="/xpui-modules.js"></script>$&',
+      snapshots[0].tag,
+      '<script src="/xpui-modules.js"></script>' + snapshots[0].tag,
     );
   }
   html.data = Buffer.from(patchedHtml);

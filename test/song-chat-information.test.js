@@ -159,6 +159,26 @@ function fixture(provider) {
   };
 }
 for (const provider of ["youtube", "soundcloud", "tidal", "spotify"]) {
+  test(`${provider}: song and queue replies omit playlist, identity, token and raw query canaries`, async () => {
+    const f = fixture(provider);
+    const secret = {
+      playlistName: "PRIVATE_PLAYLIST",
+      accountName: "PRIVATE_ACCOUNT",
+      email: "private@example.invalid",
+      accessToken: "PRIVATE_TOKEN",
+      query: "PRIVATE_QUERY",
+    };
+    for (const row of [f.state.current, ...f.state.handoffs, ...f.local]) {
+      Object.assign(row, secret);
+      Object.assign(row.candidate, secret);
+      row.candidate.artists.push({ toString: () => "PRIVATE_ACCOUNT" });
+    }
+    for (const command of ["song", "songqueue", "queue"]) {
+      const response = await f.query(command);
+      assert.doesNotMatch(response.message, /PRIVATE_|private@example|\[object Object\]|req_/);
+      assert.match(response.message, /song|Upcoming/i);
+    }
+  });
   test(`information commands report current song, five queued requests and own position on ${provider}`, async () => {
     const f = fixture(provider),
       before = JSON.stringify([f.state, f.local]);

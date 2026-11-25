@@ -30,13 +30,14 @@ module.exports = function createManager({
           pairingFile = path.join(runtimeDir, "experimental-tidal-pairing.json");
         const binding =
           status.installed && require("node:fs").existsSync(pairingFile)
-            ? installer.repairPairing?.({ resources, pairingFile })
+            ? installer.repairPairing?.({ resources, pairingFile, coreUrl: payload.coreUrl })
             : null;
         return {
           ok: true,
           available: true,
           ...status,
           ...(binding?.changed ? { restartRequired: true } : {}),
+          ...(binding?.rebindRequired ? { rebindRequired: true } : {}),
         };
       }
       if (["install", "update"].includes(payload.action) && !getBridge())

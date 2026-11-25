@@ -23,10 +23,9 @@ body[data-player-provider="soundcloud"] {
   --player-fill: #ff9655;
   --player-ink: #241006;
 }
-body[data-player-provider] {
-  --accent: var(--player-accent);
-}
 .playerProviderPicker [data-choice-for="songPlayerProvider"] button {
+  --button-accent: var(--brand-color);
+  --button-glow: color-mix(in srgb, var(--brand-color) 35%, transparent);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -53,18 +52,26 @@ body[data-player-provider] {
   border-color: var(--brand-color);
 }
 body[data-player-provider] .playerViewTabs [aria-selected="true"] {
+  --button-accent: var(--player-accent);
+  --button-glow: color-mix(in srgb, var(--player-accent) 35%, transparent);
   border-color: var(--player-accent);
   background: color-mix(in srgb, var(--player-accent) 9%, var(--surface));
   box-shadow: inset 0 -2px var(--player-accent);
 }
+body[data-player-provider] #spotifyDeviceChoices button[aria-pressed="true"] {
+  --button-accent: var(--player-accent);
+  --button-glow: color-mix(in srgb, var(--player-accent) 35%, transparent);
+}
 body[data-player-provider] button.primary,
 body[data-player-provider] #addSong {
+  --button-accent: var(--player-accent);
+  --button-glow: color-mix(in srgb, var(--player-accent) 35%, transparent);
   background: var(--player-fill);
   border-color: var(--player-fill);
   color: var(--player-ink);
 }
 body[data-player-provider] :is(button, input, select):focus-visible {
-  outline: 2px solid var(--player-accent);
+  outline: 2px solid var(--button-accent, var(--accent));
   outline-offset: 3px;
 }
 .playerProviderMark {

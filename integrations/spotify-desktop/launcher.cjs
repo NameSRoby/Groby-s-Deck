@@ -9,15 +9,17 @@ const sidecar = require("./sidecar.cjs");
 // All variable data travels on stdin. Never build PowerShell source from paths.
 const SCRIPT = `
 $ErrorActionPreference = 'Stop'
+$env:PSModulePath = "$PSHOME\\Modules"
+[Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
+[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 try {
   $spotifyLaunchRequest = [Console]::In.ReadToEnd() | ConvertFrom-Json
   if (Get-Process -Name Spotify -ErrorAction SilentlyContinue) { throw 'spotify_close_client_required' }
   $spotifyLaunchExecutable = $spotifyLaunchRequest.executable
   if ($spotifyLaunchRequest.store) {
     $spotifyExpectedAlias = Join-Path $env:LOCALAPPDATA 'Microsoft\\WindowsApps\\Spotify.exe'
-    $spotifyResolvedAlias = (Get-Command Spotify.exe -ErrorAction Stop).Source
-    if ($spotifyResolvedAlias -ne $spotifyExpectedAlias) { throw 'spotify_store_alias_unavailable' }
-    $spotifyLaunchExecutable = 'Spotify.exe'
+    if (-not (Test-Path -LiteralPath $spotifyExpectedAlias)) { throw 'spotify_store_alias_unavailable' }
+    $spotifyLaunchExecutable = $spotifyExpectedAlias
   }
   $spotifyLaunched = Start-Process -FilePath $spotifyLaunchExecutable -ArgumentList ('--app-directory="' + $spotifyLaunchRequest.apps + '"') -WindowStyle Hidden -PassThru
   @{ ok = $true; launched = $true; launcherPid = $spotifyLaunched.Id; prototype = $true } | ConvertTo-Json -Compress

@@ -10,10 +10,10 @@ const snapshotSource = require("../integrations/spotify-desktop/snapshot-source.
 const discover = require("../integrations/spotify-desktop/discovery.cjs");
 const launch = require("../integrations/spotify-desktop/launcher.cjs");
 
-async function fixture(t) {
+async function fixture(t, sourceName = "Spotify") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-sidecar-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const source = path.join(root, "Spotify"),
+  const source = path.join(root, sourceName),
     apps = path.join(source, "Apps"),
     runtime = path.join(root, "runtime");
   fs.mkdirSync(apps, { recursive: true });
@@ -80,9 +80,29 @@ test("Spotify sidecar rejects stale sources, unsafe targets and modified local a
     /source_changed/,
   );
   const result = await sidecar.stage(f.apps, f.runtime, f.options);
+  const verified = sidecar.createVerifier(f.runtime, result.id);
+  assert.equal(verified().ok, true);
+  assert.equal(verified().ok, true);
   fs.writeFileSync(path.join(result.apps, "login.spa"), "changed");
+  assert.equal(verified().ok, false);
   assert.throws(() => sidecar.remove(f.runtime, result.id), /modified/);
   assert.equal(fs.readFileSync(path.join(result.apps, "login.spa"), "utf8"), "changed");
+});
+
+test("Spotify prepared status invalidates on a client update and preserves legacy sidecars for safe removal", async (t) => {
+  const f = await fixture(t),
+    prepared = await sidecar.stage(f.apps, f.runtime, f.options),
+    verify = sidecar.createVerifier(f.runtime, prepared.id);
+  assert.equal(verify().ok, true);
+  fs.appendFileSync(path.join(f.apps, "xpui.spa"), "client update");
+  assert.deepEqual(verify(), { ok: false, error: "spotify_source_changed" });
+  const file = path.join(f.runtime, prepared.id, "ravelink-sidecar.json");
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+  delete manifest.layoutVersion;
+  fs.writeFileSync(file, JSON.stringify(manifest));
+  assert.equal(sidecar.createVerifier(f.runtime, prepared.id)().ok, false);
+  assert.throws(() => sidecar.launchPlan(f.runtime, prepared.id), /spotify_setup_required/);
+  assert.equal(sidecar.remove(f.runtime, prepared.id).removed, true);
 });
 
 test("Spotify snapshot extraction rejects missing, ambiguous and invalid source without executing it", () => {
@@ -93,6 +113,63 @@ test("Spotify snapshot extraction rejects missing, ambiguous and invalid source 
   assert.throws(
     () => snapshotSource(Buffer.from(source.replace("{};", "{!;"), "utf16le")),
     /invalid/,
+  );
+});
+
+test("Spotify source hardlinks remain read-only while owned sidecar files require exclusive ownership", async (t) => {
+  const f = await fixture(t);
+  for (const name of ["Spotify.exe", "v8_context_snapshot.bin", "Apps/xpui.spa"])
+    fs.linkSync(path.join(f.source, name), path.join(f.root, path.basename(name) + ".source-link"));
+  const plan = await installer.plan(f.apps, { allowProtectedRead: true });
+  const prepared = await sidecar.stage(f.apps, f.runtime, {
+    ...f.options,
+    expectedArchiveHash: plan.archiveHash,
+    expectedSnapshotHash: plan.snapshotHash,
+  });
+  assert.equal(sidecar.launchPlan(f.runtime, prepared.id).ok, true);
+  assert.deepEqual(fs.readFileSync(path.join(f.apps, "xpui.spa")), f.original);
+  fs.linkSync(path.join(prepared.apps, "login.spa"), path.join(f.root, "owned-link"));
+  assert.throws(() => sidecar.launchPlan(f.runtime, prepared.id), /file_invalid/);
+});
+
+test("Spotify prepared status verifies the discovered catalog configuration and survives Core restart", async (t) => {
+  const f = await fixture(t),
+    create = require("../integrations/spotify-desktop/provider.cjs");
+  const rows = await readArchive(f.original);
+  rows.push({
+    name: "search.js",
+    data: Buffer.from(
+      'function descriptors(){new q.Doc("searchTracks","query","' + "a".repeat(64) + '",null)}',
+    ),
+  });
+  fs.writeFileSync(path.join(f.apps, "xpui.spa"), await writeArchive(rows));
+  const options = {
+    runtimeDir: f.runtime,
+    discover: () => [{ appsPath: f.apps }],
+    launch: async () => {
+      throw Error("must_not_launch");
+    },
+  };
+  let provider = create(options);
+  t.after(() => provider.close());
+  assert.equal(
+    (await provider.handle("setup", { action: "prepare", coreUrl: "http://127.0.0.1:53210" })).ok,
+    true,
+  );
+  assert.equal(provider.status().installation.prepared, true);
+  provider.close();
+  provider = create(options);
+  assert.equal(provider.status().installation.prepared, true);
+  provider.close();
+  fs.writeFileSync(
+    path.join(f.runtime, "spotify-desktop/pairing.json"),
+    JSON.stringify({ token: "b".repeat(64) }),
+  );
+  provider = create(options);
+  assert.equal(provider.status().installation.prepared, false);
+  assert.equal(
+    (await provider.handle("setup", { action: "launch" })).error,
+    "spotify_setup_required",
   );
 });
 
@@ -161,3 +238,44 @@ test("Spotify launcher keeps paths out of shell source and refuses running clien
   fs.writeFileSync(path.join(f.apps, "xpui.spa"), "updated");
   await assert.rejects(() => launch(f.runtime, prepared.id, options), /source_changed/);
 });
+
+test(
+  "Spotify discovery and launch preserve Unicode and shell punctuation through Windows PowerShell",
+  { skip: process.platform !== "win32" },
+  async (t) => {
+    const f = await fixture(t, "Spotífy 東京 [test] $name"),
+      prepared = await sidecar.stage(f.apps, f.runtime, f.options);
+    const { spawnSync } = require("node:child_process");
+    const env = {
+      ...process.env,
+      GROBY_SPOTIFY_FIXTURE_EXE: path.join(f.source, "Spotify.exe"),
+      GROBY_SPOTIFY_FIXTURE_ROOT: f.source,
+      GROBY_SPOTIFY_FIXTURE_APPS: prepared.apps,
+    };
+    const rows = discover({
+      platform: "win32",
+      appData: null,
+      localAppData: null,
+      spawn: (exe, args, options) =>
+        spawnSync(
+          exe,
+          [
+            ...args.slice(0, -1),
+            "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(437); function Get-Process { param($Name,$ErrorAction) [pscustomobject]@{Path=$env:GROBY_SPOTIFY_FIXTURE_EXE} }; function Get-AppxPackage { param($Name,$ErrorAction) }; " +
+              args.at(-1),
+          ],
+          { ...options, env },
+        ),
+    });
+    assert.equal(rows[0]?.appsPath, f.apps);
+    const result = await launch(f.runtime, prepared.id, {
+      platform: "win32",
+      spawn: (exe, args, options) => {
+        const stub =
+          "[Console]::InputEncoding = [Text.Encoding]::GetEncoding(437); function Get-Process { param($Name,$ErrorAction) }; function Start-Process { param($FilePath,$ArgumentList,$WindowStyle,[switch]$PassThru) if ($FilePath -ne $env:GROBY_SPOTIFY_FIXTURE_EXE -or $ArgumentList -ne ('--app-directory=\"' + $env:GROBY_SPOTIFY_FIXTURE_APPS + '\"')) { throw \"unicode_path_changed\" }; [pscustomobject]@{Id=1234} }; ";
+        return spawnSync(exe, [...args.slice(0, -1), stub + args.at(-1)], { ...options, env });
+      },
+    });
+    assert.equal(result.launched, true);
+  },
+);

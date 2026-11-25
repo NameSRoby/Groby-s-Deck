@@ -25,6 +25,7 @@ const RESPONSE_KINDS = Object.freeze([
   "intake_paused",
   "intake_resumed",
 ]);
+const { songLabel } = require("./chat-public-song");
 
 const ACTION_KINDS = Object.freeze({
   pause: ["intake_paused", "intake_paused"],
@@ -145,18 +146,7 @@ function contextFrom(request, result, state) {
   return {
     user: clean(payload.requesterName || entry?.requesterLabel, 80),
     target: clean(payload.requesterName, 80).replace(/^@/, ""),
-    title: clean(
-      [
-        entry?.candidate?.title || entry?.query || payload.query,
-        (entry?.candidate?.artists || [])
-          .map((value) => clean(value, 80))
-          .filter(Boolean)
-          .join(", "),
-      ]
-        .filter(Boolean)
-        .join(" - "),
-      260,
-    ),
+    title: songLabel(entry?.candidate, 260),
     position: Number(result?.position || 0),
     reason:
       REASONS[clean(result?.reason || result?.code || result?.error, 80)] ||

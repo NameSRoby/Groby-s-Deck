@@ -67,7 +67,7 @@ function requireStopped(probe) {
 function checkedBundle(bundle) {
   const inventory = JSON.parse(fs.readFileSync(path.join(bundle, "integrity.json"), "utf8"));
   if (
-    !/^0\.1\.[0-9]$/.test(inventory.version) ||
+    !/^0\.1\.[0-9]{1,3}$/.test(inventory.version) ||
     !inventory.files ||
     !inventory.files["injector.cjs"] ||
     !inventory.files["LICENSE.TidaLuna"]
@@ -259,9 +259,9 @@ exports.install = function install({
     throw error;
   }
 };
-// Only repair a missing pairing path after Core's folder moved. No player restart,
-// executable patch or token copy is performed here; TIDAL reloads it on next launch.
-exports.repairPairing = function repairPairing({ resources: input, pairingFile }) {
+// Repair a moved Core path or changed local port. Never steal an installation
+// still bound to another existing Core folder; explicit Update owns that change.
+exports.repairPairing = function repairPairing({ resources: input, pairingFile, coreUrl }) {
   const resources = resourcesPath(input),
     target = path.resolve(pairingFile),
     journal = path.join(resources, removalBundle(resources).journal),
@@ -285,11 +285,16 @@ exports.repairPairing = function repairPairing({ resources: input, pairingFile }
   )
     throw Error("tidal_install_modified");
   if (
-    config.pairingFile === target ||
-    (typeof config.pairingFile === "string" && fs.existsSync(config.pairingFile))
+    config.pairingFile !== target &&
+    typeof config.pairingFile === "string" &&
+    fs.existsSync(config.pairingFile)
   )
+    return { changed: false, rebindRequired: true };
+  const nextConfig = { ...config, pairingFile: target, ...(coreUrl ? { coreUrl } : {}) };
+  require("./native-bridge.cjs").createNativeBridge(nextConfig);
+  if (config.pairingFile === target && config.coreUrl === nextConfig.coreUrl)
     return { changed: false };
-  const next = JSON.stringify({ ...config, pairingFile: target }) + "\n";
+  const next = JSON.stringify(nextConfig) + "\n";
   record.files["config.json"] = crypto.createHash("sha256").update(next).digest("hex");
   try {
     fs.writeFileSync(configFile, next);

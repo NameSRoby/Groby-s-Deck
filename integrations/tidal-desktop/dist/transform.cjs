@@ -25,7 +25,7 @@ exports.transform = function transform(code) {
     const renamed = "__RaveLinkOriginal_" + action.name;
     code =
       code.slice(0, action.start - 9) +
-      `const ${action.name}=globalThis.__ravelinkTidal.wrapAction(${renamed});function ${renamed}` +
+      `function ${action.name}(...args){const hooks=globalThis.__ravelinkTidal;return (hooks?.wrapAction?hooks.wrapAction(${renamed}):${renamed}).apply(this,args)}function ${renamed}` +
       code.slice(action.start + action.name.length);
     actionHooks = 1;
   }
@@ -33,7 +33,7 @@ exports.transform = function transform(code) {
   // The exact supported shape was inspected in TIDAL's framework asset on 2026-10-14.
   code = code.replace(/\{\.\.\.([\w$]+),dispatch:([\w$]+)\}/g, (match) => {
     storeHooks += 1;
-    return `globalThis.__ravelinkTidal.captureStore(${match})`;
+    return `((store)=>{try{globalThis.__ravelinkTidal?.captureStore?.(store)}catch{}return store})(${match})`;
   });
   return { code, actionHooks, storeHooks };
 };

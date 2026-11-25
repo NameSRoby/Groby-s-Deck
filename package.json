@@ -1,7 +1,7 @@
 {
   "name": "grobys-deck",
-  "version": "0.8.1-b",
-  "releaseVersion": "0.8.1b",
+  "version": "0.8.1-c",
+  "releaseVersion": "0.8.1c",
   "description": "Modular Windows stream control deck with Twitch automations, song requests, OBS controls, overlays and smart lighting.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/NameSRoby/Groby-s-Deck#readme",
@@ -24,7 +24,8 @@
     "mod:validate": "node scripts/groby-mod.js validate",
     "mod:package": "node scripts/groby-mod.js package",
     "tidal:companion": "node scripts/manage-tidal-desktop.js",
-    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\" \"integrations/music-to-light/test/*.test.cjs\"",
+    "test": "node scripts/run-public-tests.js",
+    "test:public": "node scripts/run-public-tests.js",
     "format": "node scripts/format-source.js --write",
     "format:check": "node scripts/format-source.js",
     "lint": "eslint src features public/core integrations scripts packages && node scripts/lint-html-scripts.js",
@@ -39,6 +40,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.1",
     "obscenity": "0.4.6",
+    "parse5": "8.0.1",
     "qrcode": "1.5.4",
     "yauzl": "3.4.0",
     "youtubei.js": "18.1.0"
@@ -48,7 +50,6 @@
     "espree": "11.2.0",
     "follow-redirects": "1.16.2",
     "jsqr": "1.4.0",
-    "parse5": "8.0.1",
     "playwright": "^1.58.2",
     "prettier": "3.9.10",
     "yazl": "3.3.1"

@@ -37,9 +37,16 @@ function inventoryFiles(directory, prefix = "", files = []) {
   }
   return files;
 }
-function regular(file, maximum = 100 * 1024 * 1024) {
+function regular(file, maximum = 100 * 1024 * 1024, sourceRead = false) {
   const stat = fs.lstatSync(file);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.size > maximum)
+  // MSIX source assets can be hardlinked. We only read those; runtime files that
+  // this module owns, writes or removes still require exclusive ownership.
+  if (
+    !stat.isFile() ||
+    stat.isSymbolicLink() ||
+    (!sourceRead && stat.nlink !== 1) ||
+    stat.size > maximum
+  )
     throw Error("spotify_sidecar_file_invalid");
   return fs.readFileSync(file);
 }
@@ -122,8 +129,8 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
     options.connection ? { ...options.connection, catalog: plan.catalog } : undefined,
   );
   const snapshotPath = path.join(source, "..", "v8_context_snapshot.bin"),
-    snapshot = plan.snapshotHash ? regular(snapshotPath, 64 * 1024 * 1024) : undefined;
-  const original = regular(path.join(source, "xpui.spa"));
+    snapshot = plan.snapshotHash ? regular(snapshotPath, 64 * 1024 * 1024, true) : undefined;
+  const original = regular(path.join(source, "xpui.spa"), 96 * 1024 * 1024, true);
   if (hash(original) !== plan.archiveHash || (snapshot && hash(snapshot) !== plan.snapshotHash))
     throw Error("spotify_source_changed");
   const patched = await prepareArchive(original, bundle.renderer, { snapshot });
@@ -132,7 +139,7 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
       "sidecar-" +
       hash(
         Buffer.from(
-          JSON.stringify(["unpacked-v3", plan.archiveHash, plan.snapshotHash, plan.bundleHash]),
+          JSON.stringify(["unpacked-v4", plan.archiveHash, plan.snapshotHash, plan.bundleHash]),
         ),
       ).slice(0, 24),
     directory = path.join(root, id),
@@ -155,7 +162,7 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
     if (!/^[A-Za-z0-9._-]+\.(?:spa|html)$/.test(name) || content.size >= 16)
       throw Error("spotify_source_apps_layout_unsupported");
     if (name === "xpui.spa") continue;
-    const bytes = regular(path.join(source, name));
+    const bytes = regular(path.join(source, name), 100 * 1024 * 1024, true);
     total += bytes.length;
     if (total > 128 * 1024 * 1024) throw Error("spotify_sidecar_size_invalid");
     content.set(name, bytes);
@@ -184,6 +191,7 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
   }
   const manifest = {
     schemaVersion: 1,
+    layoutVersion: 4,
     id,
     prototype: true,
     sourceApps: source,
@@ -210,13 +218,17 @@ async function stage(sourceApps, runtimeRoot, options = {}) {
 function launchPlan(runtimeRoot, id) {
   const record = inspect(runtimeRoot, id),
     source = record.manifest.sourceApps;
+  if (record.manifest.layoutVersion !== 4) throw Error("spotify_setup_required");
   const executable = path.resolve(source, "..", "Spotify.exe");
-  regular(executable, 100 * 1024 * 1024);
-  if (hash(regular(path.join(source, "xpui.spa"))) !== record.manifest.sourceArchiveHash)
+  regular(executable, 100 * 1024 * 1024, true);
+  if (
+    hash(regular(path.join(source, "xpui.spa"), 96 * 1024 * 1024, true)) !==
+    record.manifest.sourceArchiveHash
+  )
     throw Error("spotify_source_changed");
   if (
     record.manifest.sourceSnapshotHash &&
-    hash(regular(path.join(source, "..", "v8_context_snapshot.bin"), 64 * 1024 * 1024)) !==
+    hash(regular(path.join(source, "..", "v8_context_snapshot.bin"), 64 * 1024 * 1024, true)) !==
       record.manifest.sourceSnapshotHash
   )
     throw Error("spotify_source_changed");
@@ -226,6 +238,56 @@ function launchPlan(runtimeRoot, id) {
     args: ["--app-directory=" + record.apps],
     requiresClosedSpotify: true,
     prototype: true,
+  };
+}
+// Status polling uses file metadata after a complete verification. Any file,
+// directory inventory or source change invalidates the cache. Launch still runs
+// its own complete verification; a UI status receipt never authorizes a launch.
+function createVerifier(runtimeRoot, id, options = {}) {
+  let signature = "",
+    sources = [],
+    verified = false;
+  const stamp = () => {
+    if (!NAME.test(id)) throw Error("spotify_setup_required");
+    const directory = path.join(workspace(runtimeRoot), id);
+    if (fs.realpathSync(directory).toLowerCase() !== directory.toLowerCase())
+      throw Error("spotify_sidecar_root_invalid");
+    return JSON.stringify(
+      [...inventoryFiles(directory).map((name) => path.join(directory, name)), ...sources].map(
+        (file) => {
+          const stat = fs.lstatSync(file);
+          return [file, stat.size, stat.mtimeMs, stat.ctimeMs, stat.ino, stat.nlink, stat.mode];
+        },
+      ),
+    );
+  };
+  return () => {
+    try {
+      if (!verified || stamp() !== signature) {
+        const plan = launchPlan(runtimeRoot, id),
+          record = inspect(runtimeRoot, id);
+        if (
+          options.connection &&
+          record.manifest.bundleHash !==
+            installer.bundleData(options.bundle || path.join(__dirname, "dist"), options.connection)
+              .bundleHash
+        )
+          throw Error("spotify_setup_required");
+        sources = [plan.executable, path.join(record.manifest.sourceApps, "xpui.spa")];
+        if (record.manifest.sourceSnapshotHash)
+          sources.push(path.join(path.dirname(plan.executable), "v8_context_snapshot.bin"));
+        signature = stamp();
+        verified = true;
+      }
+      return { ok: true };
+    } catch (error) {
+      verified = false;
+      return {
+        ok: false,
+        error:
+          error.message === "spotify_source_changed" ? error.message : "spotify_setup_required",
+      };
+    }
   };
 }
 function remove(runtimeRoot, id) {
@@ -248,4 +310,4 @@ function remove(runtimeRoot, id) {
   fs.rmdirSync(directory);
   return { ok: true, removed: true };
 }
-module.exports = { stage, inspect, launchPlan, remove };
+module.exports = { stage, inspect, launchPlan, createVerifier, remove };

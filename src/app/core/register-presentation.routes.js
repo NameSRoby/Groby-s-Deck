@@ -13,7 +13,7 @@ const {
 const DEFAULT_THEME = Object.freeze({
   accent: "#8b001f",
   bg: "#050507",
-  surface: "#121a2f",
+  surface: "#19191f",
   text: "#eaeaea",
   glow: 65,
 });
@@ -23,7 +23,9 @@ module.exports = function registerPresentationRoutes(app, { runtimeDir, rateLimi
     revision = 0;
   const valid = (value) =>
     value &&
-    ["accent", "bg", "surface", "text"].every((k) => /^#[0-9a-f]{6}$/i.test(value[k] || "")) &&
+    ["accent", "bg", "surface", "text"].every(
+      (k) => typeof value[k] === "string" && /^#[0-9a-f]{6}$/i.test(value[k]),
+    ) &&
     Number.isInteger(value.glow) &&
     value.glow >= 0 &&
     value.glow <= 100;
@@ -33,6 +35,7 @@ module.exports = function registerPresentationRoutes(app, { runtimeDir, rateLimi
     const stored = JSON.parse(fs.readFileSync(file, "utf8"));
     if (valid(stored.theme)) {
       theme = project(stored.theme);
+      theme.surface = require("../../../public/core/presentation-colors")(theme).surface;
       revision = Number.isSafeInteger(stored.revision) && stored.revision > 0 ? stored.revision : 1;
     }
   } catch {}

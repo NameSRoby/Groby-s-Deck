@@ -1,5 +1,6 @@
 /** Announce actual selected-player track changes independently of request intake. */
 const crypto = require("node:crypto");
+const { publicSong } = require("./chat-public-song");
 
 module.exports = function createNowPlayingChat({
   context,
@@ -30,7 +31,8 @@ module.exports = function createNowPlayingChat({
       ready = true;
     } catch {}
   }
-  function announce(candidate, requesterLabel = "") {
+  function announce(input, requesterLabel = "") {
+    const candidate = publicSong(input);
     const operation = pending.then(async () => {
       if (!ready || queue.status().responses?.now_playing !== true) return;
       const selected = await preferences("status", null);

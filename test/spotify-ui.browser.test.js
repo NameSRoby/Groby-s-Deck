@@ -7,6 +7,69 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const createExtension = require("../src/app/optional/create-feature-platform-extension");
 
+test("Spotify entry pages boot in a fresh browser for existing modules, extracted snapshots and direct bundles", async (t) => {
+  const {
+    writeArchive,
+    readArchive,
+    prepareArchive,
+  } = require("../integrations/spotify-desktop/archive.cjs");
+  const http = require("node:http");
+  const renderer = fs.readFileSync(
+    path.join(__dirname, "../integrations/spotify-desktop/dist/renderer.js"),
+  );
+  const source =
+    'var __webpack_modules__={start:()=>{document.body.dataset.started="yes"}};var build="fixture",native={};function registerFactory(){};registerFactory();const platform={version:build,getPlayerAPI:()=>native};\n//# sourceMappingURL=xpui-modules.js.map';
+  const bootstrap = "__webpack_modules__.start();";
+  let assets = new Map();
+  const server = http.createServer((request, response) => {
+    const name = new URL(request.url, "http://localhost").pathname.slice(1),
+      data = assets.get(name);
+    response.writeHead(data ? 200 : 404, {
+      "Content-Type": name.endsWith(".html") ? "text/html" : "text/javascript",
+    });
+    response.end(data || "missing");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const browser = await chromium.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+  });
+  for (const layout of ["modules", "snapshot", "direct"]) {
+    const entries = {
+      "index.html":
+        '<html><head><meta http-equiv="Content-Security-Policy" content="script-src \'self\'"></head><body><script defer src="./' +
+        (layout === "direct" ? "xpui.js" : "xpui-snapshot.js?v=2") +
+        '"></script></body></html>',
+      ...(layout === "direct"
+        ? { "xpui.js": source + "\n" + bootstrap }
+        : { "xpui-snapshot.js": bootstrap }),
+      ...(layout === "modules" ? { "xpui-modules.js": source } : {}),
+    };
+    const original = await writeArchive(
+      Object.entries(entries).map(([name, data]) => ({ name, data: Buffer.from(data) })),
+    );
+    const patched = await prepareArchive(
+      original,
+      renderer,
+      layout === "snapshot" ? { snapshot: Buffer.from(source, "utf16le") } : {},
+    );
+    assets = new Map((await readArchive(patched.archive)).map((row) => [row.name, row.data]));
+    const page = await browser.newPage(),
+      errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("http://127.0.0.1:" + server.address().port + "/index.html");
+    assert.equal(await page.locator("body").getAttribute("data-started"), "yes", layout);
+    assert.equal(
+      await page.evaluate(() => globalThis.__ravelinkSpotify.status().captured),
+      true,
+      layout,
+    );
+    assert.deepEqual(errors, [], layout);
+    await page.close();
+  }
+});
+
 test("Spotify UI restores selection, separates setup, submits songs and keeps compact song/user moderation available", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-spotify-ui-"));
   fs.cpSync(
@@ -15,7 +78,8 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
     { recursive: true },
   );
   const actions = [];
-  let connected = true;
+  let connected = true,
+    prepared = true;
   const status = () => ({
     ok: true,
     enabled: true,
@@ -30,7 +94,7 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
       trackId: "A".repeat(22),
       uid: "current-track",
     },
-    installation: { prepared: true },
+    installation: { prepared },
   });
   const created = createCoreServer({
     rootDir: path.join(__dirname, ".."),
@@ -45,6 +109,7 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
         "spotify.desktop.host.v1/status": status,
         "spotify.desktop.host.v1/setup": (payload) => {
           actions.push(payload.action);
+          if (payload.action === "prepare") prepared = true;
           connected = payload.action === "launch";
           return { ok: true };
         },
@@ -116,6 +181,12 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
   await surface.locator("#spotifyPlaybackLaunch").waitFor({ state: "hidden" });
   assert.ok(actions.includes("launch"));
   await surface.locator("#spotifyOpenSetup").click();
+  connected = false;
+  prepared = false;
+  await surface.locator("#spotifyCheck").click();
+  await surface.locator("#spotifyLaunch[disabled]").waitFor({ state: "attached" });
+  assert.equal(await surface.locator("#spotifyPlaybackLaunch").isVisible(), false);
+  assert.equal(await surface.locator("#spotifyLaunch").isDisabled(), true);
   await surface.locator("#spotifyPrepare").click();
   assert.equal(await knownIssues.isVisible(), false);
   await page.waitForTimeout(100);

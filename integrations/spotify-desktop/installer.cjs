@@ -24,9 +24,14 @@ const exists = (file) => {
     throw error;
   }
 };
-function regular(file, limit) {
+function regular(file, limit, allowHardlinks = false) {
   const stat = fs.lstatSync(file);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.size > limit)
+  if (
+    !stat.isFile() ||
+    stat.isSymbolicLink() ||
+    (!allowHardlinks && stat.nlink !== 1) ||
+    stat.size > limit
+  )
     throw Error("spotify_file_invalid");
   return file;
 }
@@ -41,7 +46,7 @@ function rootPath(input, protectedRead = false) {
   )
     throw Error("spotify_apps_path_invalid");
   if (exists(path.join(root, "xpui"))) throw Error("spotify_unpacked_client_detected");
-  regular(path.join(root, "xpui.spa"), 96 * 1024 * 1024);
+  regular(path.join(root, "xpui.spa"), 96 * 1024 * 1024, protectedRead);
   return root;
 }
 function stopped(options) {
@@ -184,7 +189,9 @@ async function plan(appsPath, options = {}) {
   const original = fs.readFileSync(path.join(root, "xpui.spa"));
   const snapshotPath = path.join(root, "..", "v8_context_snapshot.bin"),
     snapshot = exists(snapshotPath)
-      ? fs.readFileSync(regular(snapshotPath, 64 * 1024 * 1024))
+      ? fs.readFileSync(
+          regular(snapshotPath, 64 * 1024 * 1024, options.allowProtectedRead === true),
+        )
       : undefined;
   const catalog = options.connection
     ? await require("./catalog-documents.cjs")(original, snapshot)
@@ -203,7 +210,10 @@ async function plan(appsPath, options = {}) {
     bundleHash: bundle.bundleHash,
     changes: result.changes,
     platformAsset: result.platformAsset,
-    snapshotHash: result.snapshotExtracted ? digest(snapshot) : null,
+    snapshotHash:
+      snapshot && (result.snapshotExtracted || Object.keys(catalog).length)
+        ? digest(snapshot)
+        : null,
     protectedSource: /(?:^|[\\/])WindowsApps(?:[\\/]|$)/i.test(root),
   };
 }

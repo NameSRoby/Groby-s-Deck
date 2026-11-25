@@ -17,11 +17,11 @@ Direct track URLs/IDs do not require the separate catalog sign-in.
 
 ## Setup from the Player
 
-1. Restart Core after updating Song Request to 0.45.10, then reload the browser.
+1. Restart Core after updating Groby’s Deck, then reload the browser.
 2. Open Song Request → Player and choose TIDAL. The local integration starts automatically.
 3. Close TIDAL. In the selected player's Setup subtab, under Connect the desktop player, choose Install companion.
 4. Start TIDAL normally. Play something locally to initialize its queue, then
-   refresh the companion status in RaveLink.
+   refresh the companion status in Groby’s Deck.
 5. For text lookup, choose Sign in with TIDAL and finish authorization in the
    TIDAL popup. Check connection tests catalog access. Account tokens are saved
    encrypted with Windows DPAPI and can be removed with Disconnect account.
@@ -44,6 +44,19 @@ configuration. The scoped token stays in Core's pairing file and is read only by
 the native transport. There are no environment variables to set. Enabling the
 integration is remembered privately and starts again after Core restarts. Connection
 status still requires the actual companion to reconnect.
+
+Companion 0.1.10 preserves action-function hoisting and ordinary TIDAL behavior
+when the optional runtime cannot capture a supported hook. Preloads and asset
+requests use each window's Electron session, including separate partitions.
+Unrelated assets and assets that fail optional transformation retain their original
+responses. A missing optional renderer does not prevent the original TIDAL entry
+from starting. Client layouts and Electron APIs remain compatibility constraints;
+these safeguards do not establish support for every TIDAL build.
+
+Setup status repairs a changed loopback port or a missing old pairing-file path.
+Restart TIDAL when the repaired connection requests it. If another Core folder
+still owns the binding, close TIDAL and use Update companion explicitly. See the
+[compatibility audit](../../docs/COMPANION_COMPATIBILITY.md) for evidence and limits.
 
 Companion 0.1.8 waits up to 1.5 seconds on an authenticated local request for the
 next command. Enqueuing a command wakes that request immediately; idle waiting

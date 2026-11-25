@@ -3,6 +3,7 @@ param(
   [switch]$Elevated
 )
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $taskRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskProgram = Join-Path $taskRoot 'runtime\Grobys-Deck-Node.exe'
 if ($Action -ne 'Plan' -and !(Test-Path -LiteralPath $taskProgram -PathType Leaf)) { throw 'Bundled RaveLink runtime not found.' }

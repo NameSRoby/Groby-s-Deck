@@ -39,6 +39,6 @@ jobs:
       - name: Verify source and generated payloads
         run: npm.cmd run verify:health
       - name: Run regression tests
-        run: npm.cmd test
+        run: npm.cmd run test:public
       - name: Audit production and development dependencies
         run: npm.cmd audit --audit-level=moderate
