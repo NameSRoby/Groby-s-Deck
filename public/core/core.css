@@ -564,44 +564,63 @@ body.overlayStudioOpen #overlayDesignerFrame {
   max-width: 34rem;
   margin: 8px 0;
 }
-.setupGuide,
-.relatedSetup {
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-  padding: 14px;
-  margin: 12px 0;
-  background: var(--panel);
+.setupGuide {
+  margin: 10px 0;
+  border-block: 1px solid var(--edge);
+  padding: 0 4px;
 }
 .setupGuide summary {
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 11px 0;
+  color: var(--text);
+}
+.setupGuideSummaryHint {
+  margin-inline-start: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 .setupGuideSteps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: 12px;
-  margin: 12px 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 6px 14px;
+  padding-bottom: 12px;
 }
-.setupGuideSteps section {
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--surface);
+.setupGuideShortcut {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  text-align: start;
+  padding: 10px 12px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
-.setupGuideSteps h3 {
-  margin-top: 0;
+.setupGuideShortcut strong {
+  font-size: 13px;
+  font-weight: 600;
 }
-.setupGuideSteps p {
+.setupGuideShortcut small {
+  grid-column: 1;
   color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.setupGuideArrow {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--muted);
+  font-size: 22px;
 }
 .relatedSetup {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-}
-.relatedSetup {
+  margin: 8px 0;
   border: 0;
   padding: 4px 0;
   background: transparent;

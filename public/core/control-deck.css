@@ -1541,8 +1541,13 @@
   min-height: 40px;
   padding: 6px 10px;
   font-size: 12px;
-  background: #101522dd;
-  opacity: 0.7;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  opacity: 1;
 }
 .controlDeck[data-focus="true"] > .deckKeepAwake {
   position: fixed;
@@ -1555,13 +1560,15 @@
 .deckKeepAwake input[type="checkbox"] {
   appearance: none !important;
   width: 30px !important;
+  flex: 0 0 30px;
+  box-sizing: border-box;
   height: 18px !important;
   min-height: 18px !important;
   margin: 0;
   padding: 2px !important;
-  border: 1px solid #71809a;
+  border: 1px solid var(--muted);
   border-radius: 12px !important;
-  background: #29334a;
+  background: var(--input, var(--bg));
   cursor: pointer;
 }
 .deckKeepAwake input::before {
@@ -1574,27 +1581,30 @@
   transition: transform 0.12s;
 }
 .deckKeepAwake input:checked {
-  background: #13845c !important;
-  border-color: #29bc89 !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 .deckKeepAwake input:checked::before {
-  transform: translateX(12px);
+  transform: translateX(10px);
 }
 .deckKeepAwake input:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 3px;
 }
-.deckAwakeStatus {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #8190a8;
+.deckAwakeCopy {
+  display: grid;
+  gap: 2px;
 }
-.deckKeepAwake[data-state="active"] .deckAwakeStatus {
-  background: #27c58a;
+.deckAwakeHint {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
 }
-.deckKeepAwake:is([data-state="fallback"], [data-state="blocked"]) .deckAwakeStatus {
-  background: #edb449;
+.deckKeepAwake[data-state="active"] .deckAwakeHint {
+  color: var(--ok);
+}
+.deckKeepAwake:is([data-state="fallback"], [data-state="blocked"]) .deckAwakeHint {
+  color: var(--warn);
 }
 .deckKeepAwake:hover,
 .deckKeepAwake:focus-visible {

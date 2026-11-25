@@ -22,32 +22,45 @@ export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
   awakeButton.className = "deckKeepAwake";
   const awakeSwitch = document.createElement("input"),
     awakeText = document.createElement("span"),
-    awakeDot = document.createElement("span");
+    awakeCopy = document.createElement("span"),
+    awakeHint = document.createElement("small");
   awakeSwitch.type = "checkbox";
   awakeSwitch.checked = true;
   awakeSwitch.setAttribute("role", "switch");
   awakeSwitch.setAttribute("aria-label", "Keep screen awake");
   awakeText.textContent = "Keep screen awake";
-  awakeDot.className = "deckAwakeStatus";
-  awakeDot.setAttribute("aria-hidden", "true");
-  awakeButton.append(awakeSwitch, awakeText, awakeDot);
+  awakeCopy.className = "deckAwakeCopy";
+  awakeHint.className = "deckAwakeHint";
+  awakeHint.textContent = "Fullscreen only";
+  awakeHint.setAttribute("role", "status");
+  awakeHint.setAttribute("aria-live", "polite");
+  awakeCopy.append(awakeText, awakeHint);
+  awakeButton.append(awakeSwitch, awakeCopy);
   awakeButton.dataset.state = "idle";
   const home = host.querySelector(".deckTools") || button.parentElement || host;
   awakeButton.title =
     "On by default. Keeps the screen awake only while the fullscreen deck is visible.";
-  const awake = createDeckAwake({
-    onState(state) {
-      awakeButton.dataset.state = state;
-      awakeButton.title =
-        state === "fallback"
-          ? "Silent local playback requests an awake screen on HTTP LAN browsers; device support varies. Tap to disable."
-          : state === "blocked"
-            ? "Your browser or power settings interrupted screen protection. Turn the toggle off and on to retry."
-            : "Keep this device's screen awake in fullscreen. Tap to toggle.";
-    },
-  });
+  function showAwakeState(state) {
+    awakeButton.dataset.state = state;
+    awakeHint.textContent =
+      {
+        idle: "Fullscreen only",
+        off: "Off",
+        requesting: "Starting...",
+        active: "Screen protected",
+        fallback: "Compatibility mode",
+        blocked: "Protection interrupted",
+      }[state] || "Fullscreen only";
+    awakeButton.title =
+      state === "fallback"
+        ? "Silent local playback requests an awake screen on HTTP LAN browsers; device support varies. Tap to disable."
+        : state === "blocked"
+          ? "Your browser or power settings interrupted screen protection. Turn the toggle off and on to retry."
+          : "Keep this device's screen awake in fullscreen. Tap to toggle.";
+  }
+  const awake = createDeckAwake({ onState: showAwakeState });
   awakeSwitch.onchange = () => {
-    awakeButton.dataset.state = awakeSwitch.checked ? (active ? "requesting" : "idle") : "off";
+    showAwakeState(awakeSwitch.checked ? (active ? "requesting" : "idle") : "off");
     if (awakeSwitch.checked !== awake.enabled) awake.toggle();
   };
   home.append(awakeButton, widgetToggle);

@@ -322,9 +322,10 @@ function escapeHtml(value) {
 
 document.querySelectorAll("[data-tab]").forEach((button) =>
   button.addEventListener("click", () => {
-    document
-      .querySelectorAll("[data-tab]")
-      .forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-tab]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+      item.setAttribute("aria-selected", String(item === button));
+    });
     document.querySelectorAll("main > [data-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.panel !== button.dataset.tab;
     });
