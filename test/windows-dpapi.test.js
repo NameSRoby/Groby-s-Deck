@@ -9,11 +9,12 @@ test(
     const script = `
     const assert = require('node:assert/strict');
     const vault = require(process.argv[1]);
-    const encrypted = vault.protectTextMapWithWindowsDpapi({ value: 'regression-fixture' });
+    const encrypted = vault.protectTextMapWithWindowsDpapi({ value: 'regression-fixture', 'donnée東京': 'José 東京 fixture' });
     assert.equal(encrypted.ok, true, encrypted.error);
     const plain = vault.unprotectTextMapWithWindowsDpapi(encrypted.encrypted);
     assert.equal(plain.ok, true, plain.error);
     assert.equal(plain.plain.value, 'regression-fixture');
+    assert.equal(plain.plain['donnée東京'], 'José 東京 fixture');
   `;
     execFileSync(
       process.execPath,

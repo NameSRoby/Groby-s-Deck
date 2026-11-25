@@ -10,7 +10,13 @@ module.exports = async function catalogDocuments(archive, snapshot) {
   const sources = (await readArchive(archive))
     .filter((row) => row.name.endsWith(".js"))
     .map((row) => row.data.toString("utf8"));
-  if (snapshot) sources.push(require("./snapshot-source.cjs")(snapshot));
+  if (snapshot) {
+    try {
+      sources.push(require("./snapshot-source.cjs")(snapshot));
+    } catch {
+      /* Optional discovery only; archive preparation validates any snapshot it actually loads. */
+    }
+  }
   const result = {};
   for (const name of ["searchTracks", "getTrack"]) {
     const pattern = new RegExp(

@@ -26,7 +26,7 @@ const files = new Map([
     JSON.stringify(
       {
         name: "ravelink-tidal-companion",
-        version: "0.1.9",
+        version: "0.1.10",
         main: "injector.cjs",
         private: true,
       },
@@ -51,7 +51,10 @@ const inventory = Object.fromEntries(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([file, value]) => [file, crypto.createHash("sha256").update(value).digest("hex")]),
 );
-files.set("integrity.json", JSON.stringify({ version: "0.1.9", files: inventory }, null, 2) + "\n");
+files.set(
+  "integrity.json",
+  JSON.stringify({ version: "0.1.10", files: inventory }, null, 2) + "\n",
+);
 if (fs.existsSync(output)) {
   for (const entry of fs.readdirSync(output)) {
     if (!files.has(entry)) throw Error("Unexpected TIDAL bundle file: " + entry);
@@ -68,5 +71,5 @@ if (process.argv.includes("--check")) {
 } else {
   fs.mkdirSync(output, { recursive: true });
   for (const [file, value] of files) fs.writeFileSync(path.join(output, file), value);
-  console.log("Built self-contained Groby’s Deck TIDAL companion 0.1.9.");
+  console.log("Built self-contained Groby’s Deck TIDAL companion 0.1.10.");
 }

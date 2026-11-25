@@ -5,33 +5,8 @@
  * only song metadata and request positions, never IDs, hashes or account details.
  */
 const crypto = require("node:crypto");
-const clean = (value, length = 180) =>
-  String(value || "")
-    .normalize("NFKC")
-    // Metadata is plain text, not HTML. Remove individual delimiters rather than
-    // matching whole tags: nested/unfinished input cannot recreate a delimiter.
-    // HTML consumers must still use textContent, never innerHTML.
-    .replace(/[<>]/g, "")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, length);
-const describe = (row, length = 180) => {
-  const candidate = row?.candidate || row || {};
-  const artists = Array.isArray(candidate.artists)
-    ? candidate.artists
-        .map((x) => clean(x, 60))
-        .filter(Boolean)
-        .join(", ")
-    : "";
-  const artistBudget = Math.min(60, Math.floor(length / 3));
-  return (
-    clean(
-      candidate.title || row?.title || "Untitled song",
-      artists ? length - artistBudget - 3 : length,
-    ) + (artists ? " - " + clean(artists, artistBudget) : "")
-  );
-};
+const { songLabel } = require("./chat-public-song");
+const describe = (row, length = 180) => songLabel(row, length) || "Untitled song";
 module.exports = async function chatInformation(
   { queue, preferences, tidal, spotify, youtubeBrowser },
   payload,

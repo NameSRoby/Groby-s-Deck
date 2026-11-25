@@ -6,6 +6,12 @@
 const tasks = require("./feature-task-navigation");
 const feedback = require("../../../../public/core/action-feedback");
 const choices = require("../../../../public/core/visible-choices");
+const colors = require("../../../../public/core/presentation-colors");
+const dismissibles = require("../../../../public/core/dismissible-surfaces");
+const surfaceCss = require("node:fs").readFileSync(
+  require("node:path").join(__dirname, "../../../../public/core/theme-surfaces.css"),
+  "utf8",
+);
 function contributionPresentation() {
   const channel = "ravelink-feature-ui-v1";
   let observer,
@@ -40,7 +46,7 @@ function contributionPresentation() {
     )
       return;
     document.documentElement.classList.add("native-feature");
-    const theme = event.data.theme || {};
+    const theme = window.GrobyPresentationColors(event.data.theme || {});
     for (const key of [
       "bg",
       "panel",
@@ -52,6 +58,9 @@ function contributionPresentation() {
       "ok",
       "warn",
       "bad",
+      "input",
+      "accent-text",
+      "accent-glow",
     ]) {
       if (/^#[0-9a-f]{3,8}$/i.test(theme[key]))
         document.documentElement.style.setProperty(`--${key}`, theme[key]);
@@ -86,8 +95,8 @@ const css = `.flow-feature,.flow-feature body{min-height:0!important;height:auto
 
 module.exports = (content) =>
   String(content)
-    .replace("</head>", `<style>${css}${tasks.css}</style></head>`)
+    .replace("</head>", `<style>${css}${tasks.css}${surfaceCss}</style></head>`)
     .replace(
       "</body>",
-      `<script>(${tasks.taskNavigation.toString()})();(${contributionPresentation.toString()})();(${feedback.toString()})();(${choices.toString()})();</script></body>`,
+      `<script>window.GrobyPresentationColors=(${colors.toString()});(${dismissibles.toString()})();(${tasks.taskNavigation.toString()})();(${contributionPresentation.toString()})();(${feedback.toString()})();(${choices.toString()})();</script></body>`,
     );

@@ -22,7 +22,7 @@ const run = (file, args, env) =>
   });
 
 test(
-  "Offline Setup skips installed runtimes, installs missing ones, and blocks failed or tampered payloads",
+  "Offline Setup skips supported runtimes, upgrades old ones, and blocks failed or tampered payloads",
   { skip: process.platform !== "win32" || !compiler },
   (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "ravelink-setup-prereq-"));
@@ -40,7 +40,8 @@ class Stub { static int Main(string[] args) {
     if (args.Length > 0 && args[0] == "--cleanup") { user.DeleteSubKeyTree(key, false); return 0; }
     if (args.Length == 0 || args[0] != "--preinstall") File.WriteAllText(Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_MARKER"), "executed");
     if (Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_FAIL") == "1") return 19;
-    using (var installed = user.CreateSubKey(key)) installed.SetValue("pv", "157.0.1.0");
+    bool old = args.Length > 0 && args[0] == "--preinstall" && Environment.GetEnvironmentVariable("RAVELINK_PREREQ_FIXTURE_OLD") == "1";
+    using (var installed = user.CreateSubKey(key)) installed.SetValue("pv", old ? "110.0.1.0" : "157.0.1.0");
   } return 0;
 } }`,
     );
@@ -50,7 +51,7 @@ class Stub { static int Main(string[] args) {
     const digest = crypto.createHash("sha256").update(fs.readFileSync(stub)).digest("hex");
     const actualKey =
       "SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
-    for (const mode of ["missing", "existing", "failure", "tampered"]) {
+    for (const mode of ["missing", "existing", "old", "failure", "tampered"]) {
       const directory = path.join(root, mode);
       fs.mkdirSync(directory);
       const id = crypto.randomBytes(16).toString("hex");
@@ -59,10 +60,12 @@ class Stub { static int Main(string[] args) {
         RAVELINK_PREREQ_FIXTURE_ID: id,
         RAVELINK_PREREQ_FIXTURE_MARKER: marker,
         RAVELINK_PREREQ_FIXTURE_FAIL: mode === "failure" ? "1" : "0",
+        RAVELINK_PREREQ_FIXTURE_OLD: mode === "old" ? "1" : "0",
       };
       const fixtureKey = "Software\\RaveLink\\SetupTests\\" + id;
       try {
-        if (mode === "existing") assert.equal(run(stub, ["--preinstall"], env).status, 0);
+        if (mode === "existing" || mode === "old")
+          assert.equal(run(stub, ["--preinstall"], env).status, 0);
         const code = require("../scripts/installer-prerequisite-code")()
           .join("\n")
           .replaceAll(actualKey, fixtureKey)
@@ -113,14 +116,18 @@ begin Result := EnsureWebViewRuntime(NeedsRestart); end;
           ],
           env,
         );
-        const success = mode === "missing" || mode === "existing";
+        const success = mode === "missing" || mode === "existing" || mode === "old";
         assert.equal(
           result.status === 0,
           success,
           mode + ": " + fs.readFileSync(path.join(directory, "setup.log"), "utf8"),
         );
         assert.equal(fs.existsSync(path.join(directory, "app", "installed.txt")), success, mode);
-        assert.equal(fs.existsSync(marker), mode === "missing" || mode === "failure", mode);
+        assert.equal(
+          fs.existsSync(marker),
+          mode === "missing" || mode === "old" || mode === "failure",
+          mode,
+        );
       } finally {
         assert.equal(run(stub, ["--cleanup"], env).status, 0);
       }
@@ -143,6 +150,7 @@ test(
       path.join(root, "scripts/prerequisites.json"),
       JSON.stringify({
         webview2: {
+          minimumMajor: spec.minimumMajor,
           file: filename,
           sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
         },

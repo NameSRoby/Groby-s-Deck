@@ -43,7 +43,7 @@ test("native Song Request chat outcomes are independently gated and sanitized", 
   );
   assert.deepEqual(composeChatResponse(request, { ok: true, position: 2 }, enabled("queued")), {
     kind: "queued",
-    message: '@Viewer Queued "Example song" at position 2.',
+    message: "@Viewer Queued that song at position 2.",
     replyParentMessageId: "message-1",
   });
   assert.equal(
@@ -117,4 +117,48 @@ test("now-playing composition requires an eligible playback notification", () =>
     },
   );
   assert.equal(response.message, 'Now playing "Track", requested by @Viewer.');
+});
+
+test("public song formatting never coerces private metadata or falls back to request queries", () => {
+  const { publicSong, songLabel } = require("../features/song-request/dist/chat-public-song");
+  const privateData = {
+    playlistName: "PRIVATE_PLAYLIST",
+    accountName: "PRIVATE_ACCOUNT",
+    email: "private@example.invalid",
+    token: "PRIVATE_TOKEN",
+  };
+  assert.deepEqual(
+    publicSong({ ...privateData, title: "Track", artists: ["Artist", privateData] }),
+    {
+      provider: "",
+      title: "Track",
+      artists: ["Artist"],
+    },
+  );
+  for (const value of [
+    privateData,
+    "private@example.invalid",
+    "Bearer PRIVATE_TOKEN",
+    "C:\\Users\\Private\\song.mp3",
+    "https://service.invalid/playlist/PRIVATE_PLAYLIST?access_token=PRIVATE_TOKEN",
+  ]) {
+    assert.equal(songLabel({ title: value, artists: ["Artist"] }), "");
+  }
+  const message = composeChatResponse(
+    { method: "acknowledge", payload: { query: "PRIVATE_QUERY", notifyChat: true } },
+    {
+      ok: true,
+      code: "started",
+      notifyChat: true,
+      entry: {
+        ...privateData,
+        query: "PRIVATE_QUERY",
+        requesterLabel: "Viewer",
+        candidate: { ...privateData, artists: [privateData] },
+      },
+    },
+    enabled("now_playing"),
+  );
+  assert.equal(message.message, "Now playing that song, requested by @Viewer.");
+  assert.doesNotMatch(message.message, /PRIVATE_|private@example/);
 });

@@ -65,7 +65,36 @@ module.exports = function createSpotifyProvider(options) {
     serial = Promise.resolve(),
     installation = read("installation.json", null),
     launchWork = null,
+    launchDeadline = 0,
     launchError = "";
+  const now = options.now || Date.now;
+  let verifyInstallation;
+  const installed = () => {
+    if (!installation?.id) return { prepared: false };
+    verifyInstallation ||=
+      options.verifyInstallation ||
+      require("./sidecar.cjs").createVerifier(root, installation.id, {
+        connection: {
+          coreUrl: installation.coreUrl,
+          token: pairing.token,
+          catalog: installation.catalog,
+        },
+      });
+    const result = verifyInstallation();
+    return result.ok
+      ? { prepared: true, id: installation.id }
+      : { prepared: false, error: result.error || "spotify_setup_required" };
+  };
+  function launchState(connected) {
+    if (connected) {
+      launchDeadline = 0;
+      launchError = "";
+    } else if (launchDeadline && now() >= launchDeadline) {
+      launchDeadline = 0;
+      launchError = "spotify_connection_timeout";
+    }
+    return !connected && Boolean(launchWork || launchDeadline);
+  }
   const ordered = (action) => {
     const operation = serial.then(action);
     serial = operation.catch(() => {});
@@ -106,6 +135,7 @@ module.exports = function createSpotifyProvider(options) {
   function status() {
     const connection = bridge.status(),
       fresh = connection.connected && Date.now() - observedAt < 6000;
+    const launching = launchState(connection.connected);
     const currentOwner = [...receipts.values()].find(
       (row) => row.uid && row.uid === snapshot?.current?.uid,
     );
@@ -118,7 +148,7 @@ module.exports = function createSpotifyProvider(options) {
     return {
       ok: true,
       enabled: true,
-      launching: Boolean(launchWork) && !connection.connected,
+      launching,
       launchError: connection.connected ? "" : launchError,
       lastError: connection.lastError,
       lastSeenAt: connection.lastSeenAt,
@@ -156,7 +186,7 @@ module.exports = function createSpotifyProvider(options) {
       queueTimingComplete: Boolean(
         fresh && snapshot.complete && snapshot.queue.every((item) => entryByUid.has(item.uid)),
       ),
-      installation: installation ? { prepared: true, id: installation.id } : { prepared: false },
+      installation: installed(),
     };
   }
   async function setup(payload) {
@@ -180,22 +210,35 @@ module.exports = function createSpotifyProvider(options) {
         expectedArchiveHash: plan.archiveHash,
         expectedSnapshotHash: plan.snapshotHash,
       });
-      write("installation.json", { id: installation.id });
+      installation.coreUrl = connection.coreUrl;
+      installation.catalog = plan.catalog;
+      write("installation.json", {
+        id: installation.id,
+        coreUrl: connection.coreUrl,
+        catalog: plan.catalog,
+      });
+      verifyInstallation = null;
       return { ok: true, prepared: true };
     }
     if (payload.action === "launch") {
-      if (!installation?.id) return { ok: false, error: "spotify_setup_required" };
+      const checked = installed();
+      if (!checked.prepared) return { ok: false, error: checked.error || "spotify_setup_required" };
       if (bridge.status().connected) return { ok: true, connected: true };
-      if (!launchWork) {
+      if (!launchState(false)) {
         launchError = "";
+        launchDeadline = now() + 45000;
         // Starting a desktop process is independent of the feature RPC lifetime.
         // Report acceptance now; the paired bridge confirms the connection.
         launchWork = Promise.resolve()
           .then(() => (options.launch || require("./launcher.cjs"))(root, installation.id))
           .then((result) => {
-            if (!result.ok) launchError = result.error || "spotify_launch_failed";
+            if (!result.ok) {
+              launchError = result.error || "spotify_launch_failed";
+              launchDeadline = 0;
+            }
           })
           .catch((error) => {
+            launchDeadline = 0;
             launchError = /^spotify_[a-z_]+$/.test(error.message)
               ? error.message
               : "spotify_launch_failed";

@@ -381,7 +381,7 @@
             $("tidalInstallStatus").textContent =
               "Companion installation details could not be refreshed.";
         });
-      if (companionInstall?.installed && !["0.1.9"].includes(companionInstall.version))
+      if (companionInstall?.installed && !["0.1.10"].includes(companionInstall.version))
         $("tidalConnection").textContent = "Desktop companion update needed — open Setup";
       if (view === "setup") await refreshCatalogApi();
       renderTidalQueue();
@@ -395,7 +395,7 @@
         !tidalState.delivery?.processing &&
         !tidalState.delivery?.lastError &&
         tidalState.capacity?.available > 0 &&
-        !(companionInstall?.installed && !["0.1.9"].includes(companionInstall.version)) &&
+        !(companionInstall?.installed && !["0.1.10"].includes(companionInstall.version)) &&
         tidalState.queue?.some(
           (entry) =>
             !entry.deliveryError &&
@@ -550,26 +550,33 @@
     }
   }
   async function refreshCompanionInstall() {
+    const coreUrl = new URL(location.origin);
+    coreUrl.hostname = "127.0.0.1";
     companionInstall = await call("song.tidal.experimental.v1", "companion", {
       action: "status",
+      coreUrl: coreUrl.origin,
     });
     companionCheckedAt = Date.now();
     const ready = tidalState?.connected && tidalState?.ready,
       needsUpdate =
         companionInstall.installed &&
-        (companionInstall.previousBundle || companionInstall.version !== "0.1.9");
+        (companionInstall.previousBundle ||
+          companionInstall.version !== "0.1.10" ||
+          companionInstall.rebindRequired);
     if (needsUpdate) $("tidalConnection").textContent = "Desktop companion update needed";
     $("tidalInstallStatus").textContent = needsUpdate
       ? "Close TIDAL, choose Update companion below, then reopen TIDAL. Your original app and playlist are preserved."
-      : ready
-        ? "Connected. Requests join the queue in order without replacing your playlist."
-        : companionInstall.installed
-          ? "Companion installed. Open TIDAL, play a song and choose Refresh."
-          : companionInstall.foreignLoader
-            ? "Another desktop integration is installed. Remove it before connecting Groby’s Deck."
-            : companionInstall.available
-              ? "One-time setup connects Groby’s Deck to your desktop player."
-              : "Install TIDAL Desktop first, then choose Refresh.";
+      : companionInstall.restartRequired
+        ? "The local connection was repaired. Quit and reopen TIDAL to reconnect."
+        : ready
+          ? "Connected. Requests join the queue in order without replacing your playlist."
+          : companionInstall.installed
+            ? "Companion installed. Open TIDAL, play a song and choose Refresh."
+            : companionInstall.foreignLoader
+              ? "Another desktop integration is installed. Remove it before connecting Groby’s Deck."
+              : companionInstall.available
+                ? "One-time setup connects Groby’s Deck to your desktop player."
+                : "Install TIDAL Desktop first, then choose Refresh.";
     $("tidalDesktopBadge").textContent = needsUpdate
       ? "Update needed"
       : ready

@@ -25,6 +25,7 @@ test("Spotify launch returns immediately, deduplicates pending launches and expo
     launches = 0;
   const provider = createProvider({
     runtimeDir: root,
+    verifyInstallation: () => ({ ok: true }),
     launch: () => {
       launches++;
       return new Promise((resolve, reject) => {
@@ -45,6 +46,51 @@ test("Spotify launch returns immediately, deduplicates pending launches and expo
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(provider.status().launching, false);
   assert.equal(provider.status().launchError, "spotify_close_client_required");
+});
+
+test("Spotify refuses saved installations with missing files, and waits for pairing after process launch", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-launch-ready-"));
+  fs.mkdirSync(path.join(root, "spotify-desktop"));
+  fs.writeFileSync(
+    path.join(root, "spotify-desktop/installation.json"),
+    JSON.stringify({ id: "sidecar-" + "a".repeat(24) }),
+  );
+  let launches = 0,
+    now = 1000;
+  const launch = async () => {
+    launches++;
+    return { ok: true };
+  };
+  const missing = createProvider({ runtimeDir: root, launch });
+  const provider = createProvider({
+    runtimeDir: root,
+    launch,
+    now: () => now,
+    verifyInstallation: () => ({ ok: true }),
+  });
+  t.after(() => {
+    missing.close();
+    provider.close();
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  assert.equal(missing.status().installation.prepared, false);
+  assert.equal(
+    (await missing.handle("setup", { action: "launch" })).error,
+    "spotify_setup_required",
+  );
+  assert.equal(launches, 0);
+  await provider.handle("setup", { action: "launch" });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(
+    provider.status().launching,
+    true,
+    "process acceptance is not a companion connection",
+  );
+  await provider.handle("setup", { action: "launch" });
+  assert.equal(launches, 1);
+  now += 45001;
+  assert.equal(provider.status().launching, false);
+  assert.equal(provider.status().launchError, "spotify_connection_timeout");
 });
 
 async function setup(t) {

@@ -102,6 +102,28 @@ test("moving Core repairs the stale companion pairing path without changing toke
   assert.deepEqual(fs.readFileSync(path.join(f.resources, "app.asar")), f.original);
 });
 
+test("TIDAL repairs a changed Core port but requires explicit rebinding when another Core folder still exists", (t) => {
+  const f = fixture(t);
+  installer.install(f);
+  const file = path.join(f.resources, "app/config.json"),
+    before = fs.readFileSync(file, "utf8");
+  assert.throws(
+    () => installer.repairPairing({ ...f, coreUrl: "https://remote.example" }),
+    /url_invalid/,
+  );
+  assert.equal(fs.readFileSync(file, "utf8"), before);
+  assert.equal(installer.repairPairing({ ...f, coreUrl: "http://127.0.0.1:53210" }).changed, true);
+  assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).coreUrl, "http://127.0.0.1:53210");
+  const another = path.join(f.root, "another-pairing.json");
+  fs.copyFileSync(f.pairingFile, another);
+  assert.deepEqual(installer.repairPairing({ ...f, pairingFile: another }), {
+    changed: false,
+    rebindRequired: true,
+  });
+  installer.uninstall(f);
+  assert.deepEqual(fs.readFileSync(path.join(f.resources, "app.asar")), f.original);
+});
+
 test("interrupted install can be uninstalled and a changed original is never overwritten", (t) => {
   const f = fixture(t);
   installer.install(f);
@@ -234,6 +256,24 @@ test("narrow source hooks preserve unrelated actions and capture middleware disp
   await assert.rejects(canceled, /stopped/);
   assert.equal(unloads.size, 0);
 });
+
+test("TIDAL hooks preserve hoisted actions and ordinary playback when the optional runtime is unavailable", () => {
+  const source =
+    'globalThis.before=makeAction("example")(42);' +
+    "function makeAction(e,t){function n(...n){if(t){let r=t(...n);return{type:e,payload:r.payload,...`meta`in r&&{meta:r.meta}}}return{type:e,payload:n[0]}}return n.type=e,n};" +
+    "const i={getState:()=>({})},a=()=>{};globalThis.store={...i,dispatch:a};";
+  const patched = transform(source);
+  for (const prefix of [
+    "",
+    fs.readFileSync(path.join(integration, "renderer-runtime.js"), "utf8"),
+  ]) {
+    const context = vm.createContext({});
+    vm.runInContext(prefix + patched.code, context);
+    assert.equal(context.before.payload, 42);
+    assert.equal(context.before.type, "example");
+    assert.equal(typeof context.store.dispatch, "function");
+  }
+});
 test("companion management is restricted to Song Request and uses discovered paths only", () => {
   let installed = null;
   const manager = createManager({
@@ -268,7 +308,11 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
     installedPreload,
     patchedElectron,
     started = false,
-    calls = 0;
+    calls = 0,
+    transformFailed = false,
+    missingOptional = "",
+    assetSource =
+      "const i={},a=()=>{};globalThis.originalTidalAsset=true;globalThis.store={...i,dispatch:a};";
   const ready = [],
     contentsListeners = [];
   const session = {
@@ -292,12 +336,13 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
     },
     ipcMain: {
       handle: (_name, value) => {
+        if (missingOptional === "ipc") throw Error("optional IPC unavailable");
         ipc = value;
       },
     },
     net: {
       fetch: async () =>
-        new Response("globalThis.originalTidalAsset=true;", {
+        new Response(assetSource, {
           headers: {
             "content-security-policy": "script-src 'self'",
             etag: "original",
@@ -320,18 +365,32 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
   };
   originalRequire.resolve = () => "electron";
   const fakeRequire = (name) => {
+    if (
+      (missingOptional === "transform" && name === "./transform.cjs") ||
+      (missingOptional === "bridge" && name === "./native-bridge.cjs")
+    )
+      throw Error("optional module missing");
     if (name === "electron") return electron;
     if (name === "node:fs")
       return {
-        readFileSync: (file) =>
-          file.endsWith("package.json")
+        readFileSync: (file) => {
+          if (missingOptional === "renderer" && file.endsWith("renderer.js"))
+            throw Error("optional renderer missing");
+          return file.endsWith("package.json")
             ? JSON.stringify({ name: "tidal", main: "main.js" })
             : file.endsWith("config.json")
               ? "{}"
-              : "globalThis.ravelinkInjected=true;",
+              : "globalThis.ravelinkInjected=true;";
+        },
       };
     if (name === "node:module") return { createRequire: () => originalRequire };
-    if (name === "./transform.cjs") return { transform };
+    if (name === "./transform.cjs")
+      return {
+        transform: (source) => {
+          if (transformFailed) throw Error("unsupported fixture");
+          return transform(source);
+        },
+      };
     if (name === "./native-bridge.cjs")
       return {
         createNativeBridge: () => ({
@@ -353,6 +412,7 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
     Headers,
     Response,
     URL,
+    Buffer,
   });
   execute({}, fakeRequire, { exports: {} }, "injector.cjs", integration);
   await new Promise((resolve) => setImmediate(resolve));
@@ -368,6 +428,36 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
     url: "https://login.tidal.com/assets/login.js",
   });
   assert.doesNotMatch(await login.text(), /ravelinkInjected/);
+  transformFailed = true;
+  const fallback = await handler({ url: "https://desktop.tidal.com/assets/new-client.js" });
+  assert.equal(await fallback.text(), assetSource);
+  assert.equal(fallback.headers.get("etag"), "original");
+  transformFailed = false;
+  assetSource = "globalThis.unrelated=true;";
+  const untouched = await handler({ url: "https://desktop.tidal.com/assets/unrelated.js" });
+  assert.equal(await untouched.text(), assetSource);
+  assert.equal(untouched.headers.get("etag"), "original");
+  let partitionHandler,
+    partitionPreloads = 0,
+    partitionFetches = 0;
+  const partition = {
+    protocol: {
+      handle: (_name, value) => {
+        partitionHandler = value;
+      },
+    },
+    fetch: async () => {
+      partitionFetches++;
+      return new Response(assetSource);
+    },
+    registerPreloadScript: () => partitionPreloads++,
+  };
+  for (let index = 0; index < 2; index++)
+    for (const callback of contentsListeners)
+      callback({}, { id: 43, session: partition, getType: () => "window", on() {} });
+  assert.equal(partitionPreloads, 1);
+  await partitionHandler({ url: "https://desktop.tidal.com/assets/partition.js" });
+  assert.equal(partitionFetches, 1, "partition assets keep their own cookies and network session");
   const mainFrame = { url: "https://desktop.tidal.com/" },
     sender = { id: 42, mainFrame };
   assert.equal((await ipc({ sender, senderFrame: mainFrame }, "next", {})).ok, true);
@@ -380,6 +470,21 @@ test("Electron bootstrap preserves CSP and login responses and restricts IPC to 
     /sender_invalid/,
   );
   assert.equal(calls, 1);
+  for (const failure of ["transform", "bridge", "renderer", "ipc"]) {
+    missingOptional = failure;
+    started = false;
+    handler = undefined;
+    installedPreload = undefined;
+    ready.length = 0;
+    contentsListeners.length = 0;
+    assert.doesNotThrow(() =>
+      execute({}, fakeRequire, { exports: {} }, "injector.cjs", integration),
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(started, true, `${failure}: the original TIDAL entry must still run`);
+    assert.equal(handler, undefined, `${failure}: disable optional interception`);
+    assert.equal(installedPreload, undefined);
+  }
 });
 
 test("distributed companion renderer and license files match their maintained sources", () => {

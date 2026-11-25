@@ -61,6 +61,14 @@ test("paired Spotify connection delivers normalized lookup and mutation results 
     coreUrl,
     token: host.pairing().token,
     clientId: "desktop",
+    fetch: async (...args) => {
+      const response = await fetch(...args);
+      return {
+        ok: response.ok,
+        status: response.status,
+        body: { getReader: () => response.body.getReader() },
+      };
+    },
   });
   await worker.step();
   assert.equal(host.status().connected, true);

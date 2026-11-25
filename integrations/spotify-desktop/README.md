@@ -19,6 +19,21 @@ The separate `readiness-probe.js` is read-only and can be pasted into Spotify De
 
 Use **Song Request > Player > Spotify > Setup > Prepare companion**. Fully quit Spotify, including its tray icon, then choose **Open Spotify with Groby’s Deck**. Playback also shows this launch action while disconnected. A normal Spotify launch does not load the companion.
 
+Open Spotify stays disabled until the local companion inventory, source archive,
+snapshot and pairing configuration verify. Missing files and client updates require
+Prepare companion again. Earlier sidecars must also be prepared again to load the
+corrected startup layout. Preparation checks the scripts the entry page actually
+loads, inserts the modules dependency before the snapshot entry when needed, and
+compiles the patched platform script without executing it. An unsupported shape
+fails preparation instead of staging syntactically invalid JavaScript.
+
+A process launch receipt is not a working connection. Setup waits up to 45 seconds
+for pairing and reports a connection timeout if it never arrives. If Spotify opens
+blank, fully quit it and start Spotify normally to recover ordinary playback; the
+sidecar never replaces the original installation. Keep the Spotify client version
+and the displayed setup error when reporting a failure. See the
+[compatibility audit](../../docs/COMPANION_COMPATIBILITY.md) for coverage and limits.
+
 Setup discovers regular and Microsoft Store installations, validates the installed archive, renderer integrity and exact platform hook, then stages a sidecar under local runtime storage. Newer clients keep JavaScript in a V8 snapshot; the source is parsed in memory without executing it during preparation. Spotify-owned copied assets and extracted code remain in ignored runtime storage and must never be published.
 
 The sidecar uses Spotify's `--app-directory` flag and leaves the original installation untouched. A hash inventory detects client changes; prepare and reopen after updates. Artist/title search, paused queue insertion and signed-in client launch have been tested locally. Broader client/account compatibility still needs validation.

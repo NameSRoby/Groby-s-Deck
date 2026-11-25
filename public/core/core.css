@@ -38,7 +38,7 @@ textarea {
 }
 button {
   min-height: 38px;
-  border: 1px solid #2a395f;
+  border: 1px solid var(--edge);
   border-radius: 7px;
   background: var(--surface);
   padding: 8px 13px;
@@ -46,8 +46,8 @@ button {
   cursor: pointer;
 }
 button:hover:not(:disabled) {
-  border-color: var(--accent);
-  box-shadow: 0 0 14px var(--accent-glow);
+  border-color: var(--button-accent, var(--accent));
+  box-shadow: 0 0 14px var(--button-glow, var(--accent-glow));
 }
 button:disabled {
   opacity: 0.45;
@@ -95,7 +95,7 @@ h1 {
   height: 30px;
   border: 1px solid var(--edge);
   border-radius: 5px;
-  background: #080b13;
+  background: var(--panel);
   color: var(--muted);
   font-size: 11px;
   font-weight: 900;
@@ -215,7 +215,7 @@ main {
 label {
   display: grid;
   gap: 6px;
-  color: #becae5;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 800;
 }
@@ -224,16 +224,16 @@ select,
 textarea {
   width: 100%;
   min-height: 38px;
-  border: 1px solid #2a395f;
+  border: 1px solid var(--edge);
   border-radius: 5px;
-  background: #070b15;
+  background: var(--input, var(--bg));
   padding: 8px 10px;
   outline: none;
 }
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #527cc3;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(82, 124, 195, 0.18);
 }
 input[type="color"] {
@@ -266,14 +266,14 @@ input[type="color"] {
   margin: 12px 0 0;
   border: 1px solid var(--edge);
   border-radius: 5px;
-  background: #05070d;
+  background: var(--input, var(--bg));
   padding: 10px;
   color: #c9d8ff;
   white-space: pre-wrap;
 }
 .tableWrap {
   overflow: auto;
-  border: 1px solid #1f2c4f;
+  border: 1px solid var(--edge);
   border-radius: 6px;
 }
 table {
@@ -285,11 +285,11 @@ th,
 td {
   text-align: left;
   padding: 9px;
-  border-bottom: 1px solid #1a2441;
+  border-bottom: 1px solid var(--edge);
   vertical-align: top;
 }
 th {
-  color: #b5c1e6;
+  color: var(--muted);
   font-weight: 900;
 }
 tr:last-child td {
@@ -302,9 +302,9 @@ tr:last-child td {
   right: 18px;
   width: min(430px, calc(100vw - 36px));
   padding: 14px;
-  border: 1px solid #365080;
+  border: 1px solid var(--edge);
   border-radius: 7px;
-  background: #080d1b;
+  background: var(--panel);
   box-shadow: 0 14px 45px #000;
 }
 .themePanel h2 {
@@ -438,7 +438,7 @@ tr:last-child td {
 .fixtureBrandChooser > span {
   display: block;
   margin-bottom: 7px;
-  color: #becae5;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 800;
 }
@@ -478,9 +478,9 @@ tr:last-child td {
   color: var(--warn);
 }
 .choiceCardGrid button[aria-pressed="true"] {
-  border-color: #4b8dff;
-  background: #102348;
-  box-shadow: inset 0 0 0 1px #4b8dff;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 @media (max-width: 900px) {
   .choiceCardGrid {
@@ -498,7 +498,7 @@ tr:last-child td {
   padding: 16px;
   border: 1px solid var(--edge) !important;
   border-radius: 8px;
-  background: #090e19;
+  background: var(--panel);
 }
 .workflowHeading {
   display: grid;
@@ -513,7 +513,7 @@ tr:last-child td {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #15284d;
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
   color: #bcd2ff;
   font-weight: 900;
 }

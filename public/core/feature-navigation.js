@@ -15,6 +15,9 @@ const themeKeys = [
   "ok",
   "warn",
   "bad",
+  "input",
+  "accent-text",
+  "accent-glow",
 ];
 function present(frame) {
   const style = getComputedStyle(document.documentElement);

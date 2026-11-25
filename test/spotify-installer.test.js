@@ -14,6 +14,79 @@ const {
 const script =
   "function registerFactory(){};registerFactory();const platform={version:build,getPlayerAPI:()=>native};";
 const hash = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+async function clientArchive(html, assets) {
+  return writeArchive(
+    Object.entries({ "index.html": html, ...assets }).map(([name, data]) => ({
+      name,
+      data: Buffer.from(data),
+    })),
+  );
+}
+
+test("Spotify loads existing modules before the snapshot bootstrap, including relative asset URLs", async () => {
+  for (const src of ["/xpui-snapshot.js", "./xpui-snapshot.js?v=2"]) {
+    const original = await clientArchive(`<script defer src="${src}"></script>`, {
+      "xpui-modules.js": script,
+      "xpui-snapshot.js": "globalThis.started=true;",
+    });
+    const result = await prepareArchive(original, "globalThis.companion=true;");
+    const html = (await readArchive(result.archive))
+      .find((row) => row.name === "index.html")
+      .data.toString();
+    assert.ok(html.includes('src="/xpui-modules.js"'));
+    assert.ok(html.indexOf('src="/xpui-modules.js"') < html.indexOf(`src="${src}"`));
+  }
+});
+
+test("Spotify refuses a syntactically broken hook before preparing a launch", async () => {
+  const original = await clientArchive('<script src="/xpui.js"></script>', {
+    "xpui.js":
+      "function registerFactory(){};registerFactory();const {version:build,player}=globalThis.platform;",
+  });
+  await assert.rejects(prepareArchive(original, ""), /spotify_platform_patch_invalid/);
+});
+
+test("Spotify rejects a deferred dependency before a synchronous snapshot, and accepts ordered classic script types", async () => {
+  for (const snapshot of [
+    '<script src="/xpui-snapshot.js"></script>',
+    '<script async defer src="/xpui-snapshot.js"></script>',
+  ]) {
+    const archive = await clientArchive(
+      '<script defer src="/xpui-modules.js"></script>' + snapshot,
+      {
+        "xpui-modules.js": script,
+        "xpui-snapshot.js": "var started=true;",
+      },
+    );
+    await assert.rejects(prepareArchive(archive, ""), /snapshot_loader_unavailable/);
+  }
+  const archive = await clientArchive(
+    '<script defer type="text/javascript" src="/xpui-modules.js"></script><script defer src="/xpui-snapshot.js"></script>',
+    {
+      "xpui-modules.js": script,
+      "xpui-snapshot.js": "var started=true;",
+    },
+  );
+  assert.equal((await prepareArchive(archive, "")).platformAsset, "xpui-modules.js");
+});
+
+test("Spotify patches the loaded bundle and ignores unused bundles and irrelevant V8 snapshots", async () => {
+  const original = await clientArchive('<script src="/xpui.js"></script>', {
+    "xpui.js": script,
+    "xpui-modules.js": script,
+  });
+  const result = await prepareArchive(original, "", { snapshot: Buffer.from("not needed") });
+  assert.equal(result.platformAsset, "xpui.js");
+  assert.equal(result.snapshotExtracted, false);
+  const withoutModules = await clientArchive('<script src="/xpui.js"></script>', {
+    "xpui.js": script,
+  });
+  assert.equal(
+    (await prepareArchive(withoutModules, "", { snapshot: Buffer.from("not needed") }))
+      .platformAsset,
+    "xpui.js",
+  );
+});
 async function fixture(t, overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-install-")),
     apps = path.join(root, "Apps");
@@ -144,7 +217,10 @@ test("Spotify prepared transaction can be restored after interruption without de
 });
 
 test("Spotify asset patch refuses duplicate hooks, restrictive CSP and unsafe archive names", async (t) => {
-  const { original } = await fixture(t, { "xpui-modules.js": script });
+  const { original } = await fixture(t, {
+    "index.html": '<script src="/xpui.js"></script><script src="/xpui-modules.js"></script>',
+    "xpui-modules.js": script,
+  });
   await assert.rejects(prepareArchive(original, Buffer.from("test renderer")), /hook_ambiguous/);
   assert.throws(
     () =>

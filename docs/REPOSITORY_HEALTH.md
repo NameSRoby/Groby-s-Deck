@@ -1,4 +1,31 @@
-# Security review - 0.8.1b - 2026-11-24
+# Repository health and security review
+
+## 0.8.1c - 2026-11-25
+
+The [compatibility audit](COMPANION_COMPATIBILITY.md) records companion startup,
+launch admission, pairing persistence, hardlink ownership, Unicode transport,
+TIDAL session/fallback and Windows setup regressions. Public song formatting
+projects title and artist while retaining verified Twitch requester credit.
+Private playlist, account, credential and query canaries exercise automatic
+announcements and information replies across all four providers.
+
+Theme coverage exercises all nine presets across Core and sandboxed pages,
+standalone tools, semantic hover colors and cross-frame light dismissal in
+Chromium and Firefox. Cancel handlers protect unsaved work; light dismissal
+never submits a destructive confirmation.
+
+`test/public-suite.json` names 64 end-user regression files, replacing the former
+240 published test files. The complete development suite remains in the local
+workspace. Hosted regression checks run the published inventory. CodeQL excludes
+test fixtures and the two generated companion copies while retaining authored
+application code, including `features/*/dist`. C# and workflow analysis remain
+enabled. This does not suppress production findings.
+
+The earlier screenshot's canceled C# job left its PR without a SARIF category;
+the subsequent default-branch CodeQL and health runs succeeded. Final 0.8.1c
+results and alert states require their own verification.
+
+## 0.8.1b security review - 2026-11-24
 
 This patch reviews the 12 open CodeQL alerts against the published 0.8.1a source. Three production findings are addressed with file containment and throttling. Three production binary-body warnings and six fixture findings are documented false positives or test-only concerns. Local/same-host operator and same-origin admission remain required.
 

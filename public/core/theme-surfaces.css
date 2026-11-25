@@ -1,0 +1,99 @@
+/* UI surfaces share the palette. Widget colors and user-authored deck colors
+   retain their own saved styles. */
+:root {
+  color-scheme: dark;
+  accent-color: var(--accent);
+  background-color: var(--bg);
+  color: var(--text);
+}
+button,
+input,
+select,
+textarea {
+  border-color: var(--edge);
+}
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+select,
+textarea {
+  background-color: var(--input, var(--bg));
+  color: var(--text);
+}
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+summary:focus-visible {
+  border-color: var(--button-accent, var(--accent));
+  outline-color: var(--button-accent, var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--button-accent, var(--accent)) 24%, transparent);
+}
+.themePanel,
+dialog,
+.moreNavMenu,
+.libraryMenu,
+.studioHeader,
+.studioSidebar {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--edge);
+}
+dialog::backdrop {
+  background: #0009;
+}
+.themePanel label,
+label,
+th,
+.sub {
+  color: var(--muted);
+}
+th,
+td,
+hr {
+  border-color: var(--edge);
+}
+pre,
+code {
+  background-color: var(--input, var(--bg));
+  border-color: var(--edge);
+}
+button.primary,
+button.active,
+button[aria-selected="true"] {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text, #fff);
+}
+button:not(:disabled):hover {
+  border-color: var(--button-accent, var(--accent));
+  box-shadow: 0 0 14px var(--button-glow, var(--accent-glow));
+}
+button.danger {
+  border-color: var(--bad);
+  --button-accent: var(--bad);
+  --button-glow: color-mix(in srgb, var(--bad) 35%, transparent);
+}
+.deckGrid .deckButton {
+  --button-accent: var(--deck-led-color, var(--deck-profile-color, var(--deck-color)));
+  --button-glow: var(--deck-glow);
+}
+.deckGrid .deckButton:hover:not(:disabled) {
+  border-color: var(--button-accent);
+  box-shadow: var(--deck-shadow);
+}
+.deckGrid .deckButton:focus-visible {
+  outline-color: var(--button-accent);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+.presetGrid button {
+  --button-accent: var(--preset-accent, var(--accent));
+  --button-glow: color-mix(in srgb, var(--preset-accent, var(--accent)) 35%, transparent);
+  box-shadow: inset 3px 0 var(--preset-accent, var(--accent));
+}
+.presetGrid button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+* {
+  scrollbar-color: var(--edge) var(--bg);
+}

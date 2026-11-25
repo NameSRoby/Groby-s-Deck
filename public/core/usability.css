@@ -56,7 +56,7 @@ html[data-developer-mode="true"] [data-developer-only] {
   padding: 7px 9px;
   border: 1px solid var(--edge);
   border-radius: 5px;
-  background: #05070d;
+  background: var(--input, var(--bg));
   color: var(--text);
   box-shadow: 0 8px 24px #000b;
   font-size: 11px;
@@ -79,9 +79,9 @@ html[data-developer-mode="true"] [data-developer-only] {
   height: 22px;
   min-height: 22px;
   margin: 0;
-  border: 1px solid #415173;
+  border: 1px solid var(--edge);
   border-radius: 999px;
-  background: #070b15;
+  background: var(--input, var(--bg));
   padding: 0;
   cursor: pointer;
   transition:
@@ -122,9 +122,9 @@ html[data-developer-mode="true"] [data-developer-only] {
 .providerSetupCard {
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid #394b70;
+  border: 1px solid var(--edge);
   border-radius: 7px;
-  background: #080d18;
+  background: var(--panel);
 }
 .providerSetupHead {
   display: flex;
@@ -249,7 +249,7 @@ html[data-developer-mode="true"] [data-developer-only] {
   justify-content: center;
   min-width: 112px;
   min-height: 42px;
-  border: 1px solid #2a395f;
+  border: 1px solid var(--edge);
   border-radius: 7px;
   background: var(--surface);
   padding: 8px 13px;
@@ -280,9 +280,9 @@ html[data-developer-mode="true"] [data-developer-only] {
   right: 0;
   width: min(360px, calc(100vw - 24px));
   padding: 10px;
-  border: 1px solid #365080;
+  border: 1px solid var(--edge);
   border-radius: 7px;
-  background: #080d1b;
+  background: var(--panel);
   box-shadow: 0 14px 45px #000;
 }
 .moreNavMenu > span {

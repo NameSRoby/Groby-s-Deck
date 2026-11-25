@@ -335,7 +335,7 @@ const themes = {
   midnight: {
     accent: "#8b001f",
     bg: "#050507",
-    surface: "#121a2f",
+    surface: "#19191f",
     text: "#eaeaea",
     glow: 65,
   },
@@ -355,12 +355,10 @@ const saveSharedTheme = createSharedThemeSaver(() => {
 });
 function applyTheme(theme, persist = true) {
   const value = { ...themes.midnight, ...(theme || {}) };
+  value.surface = window.GrobyPresentationColors(value).surface;
   const root = document.documentElement.style;
-  root.setProperty("--accent", value.accent);
-  root.setProperty("--accent-glow", `${value.accent}aa`);
-  root.setProperty("--bg", value.bg);
-  root.setProperty("--surface", value.surface);
-  root.setProperty("--text", value.text);
+  for (const [key, color] of Object.entries(window.GrobyPresentationColors(value)))
+    root.setProperty("--" + key, color);
   root.setProperty("--glow", String(value.glow / 100));
   byId("themeAccent").value = value.accent;
   byId("themeBg").value = value.bg;
@@ -368,6 +366,15 @@ function applyTheme(theme, persist = true) {
   byId("themeText").value = value.text;
   byId("themeGlow").value = value.glow;
   byId("glowValue").value = `${value.glow}%`;
+  document.querySelectorAll("[data-theme]").forEach((button) => {
+    const preset = themes[button.dataset.theme];
+    button.setAttribute(
+      "aria-pressed",
+      String(
+        ["accent", "bg", "surface", "text", "glow"].every((key) => preset[key] === value[key]),
+      ),
+    );
+  });
   if (persist) {
     themeEditRevision++;
     localStorage.setItem("ravelink.hud.theme", JSON.stringify(value));
@@ -392,9 +399,10 @@ byId("closeTheme").onclick = () => {
   byId("themePanel").hidden = true;
 };
 byId("resetTheme").onclick = () => applyTheme(themes.midnight);
-document
-  .querySelectorAll("[data-theme]")
-  .forEach((button) => (button.onclick = () => applyTheme(themes[button.dataset.theme])));
+document.querySelectorAll("[data-theme]").forEach((button) => {
+  button.style.setProperty("--preset-accent", themes[button.dataset.theme].accent);
+  button.onclick = () => applyTheme(themes[button.dataset.theme]);
+});
 for (const id of ["themeAccent", "themeBg", "themeSurface", "themeText", "themeGlow"])
   byId(id).oninput = () => applyTheme(customTheme());
 try {

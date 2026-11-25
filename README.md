@@ -15,17 +15,17 @@ Build a modular control surface for your stream, desktop, phone or tablet:
 
 Runs locally on Windows. Twitch and Song Request are optional packages. Your settings and account credentials stay on your PC.
 
-[Download 0.8.1b](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1b) |
+[Download 0.8.1c](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1c) |
 [User guide](docs/USER_GUIDE.md) |
 [Report a bug](https://github.com/NameSRoby/Groby-s-Deck/issues/new?template=bug_report.yml)
 
 ## Install
 
-1. Download **Grobys-Deck-Windows-v0.8.1b-setup-installer.exe**.
+1. Download **Grobys-Deck-Windows-v0.8.1c-setup-installer.exe**.
 2. Run Setup and choose the features you want.
 3. Open **Groby’s Deck** from the Start menu or desktop shortcut.
 
-**Portable:** extract **Grobys-Deck-Windows-v0.8.1b-self-contained.zip** completely,
+**Portable:** extract **Grobys-Deck-Windows-v0.8.1c-self-contained.zip** completely,
 then run **Groby's Deck.exe**.
 
 The runtime and optional packages are included. No developer tools are needed.
@@ -96,7 +96,8 @@ button editor. OBS 28+ includes the required WebSocket server.
 
 ### Send soundboard audio to a microphone input
 
-Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter.
+Install a VB-CABLE recording and playback pair. In **Soundboard** or a **Play sound file** action, select the **Virtual mic** destination. Select the matching recording device in OBS, Discord or the receiving app. Select headphones as a second destination to hear the clip locally. To combine your physical microphone and soundboard on one input, route both through a virtual mixer such as Voicemeeter. [VB-CABLE setup](https://voicemeter.org/Cable/index.htm) · [Voicemeeter setup](https://voicemeeter.com/setup-voicemeeter-for-skype-zoom-or-discord/)
+
 ## Make your lights follow music
 
 1. Open **Audio & lights** and choose your audio source and lights.
@@ -177,19 +178,17 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
-## What's fixed in 0.8.1b
+## What's fixed in 0.8.1c
 
-- Hardens overlay media content types, generated filenames and file access; rejects redirected media folders and linked assets.
-- Rate-limits media downloads while retaining image, font, sound, video and Range support. Reviews and documents test-only CodeQL alerts.
+- Repairs Spotify companion startup layouts and refuses invalid patches before launch. Open Spotify stays disabled until the local companion verifies.
+- Fixes TIDAL hook initialization, session handling and reconnects after a changed local port. Update its companion to 0.1.10.
+- Keeps playlist names, music-account details, credentials and raw queries out of song chat replies. Verified Twitch requester credit remains.
+- Preserves Unicode installation paths and prevents optional audio capture from blocking Windows 10 setup.
+- Shares theme colors across panels, inputs, tabs and dialogs; adds click-outside dismissal and matching branded/custom button hover colors.
+- Reduces published tests to 64 end-user regression files while retaining application security analysis.
+- Includes the earlier overlay, settings restoration and vulnerability fixes.
 
-- Now-playing chat announcements follow the selected player's actual song, including personal playlists and songs that were never requested. Polling, pause/resume and restarts do not repeat the same announcement. Verified requests retain requester credit.
-- Includes the earlier 0.8.1 fixes:
-
-- Restores Song Request player selection and saved overlay settings across restarts.
-- Repairs subscriber credits, scrolling, wheel animations and full-canvas preview.
-- Adds clearer source-specific widget controls, readable watchtime formats and editable name spacing.
-- Improves broadcast text styles and alert media variations; expands named Twitch goals and automation presets.
-- Preserves settings and sign-ins while keeping local runtime data out of published downloads.
+[Desktop companion compatibility and remaining acceptance](docs/COMPANION_COMPATIBILITY.md)
 
 Update the optional **Song Request** and **Twitch Integration** packages under **Packages & updates** to use their latest features.
 
@@ -238,7 +237,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 ## Earlier versions
 
 Groby’s Deck 0.8 is the current release. Previous releases remain available in the
-[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.1b for new installations.
+[release archive](docs/RELEASE_ARCHIVE.md) for reference. Use 0.8.1c for new installations.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.
 The internal `ravelink` protocol and storage names remain stable so existing integrations continue to connect.

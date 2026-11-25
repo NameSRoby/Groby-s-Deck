@@ -263,7 +263,7 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
     .locator("#tidalInstallStatus")
     .filter({ hasText: /Companion installed|Connected/i })
     .waitFor();
-  assert.equal(installer.inspect(tidalResources).version, "0.1.9");
+  assert.equal(installer.inspect(tidalResources).version, "0.1.10");
   assert.equal(await surface.locator("#tidalConnectionOptions").isVisible(), true);
   await surface.locator("#uninstallTidalCompanion").click();
   await surface.locator("#notice").filter({ hasText: "archive restored" }).waitFor();

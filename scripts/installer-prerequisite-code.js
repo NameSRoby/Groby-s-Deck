@@ -8,7 +8,7 @@ var Version: String;
 begin
   Result := False;
   if RegQueryStringValue(RootKey, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Version) then
-    Result := StrToIntDef(Copy(Version, 1, Pos('.', Version) - 1), 0) > 0;
+    Result := StrToIntDef(Copy(Version, 1, Pos('.', Version) - 1), 0) >= ${spec.minimumMajor};
 end;
 function WebViewRuntimePresent: Boolean;
 begin

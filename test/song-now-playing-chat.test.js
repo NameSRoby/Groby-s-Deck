@@ -103,7 +103,7 @@ test("disabled, other-player, stale, missing and non-playing observations remain
   assert.equal(f.messages.length, 1);
 });
 
-test("managed library songs announce without requester credit, requests retain verified attribution", async () => {
+test("managed library songs omit account attribution and requests retain verified Twitch attribution", async () => {
   const f = fixture("youtube"),
     chat = f.create();
   await chat.load();
@@ -119,12 +119,12 @@ test("managed library songs announce without requester credit, requests retain v
     requesterLabel: "Viewer",
   });
   await chat.managed();
-  assert.match(f.messages[1], /requested by @Viewer/);
+  assert.equal(f.messages[1], 'Now playing "Requested song - Artist", requested by @Viewer.');
   await chat.observe(observation("youtube", "Requested song"));
   assert.equal(f.messages.length, 2, "an observer echo must not duplicate managed playback");
 });
 
-test("desktop request attribution uses only an exact verified occurrence, even without intake chat", async () => {
+test("desktop requests retain verified Twitch attribution, even without intake chat", async () => {
   const f = fixture(),
     chat = f.create();
   await chat.load();
@@ -134,6 +134,32 @@ test("desktop request attribution uses only an exact verified occurrence, even w
     chatNotify: false,
   });
   assert.deepEqual(f.messages, ['Now playing "Requested song - Artist", requested by @Viewer.']);
+});
+
+test("personal playlist and account canaries never enter automatic messages or forwarded song metadata", async () => {
+  for (const provider of ["spotify", "tidal", "youtube", "soundcloud"]) {
+    const f = fixture(provider),
+      chat = f.create();
+    await chat.load();
+    const privateData = {
+      playlistName: "PRIVATE_PLAYLIST_CANARY",
+      accountName: "PRIVATE_ACCOUNT_CANARY",
+      email: "private@example.invalid",
+      accessToken: "PRIVATE_TOKEN_CANARY",
+      sourceId: "PRIVATE_SOURCE_CANARY",
+    };
+    await chat.observe({
+      ...observation(provider, "Public song"),
+      artists: ["Public artist"],
+      ...privateData,
+      requesterLabel: "PRIVATE_OWNER_CANARY",
+    });
+    assert.deepEqual(f.messages, ['Now playing "Public song - Public artist".']);
+    assert.doesNotMatch(
+      JSON.stringify([...f.storage.values(), ...f.messages]),
+      /PRIVATE_|private@example/,
+    );
+  }
 });
 
 test("failed dedupe storage does not send a message that could repeat after restart", async () => {

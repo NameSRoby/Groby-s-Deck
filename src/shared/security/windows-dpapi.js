@@ -19,7 +19,8 @@ function runPowerShellJson(script = "", timeoutMs = 8_000, input = "") {
       "-NoProfile",
       "-NonInteractive",
       "-Command",
-      '$env:PSModulePath = "$PSHOME\\Modules";\n' + command,
+      '$env:PSModulePath = "$PSHOME\\Modules";\n[Console]::InputEncoding = New-Object Text.UTF8Encoding($false);\n[Console]::OutputEncoding = New-Object Text.UTF8Encoding($false);\n' +
+        command,
     ],
     {
       encoding: "utf8",

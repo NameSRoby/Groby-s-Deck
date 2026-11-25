@@ -7,9 +7,13 @@ const test = require("node:test"),
 
 test("confirmation stays in the real viewport of nested tall frames, follows resize/scroll and returns focus without deleting", async (t) => {
   const app = express(),
-    script = fs
-      .readFileSync(path.join(__dirname, "../public/core/visible-dialog.js"), "utf8")
-      .replace(/export function /g, "function "),
+    script =
+      "(" +
+      require("../public/core/dismissible-surfaces").toString() +
+      ")();" +
+      fs
+        .readFileSync(path.join(__dirname, "../public/core/visible-dialog.js"), "utf8")
+        .replace(/export function /g, "function "),
     css = fs.readFileSync(path.join(__dirname, "../public/core/visible-dialog.css"), "utf8");
   app.get("/child", (_req, res) =>
     res
@@ -87,6 +91,19 @@ test("confirmation stays in the real viewport of nested tall frames, follows res
   await dialog.waitFor({ state: "hidden" });
   assert.equal(await remove.evaluate((el) => el === document.activeElement), true);
   assert.equal(await page.evaluate(() => scrollY), before);
+  await remove.click();
+  await frame.locator("#confirm[open]").waitFor();
+  await untilFits();
+  await dialog.evaluate((element) =>
+    element.addEventListener("cancel", (event) => event.preventDefault(), { once: true }),
+  );
+  const outsideY = (await dialog.boundingBox()).y + 20;
+  await page.mouse.click(8, outsideY);
+  assert.equal(await dialog.isVisible(), true, "an owner can keep an unsaved draft open on cancel");
+  await page.mouse.click(8, outsideY);
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await remove.evaluate((el) => el === document.activeElement), true);
+  assert.equal(await frame.locator("body").evaluate(() => window.deletes), 0);
   await remove.click();
   await frame.locator("#confirm[open]").waitFor();
   await untilFits();
