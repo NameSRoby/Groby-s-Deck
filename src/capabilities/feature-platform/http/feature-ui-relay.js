@@ -49,6 +49,20 @@ module.exports = function installFeatureRelay(config) {
     if (message?.channel !== channel) return;
     if (
       event.source === window.parent &&
+      event.origin === location.origin &&
+      message.type === "setup-view" &&
+      ((config.featureId === "song-request" &&
+        config.pageId === "player" &&
+        message.target === "song-setup") ||
+        (config.featureId === "twitch-integration" &&
+          config.pageId === "automations" &&
+          message.target === "automation-presets"))
+    ) {
+      frame.contentWindow.postMessage({ channel, type: "setup-view", target: message.target }, "*");
+      return;
+    }
+    if (
+      event.source === window.parent &&
       window.parent !== window &&
       event.origin === location.origin &&
       message.type === "playlist-start" &&
@@ -127,6 +141,18 @@ module.exports = function installFeatureRelay(config) {
           document.body.style.overflow = "auto";
         }
       }
+      return;
+    }
+    if (
+      message.type === "setup-link" &&
+      ["song-request", "twitch-integration"].includes(config.featureId) &&
+      ["twitch", "songs", "presets", "deck", "lights"].includes(message.destination)
+    ) {
+      if (window.parent !== window)
+        window.parent.postMessage(
+          { channel, type: "feature-setup-link", destination: message.destination },
+          location.origin,
+        );
       return;
     }
     if (message.type === "open" && config.pageIds.includes(message.pageId)) {

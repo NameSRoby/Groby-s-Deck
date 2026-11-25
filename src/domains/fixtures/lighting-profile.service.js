@@ -10,6 +10,7 @@ const {
 const PROFILE_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 const MAX_PROFILES = 32;
 const MAX_ASSIGNMENTS = 256;
+const publicProfiles = require("./public-lighting-profiles");
 
 function clamp(value, minimum, maximum, fallback) {
   const number = Number(value);
@@ -107,7 +108,15 @@ module.exports = function createLightingProfileService(options = {}) {
         maximumProfiles: MAX_PROFILES,
         maximumAssignments: MAX_ASSIGNMENTS,
       },
-      profiles: cloneJsonSafe(profiles, []),
+      profiles: cloneJsonSafe(
+        [
+          ...publicProfiles.filter(
+            (preset) => !profiles.some((profile) => profile.id === preset.id),
+          ),
+          ...profiles,
+        ],
+        [],
+      ),
     };
   }
 
@@ -173,10 +182,14 @@ module.exports = function createLightingProfileService(options = {}) {
   }
 
   async function apply(id) {
-    const profile = profiles.find((row) => row.id === bounded(id, 64));
+    const profile =
+      profiles.find((row) => row.id === bounded(id, 64)) ||
+      publicProfiles.find((row) => row.id === bounded(id, 64));
     if (!profile) return { ok: false, error: "lighting_profile_not_found" };
     const available = new Map(fixtureRegistry.listEngineBy("", "all").map((row) => [row.id, row]));
-    const entries = Object.entries(profile.fixtureTargets);
+    const entries = profile.public
+      ? [...available.keys()].map((id) => [id, profile.sharedTarget])
+      : Object.entries(profile.fixtureTargets);
     if (!entries.length) return { ok: false, error: "lighting_profile_has_no_fixtures" };
     if (twitchLightEffects?.cancelForStaticTargets)
       twitchLightEffects.cancelForStaticTargets(entries.map(([fixtureId]) => fixtureId));

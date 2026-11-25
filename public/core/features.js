@@ -5,6 +5,7 @@
  */
 import { syncFeatureNavigation, openFeaturePage, selectMainTab } from "./feature-navigation.js";
 import { confirmFeatureDrafts } from "./feature-drafts.js";
+import { describeFeatureFailure, createFeatureFailureDetails } from "./feature-failure.js";
 import "./feature-events-client.js";
 const byId = (id) => document.getElementById(id);
 let state = { features: [] };
@@ -73,7 +74,7 @@ function render() {
   const failed = state.features.filter(
     (row) =>
       row.lifecycle !== "active" &&
-      (["crashed", "quarantined", "incompatible"].includes(row.lifecycle) ||
+      (["crashed", "quarantined", "incompatible", "permission-required"].includes(row.lifecycle) ||
         ["active_rss_limit", "idle_cpu_limit"].includes(row.stateReason)),
   );
   const warning = byId("featureCrashWarning");
@@ -82,7 +83,7 @@ function render() {
     .map((row) =>
       ["active_rss_limit", "idle_cpu_limit"].includes(row.stateReason)
         ? `${row.name} stopped after exceeding its ${row.stateReason === "active_rss_limit" ? "memory" : "CPU"} limit.`
-        : `${row.name} stopped unexpectedly or could not start.`,
+        : `${row.name} stopped unexpectedly or could not start. ${describeFeatureFailure(row).description} (${describeFeatureFailure(row).code})`,
     )
     .join(" ");
   if (warning.dataset.message !== warningText) {
@@ -94,7 +95,11 @@ function render() {
       const manage = document.createElement("button");
       manage.type = "button";
       manage.textContent = "Open Packages";
-      manage.onclick = () => selectMainTab("features");
+      manage.onclick = () => {
+        selectMainTab("features");
+        byId("featureRows").scrollIntoView({ block: "center" });
+        byId("featureRows").querySelector("details")?.setAttribute("open", "");
+      };
       warning.append(text, manage);
     }
   }
@@ -130,6 +135,12 @@ function render() {
         })
         .join("")
     : '<tr><td colspan="5">NO FEATURES INSTALLED</td></tr>';
+  for (const feature of failed) {
+    const row = [...byId("featureRows").rows].find(
+      (row) => row.querySelector("[data-feature-remove]")?.dataset.featureRemove === feature.id,
+    );
+    if (row) row.cells[1].append(createFeatureFailureDetails(feature));
+  }
   const installedIds = new Set(state.features.map((row) => row.id));
   const installable = available.features.filter((row) => !installedIds.has(row.id));
   byId("availableFeatureRows").innerHTML = installable.length

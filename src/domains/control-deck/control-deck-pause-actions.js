@@ -17,6 +17,12 @@ module.exports = function pauseActions({ feature, getRewards, activeFeature }) {
     if (id === "rewards.toggle" || rewardId(id)) {
       const value = await getRewards()?.snapshot(force);
       rewardSnapshot = value || { available: false, rewards: [] };
+      if (
+        id === "rewards.toggle" &&
+        value?.chatControlsAvailable &&
+        typeof value.intakePaused === "boolean"
+      )
+        return { paused: value.intakePaused, mixed: false };
       const rows = value?.rewards?.filter(
         (row) => row.manageable && (!rewardId(id) || row.id === rewardId(id)),
       );
@@ -115,7 +121,7 @@ module.exports = function pauseActions({ feature, getRewards, activeFeature }) {
         defaultTitle: {
           "song.playback-toggle": "Playback",
           "song.intake-toggle": "Song requests",
-          "rewards.toggle": "Channel Points rewards",
+          "rewards.toggle": "Rewards & chat intake",
         }[id],
         defaultSymbol: "\u23ef",
         label: known

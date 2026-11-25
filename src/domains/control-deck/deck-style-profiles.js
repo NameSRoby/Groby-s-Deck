@@ -14,6 +14,7 @@ const keys = [
   "backgroundSpeed",
   "backgroundStrength",
 ];
+const publicProfiles = require("./public-style-profiles");
 module.exports = (runtimeDir) => {
   const file = path.join(runtimeDir, "system", "deck-style-profiles.json");
   let state = readJsonFile(file, { revision: 0, profiles: [] });
@@ -37,7 +38,16 @@ module.exports = (runtimeDir) => {
     );
   const list = () => ({
     revision: state.revision,
-    profiles: state.profiles.map(({ id, name, automatic, at }) => ({ id, name, automatic, at })),
+    profiles: [
+      ...publicProfiles.map(({ id, name, automatic, at, public: isPublic }) => ({
+        id,
+        name,
+        automatic,
+        at,
+        public: isPublic,
+      })),
+      ...state.profiles.map(({ id, name, automatic, at }) => ({ id, name, automatic, at })),
+    ],
     backgroundProfiles: ["smoke", "aurora", "embers", "orbit", "scan", "ripple", "sparkle"],
   });
   function commit(profiles) {
@@ -83,14 +93,16 @@ module.exports = (runtimeDir) => {
   }
   function apply(input, config) {
     if (input.profileRevision !== state.revision) throw fault("control_deck_revision_conflict");
-    const profile = state.profiles.find((p) => p.id === input.id);
+    const profile =
+      publicProfiles.find((p) => p.id === input.id) ||
+      state.profiles.find((p) => p.id === input.id);
     if (!profile) throw fault("control_deck_style_profile_missing");
     const next = structuredClone(config),
-      styles = new Map(profile.buttons.map((row) => [row.id, row.appearance]));
+      styles = new Map((profile.buttons || []).map((row) => [row.id, row.appearance]));
     let matched = 0;
     for (const page of next.pages)
       for (const button of page.buttons) {
-        const value = styles.get(button.id);
+        const value = profile.public ? profile.appearance : styles.get(button.id);
         if (value) {
           matched++;
           for (const key of keys)
@@ -102,6 +114,8 @@ module.exports = (runtimeDir) => {
   }
   function remove(input) {
     if (input.profileRevision !== state.revision) throw fault("control_deck_revision_conflict");
+    if (publicProfiles.some((profile) => profile.id === input.id))
+      throw fault("control_deck_public_profile_required");
     return commit(state.profiles.filter((p) => p.id !== input.id));
   }
   return { list, save, apply, remove, backup, capture };

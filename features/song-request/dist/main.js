@@ -119,7 +119,7 @@ async function flushSnapshot() {
         key: "queue-state-v1",
         value: snapshot,
       },
-      { timeoutMs: 1000 },
+      { timeoutMs: 5000 },
     );
     if (saved?.ok === false) throw new Error(saved.error || "queue_persistence_failed");
     await profileStorage.committed(snapshot);
@@ -130,7 +130,7 @@ async function flushSnapshot() {
         {
           key: `playlist-page-${String(index).padStart(6, "0")}`,
         },
-        { timeoutMs: 1000 },
+        { timeoutMs: 5000 },
       );
     }
     persistedPlaylistPageCount = 0;
@@ -264,7 +264,7 @@ async function activate(nextContext) {
       "ravelink.storage.v1",
       "get",
       { key: "queue-state-v1" },
-      { timeoutMs: 1000 },
+      { timeoutMs: 5000 },
     );
     require("./settings-restore-guard").read(stored);
     if (stored?.ok && stored.found) {
@@ -283,7 +283,7 @@ async function activate(nextContext) {
             {
               key: `playlist-page-${String(index).padStart(6, "0")}`,
             },
-            { timeoutMs: 1000 },
+            { timeoutMs: 5000 },
           );
           if (!page?.ok || !page.found || !Array.isArray(page.value))
             throw new Error("playlist_page_missing");

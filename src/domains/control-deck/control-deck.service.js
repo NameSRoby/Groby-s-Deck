@@ -294,7 +294,12 @@ module.exports = function createControlDeck({ runtimeDir, actions, widgets, now 
     await Promise.allSettled([...running.values()].map((r) => r.promise));
   }
   function catalog() {
-    return { actions: [...actions.catalog(), waitAction], modGuidance: actions.guidance?.() || "" };
+    const descriptors = [...actions.catalog(), waitAction];
+    return {
+      actions: descriptors,
+      presets: require("./public-button-presets")(descriptors),
+      modGuidance: actions.guidance?.() || "",
+    };
   }
   return Object.freeze({
     snapshot,

@@ -11,7 +11,9 @@ const { validateFeatureManifestV1 } = require("../contracts/feature-manifest-v1"
 module.exports = function createFeatureProcessSupervisor(options = {}) {
   return createProcessSupervisor({
     ...options,
-    startupTimeoutMs: options.startupTimeoutMs ?? 6000,
+    // Cold Windows starts include file verification and restoring paged state.
+    // Keep the deadline bounded without treating ordinary disk latency as a crash.
+    startupTimeoutMs: options.startupTimeoutMs ?? 30000,
     workloadKind: "feature",
     displayName: "Feature",
     identityField: "featureId",

@@ -89,7 +89,7 @@ module.exports = function actions({
       ...extra,
     });
     const list = [
-      ...require("./profile-actions")(profiles),
+      ...require("./profile-actions")(profiles, fixtureIds),
       ...musicActions.catalog(),
       ...requestMode.catalog(),
       row("song.pause", "Pause song requests", "Song Request", "Ⅱ", song),

@@ -1,10 +1,21 @@
 /** Operator UI. Capabilities cross the sandbox bridge; credentials never enter it. */
-/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
+/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, GrobyBuiltinPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
     CHANNEL = "ravelink-feature-ui-v1",
     pending = new Map();
   const confirmation = createVisibleDialog($("confirm"));
+  const connectLink = document.createElement("button");
+  connectLink.type = "button";
+  connectLink.className = "subtle";
+  connectLink.textContent = "Connect Twitch";
+  connectLink.hidden = true;
+  connectLink.onclick = () =>
+    parent.postMessage(
+      { channel: "ravelink-feature-ui-v1", type: "setup-link", destination: "twitch" },
+      "*",
+    );
+  $("connection").after(connectLink);
   const triggerPills = {
     aliases: createPillInput($("commandAliases"), {
       label: "Other command names",
@@ -57,6 +68,7 @@
     editRevision = 0,
     builder = null,
     busy = false,
+    connected = false,
     rewardResultUnknown = "",
     confirmAction = null;
   const notice = (text) => {
@@ -167,7 +179,7 @@
     const reward = selected && $("triggerType").value === "reward",
       saved = snapshot.rows.find((row) => row.id === selected?.id),
       bound = saved?.trigger.rewardId;
-    $("save").disabled = busy || rewardResultUnknown === selected?.id;
+    $("save").disabled = busy || !connected || rewardResultUnknown === selected?.id;
     $("save").textContent = reward
       ? $("rewardId").value
         ? "Save automation & reward"
@@ -178,7 +190,7 @@
         ? "Save updates this automation and its reward on Twitch together."
         : "Save creates this reward on Twitch and connects it to the flow below."
       : "";
-    $("deleteReward").disabled = busy || !bound || !reward;
+    $("deleteReward").disabled = busy || !connected || !bound || !reward;
     $("deleteReward").hidden = !bound || !reward;
     height();
   }
@@ -305,10 +317,9 @@
     }
     updateControls();
   }
-  async function refresh() {
-    snapshot = await call("status");
-    const choices = await call("catalog");
+  function initializeExamples() {
     const presets = [
+      ...GrobyBuiltinPresets,
       ...GrobyAutomationPresets,
       ...GrobyVariablePresets.map((row) => ({
         ...row,
@@ -347,6 +358,11 @@
       if (!preset) return;
       loadPreset(preset);
     };
+  }
+  async function refresh() {
+    // Public examples and the action catalog do not require an account. A
+    // disconnected Twitch session must not leave a fresh install empty.
+    const choices = await call("catalog");
     catalog = choices.actions;
     $("commandOffline").disabled = choices.supportsOfflinePolicy !== true;
     $("commandOffline").title = choices.supportsOfflinePolicy
@@ -359,13 +375,34 @@
           new Option(event.label + (event.available ? "" : " · permission needed"), event.type),
       ),
     );
-    rewards = (await call("rewards")).rewards || [];
+    connected = true;
+    try {
+      snapshot = await call("status");
+      connected = snapshot.connected !== false;
+    } catch (error) {
+      if (error.message !== "twitch_connection_required") throw error;
+      connected = false;
+      snapshot = { revision: 0, rows: [], running: [], history: [] };
+    }
+    rewards = [];
+    if (connected) {
+      try {
+        rewards = (await call("rewards")).rewards || [];
+      } catch (error) {
+        if (!["twitch_scope_missing", "twitch_connection_required"].includes(error.message))
+          throw error;
+      }
+    }
     if (selected?.id === rewardResultUnknown) {
       const saved = snapshot.rows.find((row) => row.id === selected.id);
       const recovered =
         saved?.trigger.rewardId ||
-        rewards.find((row) => row.manageable && row.managedPurpose === "automation:" + selected.id)
-          ?.id;
+        rewards.find(
+          (row) =>
+            row.manageable &&
+            (row.managedPurpose === "automation:" + selected.id ||
+              row.managedPurpose === selected.handler),
+        )?.id;
       if (saved) {
         selected = {
           ...selected,
@@ -376,13 +413,26 @@
       }
     }
     rewardResultUnknown = "";
-    $("connection").textContent = "Twitch connected";
+    $("connection").textContent = connected ? "Twitch connected" : "Twitch not connected";
+    connectLink.hidden = connected;
     render();
     renderLibrary();
-    notice("Ready. Twitch actions need the permissions selected on the Connection page.");
+    notice(
+      connected
+        ? "Ready. Twitch actions need the permissions selected on the Connection page."
+        : "Ready. Public presets are available to edit. Connect Twitch to save or activate automations.",
+    );
   }
   function loadPreset(preset) {
     if (!preset || busy) return;
+    if (preset.handler && preset.handler !== "flow") {
+      const existing = snapshot.rows.find((row) => row.handler === preset.handler);
+      if (existing) {
+        open(existing);
+        notice(preset.description);
+        return;
+      }
+    }
     $("newAutomation").click();
     $("automationFilter").value = preset.trigger.type === "command" ? "command" : "automation";
     $("automationSearch").value = "";
@@ -391,7 +441,7 @@
       name: preset.name,
       enabled: false,
       trigger: preset.trigger,
-      handler: "flow",
+      handler: preset.handler || "flow",
       role: preset.role,
       cooldownSeconds: preset.cooldownSeconds,
       userCooldownSeconds: preset.userCooldownSeconds,
@@ -822,6 +872,7 @@
   $("remove").onclick = () => {
     if (selected) removeAutomation(selected);
   };
+  initializeExamples();
   void task(refresh);
   const poll = setInterval(() => {
     if (busy) return;

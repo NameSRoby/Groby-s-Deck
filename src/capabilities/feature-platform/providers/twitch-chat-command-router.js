@@ -50,6 +50,19 @@ const COMMAND_ALIASES = new Map([
   ["unbansong", "unbansong"],
   ["srunbansong", "unbansong"],
 ]);
+// Keep these separate from the reserved song-command set: existing operator
+// automations using !color or !teach retain their explicit configuration.
+const BUILTIN_ALIASES = new Map([
+  ["addtoplaylist", "playlist"],
+  ["playlistadd", "playlist"],
+  ["addsong", "playlist"],
+  ["color", "lights"],
+  ["colour", "lights"],
+  ["lights", "lights"],
+  ["teachcolor", "teach"],
+  ["teachcolour", "teach"],
+  ["teach", "teach"],
+]);
 
 function boundedText(value, maximum) {
   return String(value ?? "")
@@ -153,8 +166,23 @@ module.exports = function createTwitchChatCommandRouter(options = {}) {
   }
 
   async function requestSong(event, profile, argument, config) {
-    if (config.songRequestChatEnabled !== true)
+    const policy = options.builtinPolicy?.("song_request");
+    if (policy ? !policy.chatEnabled : config.songRequestChatEnabled !== true)
       return { handled: true, accepted: false, code: "channel_points_only" };
+    if (policy && !policy.commandPreferred && policy.role !== "viewer") {
+      const ranks = { viewer: 0, subscriber: 1, vip: 2, moderator: 3, broadcaster: 4 };
+      const owner =
+        event.chatter_user_id === event.broadcaster_user_id ||
+        event.badges?.some((b) => b.set_id === "broadcaster");
+      const role = owner
+        ? "broadcaster"
+        : profile.role === "viewer" &&
+            event.badges?.some((b) => ["subscriber", "founder"].includes(b.set_id))
+          ? "subscriber"
+          : profile.role;
+      if (ranks[role] < ranks[policy.role])
+        return { handled: true, accepted: false, code: "command_not_allowed" };
+    }
     const videoId = youtubeVideoId(argument);
     const requestId = boundedText(event.message_id, 160);
     if (!requestId || !takeCooldown(profile.userId))
@@ -258,8 +286,10 @@ module.exports = function createTwitchChatCommandRouter(options = {}) {
     const message = boundedText(event?.message?.text, 560);
     const match = /^!([a-z][a-z0-9]*)(?:\s+(.+))?$/i.exec(message);
     if (!match) return { handled: false, reason: "not_allowlisted" };
-    const command = COMMAND_ALIASES.get(match[1].toLowerCase());
-    if (!command) return { handled: false, reason: "not_allowlisted" };
+    const command =
+      COMMAND_ALIASES.get(match[1].toLowerCase()) || BUILTIN_ALIASES.get(match[1].toLowerCase());
+    if (!command || (["playlist", "lights", "teach"].includes(command) && !options.builtinPolicy))
+      return { handled: false, reason: "not_allowlisted" };
     const argument = boundedText(match[2], 500);
     if (!profile.userId) return { handled: false, reason: "invalid_command" };
     const messageId = boundedText(event.message_id, 160);
@@ -289,6 +319,47 @@ module.exports = function createTwitchChatCommandRouter(options = {}) {
       return argument
         ? requestSong(event, profile, argument, config)
         : { handled: false, reason: "invalid_command" };
+    if (["playlist", "lights", "teach"].includes(command)) {
+      const purpose = command === "playlist" ? "add_to_playlist" : command;
+      const policy = options.builtinPolicy?.(purpose);
+      if (!policy?.chatEnabled)
+        return {
+          handled: true,
+          accepted: false,
+          code: policy?.enabled ? "channel_points_only" : "builtin_unavailable",
+        };
+      const role = owner
+        ? "broadcaster"
+        : profile.role === "viewer" &&
+            event.badges?.some((b) => ["subscriber", "founder"].includes(b.set_id))
+          ? "subscriber"
+          : profile.role;
+      const ranks = { viewer: 0, subscriber: 1, vip: 2, moderator: 3, broadcaster: 4 };
+      if (ranks[role] < ranks[policy.role])
+        return { handled: true, accepted: false, code: "command_not_allowed" };
+      if (!argument || !messageId)
+        return { handled: true, accepted: false, code: "invalid_command" };
+      if (!takeCooldown(profile.userId))
+        return { handled: true, accepted: false, code: "cooldown" };
+      const result = resultValue(
+        await options.builtinCommand?.({
+          purpose,
+          input: argument,
+          messageId,
+          requesterId: profile.userId,
+          requesterName: profile.displayName,
+          requesterRole: profile.role,
+        }),
+      );
+      return {
+        handled: true,
+        accepted: result?.ok === true || result?.body?.ok === true,
+        code: boundedText(
+          result?.code || result?.error || result?.body?.code || result?.body?.error,
+          80,
+        ),
+      };
+    }
     if (["song", "songqueue", "queue"].includes(command))
       return information(command, profile, event, argument);
     if (command === "skip" || command === "remove")

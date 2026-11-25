@@ -1,3 +1,4 @@
+import { deckNode as node } from "./control-deck-dom.js";
 import { connectButtonMotion, paintButtonCycle } from "./control-deck-motion.js";
 import { deckId as id } from "./control-deck-id.js";
 /** Local button drafts. Preview/edit operations never call the execution API. */
@@ -8,12 +9,6 @@ import { keyControl } from "./control-deck-keys.js";
 import { createSequenceOptions } from "./control-deck-sequence-options.js";
 import { createBackgroundEditor, paintButtonBackground } from "./control-deck-backgrounds.js";
 const clone = (value) => structuredClone(value);
-const node = (tag, className, text) => {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
-};
 const field = (label, control) => {
   const el = node("label", "deckField");
   el.append(node("span", "", label), control);
@@ -37,6 +32,7 @@ export function createDeckEditor({
   save,
   getConfig,
   getCatalog,
+  getPresets = () => [],
   onPage,
   note,
   onObsSetup,
@@ -603,6 +599,47 @@ export function createDeckEditor({
       redrawPreview();
     }
     profileColors.onchange = redrawPreview;
+    if (!current && getPresets().length) {
+      const presets = node("select");
+      presets.setAttribute("aria-label", "Public button preset");
+      presets.add(new Option("Choose a public button preset…", ""));
+      const groups = new Map();
+      for (const preset of getPresets()) {
+        if (!groups.has(preset.group)) {
+          const group = node("optgroup");
+          group.label = preset.group;
+          groups.set(preset.group, group);
+          presets.append(group);
+        }
+        const option = new Option(
+          preset.name +
+            (preset.configurable
+              ? preset.available
+                ? ""
+                : " · setup needed"
+              : " · enable its feature first"),
+          preset.id,
+        );
+        option.disabled = !preset.configurable;
+        groups.get(preset.group).append(option);
+      }
+      presets.onchange = () => {
+        const preset = getPresets().find((preset) => preset.id === presets.value);
+        if (!preset || busy || !preset.configurable) return;
+        behavior.value = "action";
+        pressEditor.replace(clone(preset.steps));
+        alternateEditor.replace([]);
+        holdEditor.replace([]);
+        title.value = preset.name;
+        symbol.value = preset.symbol;
+        visibility();
+        redrawPreview();
+        status.textContent =
+          "Public preset loaded as a draft. Save to add the button. Nothing has run." +
+          (preset.available ? "" : " Complete the relevant connection setup before using it.");
+      };
+      library.insertBefore(field("Public button presets", presets), search);
+    }
     color.addEventListener("input", () => {
       profileColors.checked = false;
       redrawPreview();

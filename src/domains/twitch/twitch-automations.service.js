@@ -14,6 +14,8 @@ module.exports = ({
   legacy,
   getShoutouts = () => null,
   getGoals = () => null,
+  builtinAvailable = null,
+  intakePaused = () => false,
   now = Date.now,
 }) => {
   let data = { version: 1, revision: 0, rows: [], detached: [], receipts: [] },
@@ -202,16 +204,24 @@ module.exports = ({
       .update(owner + ":" + reward)
       .digest("hex")
       .slice(0, 24);
+  const builtins = require("./builtin-controls")({
+    available: builtinAvailable,
+    getRows: rows,
+    getConnection: () => getProvider().status(),
+    isPaused: intakePaused,
+    isClosed: () => closed,
+    identity: legacyId,
+  });
+  const builtinPolicy = builtins.policy;
   function rows(owner) {
     const own = data.rows.filter((row) => row.accountId === owner),
       detached = new Set(
         data.detached.filter((row) => row.accountId === owner).map((row) => row.rewardId),
       );
-    return [
+    const result = [
       ...own,
-      ...getProvider()
-        .status()
-        .managedRewards.filter(
+      ...(owner ? getProvider().status().managedRewards : [])
+        .filter(
           (row) =>
             HANDLERS.includes(row.purpose) &&
             row.purpose !== "flow" &&
@@ -231,15 +241,28 @@ module.exports = ({
           legacy: true,
         })),
     ];
+    return builtins.addRows(owner, result);
   }
   function status() {
-    const owner = account();
+    const connection = getProvider().status();
+    const owner = connection.connected && connection.userId ? connection.userId : "";
     return {
       ok: !closed,
       error: closed ? "twitch_automation_store_unavailable" : "",
       revision: data.revision,
-      shoutouts: getShoutouts()?.snapshot(),
-      livePausedRewardIds: liveRewards.pausedIds(),
+      connected: Boolean(owner),
+      ...(builtinAvailable
+        ? {
+            builtinPolicies: Object.fromEntries(
+              require("./builtin-presets").map((preset) => [
+                preset.handler,
+                builtinPolicy(preset.handler),
+              ]),
+            ),
+          }
+        : {}),
+      shoutouts: owner ? getShoutouts()?.snapshot() : undefined,
+      livePausedRewardIds: owner ? liveRewards.pausedIds() : [],
       rows: rows(owner).map(({ accountId, ...row }) => row),
       timers: triggers
         .snapshot()
@@ -286,7 +309,7 @@ module.exports = ({
         throw fault("twitch_automation_trigger_exists");
       if (row.trigger.rewardId) {
         const bound = await getProvider().bindReward({
-          purpose: "automation:" + row.id,
+          purpose: row.handler === "flow" ? "automation:" + row.id : row.handler,
           rewardId: row.trigger.rewardId,
         });
         if (!bound.ok) throw fault(bound.error);
@@ -316,6 +339,7 @@ module.exports = ({
       const owner = check(input.revision),
         row = rows(owner).find((row) => row.id === input.id);
       if (!row) throw fault("twitch_automation_missing");
+      builtins.assertRemovable(row);
       if (runs.has(row.id)) throw fault("control_deck_busy");
       if (row.trigger.rewardId) detach(owner, row.trigger.rewardId);
       data.rows = data.rows.filter((other) => other.id !== row.id);
@@ -339,7 +363,7 @@ module.exports = ({
         if (row.trigger.rewardId) throw fault("twitch_reward_already_bound");
         result = await getProvider().createReward({
           ...input.fields,
-          purpose: "automation:" + row.id,
+          purpose: row.handler === "flow" ? "automation:" + row.id : row.handler,
         });
       } else if (input.operation === "update" && row.trigger.rewardId)
         result = await getProvider().updateReward({
@@ -362,7 +386,7 @@ module.exports = ({
       delete next.legacy;
       if (input.operation === "delete") {
         detach(owner, row.trigger.rewardId);
-        next.enabled = false;
+        next.enabled = next.handler !== "flow" && next.enabled;
       }
       data.rows = data.rows.filter((other) => other.id !== row.id);
       data.rows.push(next);
@@ -458,7 +482,7 @@ module.exports = ({
       );
     if (!row && !detached) return { handled: false };
     const liveAllowed = !row || (await liveRewards.allowRedemption(row, owner));
-    if (!row?.enabled || !liveAllowed) {
+    if (!row?.enabled || !liveAllowed || intakePaused(row?.handler || "all")) {
       await getProvider().settle({
         broadcasterId: owner,
         rewardId: event.reward.id,
@@ -469,7 +493,11 @@ module.exports = ({
         handled: true,
         body: {
           ok: false,
-          code: liveAllowed ? "twitch_automation_disabled" : "twitch_automation_live_required",
+          code: intakePaused(row?.handler || "all")
+            ? "twitch_intake_paused"
+            : liveAllowed
+              ? "twitch_automation_disabled"
+              : "twitch_automation_live_required",
         },
       };
     }
@@ -609,6 +637,7 @@ module.exports = ({
     communityTracking: (input) => community.tracking(input),
     status,
     save,
+    builtinPolicy,
     remove,
     reward,
     redemption,

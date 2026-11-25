@@ -2,9 +2,11 @@
 import { openFeaturePage, selectMainTab } from "./feature-navigation.js";
 import { initDashboardLayout } from "./dashboard-layout.js";
 import { initControlDeck } from "./control-deck.js";
+import { createSetupGuide } from "./setup-guide.js";
 const panel = document.querySelector('[data-panel="dashboard"]');
 const layout = initDashboardLayout(panel);
 const deck = initControlDeck(panel, () => void refresh());
+createSetupGuide(panel);
 const $ = (id) => document.getElementById("dashboard" + id);
 let state,
   rewards,
@@ -93,8 +95,7 @@ function controls() {
   });
   const manageable = (rewards?.rewards || []).filter((row) => row.manageable);
   $("PauseRewards").disabled ||=
-    !rewards?.available ||
-    !manageable.length ||
+    (!rewards?.chatControlsAvailable && (!rewards?.available || !manageable.length)) ||
     manageable.some((row) => typeof row.paused !== "boolean");
   $("Intake").disabled ||= !state?.song;
   $("Skip").disabled ||= !state?.song?.canSkip;
@@ -141,18 +142,24 @@ function renderRewards() {
   const rows = rewards?.rewards || [],
     paused = rows.filter((r) => r.paused).length;
   const manageable = rows.filter((row) => row.manageable);
-  const allPaused = manageable.length > 0 && manageable.every((row) => row.paused === true);
+  const allPaused = rewards?.chatControlsAvailable
+    ? rewards.intakePaused
+    : manageable.length > 0 && manageable.every((row) => row.paused === true);
   $("PauseRewards").textContent = allPaused
-    ? "Resume all managed rewards"
-    : "Pause all managed rewards";
+    ? "Resume rewards & chat intake"
+    : "Pause rewards & chat intake";
   $("PauseRewards").setAttribute("aria-pressed", String(allPaused));
   badge(
     "RewardState",
-    rewards?.available
-      ? rows.length
-        ? `${paused} / ${rows.length} PAUSED`
-        : "NO MANAGED REWARDS"
-      : "UNAVAILABLE",
+    rewards?.chatControlsAvailable
+      ? allPaused
+        ? "VIEWER INTAKE PAUSED"
+        : "VIEWER INTAKE OPEN"
+      : rewards?.available
+        ? rows.length
+          ? `${paused} / ${rows.length} PAUSED`
+          : "NO MANAGED REWARDS"
+        : "UNAVAILABLE",
     paused > 0,
   );
   $("Rewards").replaceChildren(
@@ -175,7 +182,13 @@ function renderRewards() {
       return card;
     }),
   );
-  if (!rewards?.available) {
+  if (rewards?.chatControlsAvailable && !rows.length) {
+    note(
+      "RewardsNotice",
+      "Controls built-in chat requests too. Channel Points rewards are optional.",
+    );
+    $("RewardsNotice").dataset.origin = "snapshot";
+  } else if (!rewards?.available) {
     note(
       "RewardsNotice",
       state?.twitchActive
@@ -208,7 +221,9 @@ async function updateRewards(purpose, paused, rewardId) {
         failed = result.results.some((r) => !r.ok && !r.held);
       return `${held ? "Song rewards remain paused until song intake resumes. " : ""}${failed ? "Some rewards could not update. Check their current state and retry." : "Other selected rewards updated."}`;
     }
-    return paused ? "Selected managed rewards paused." : "Selected managed rewards resumed.";
+    return paused
+      ? "Selected rewards and chat intake paused."
+      : "Selected rewards and chat intake resumed.";
   });
 }
 function render() {

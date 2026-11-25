@@ -3,7 +3,10 @@ const { rateLimit } = require("express-rate-limit");
 const { requireLocalOperator } = require("../../../app/runtime/local-operator.middleware");
 const purposes = new Set(["lights", "teach", "song_request", "add_to_playlist"]);
 const fault = (code, status = 409) => Object.assign(Error(code), { code, status });
-module.exports = function registerDashboardRewards(app, { getProvider, registry }) {
+module.exports = function registerDashboardRewards(
+  app,
+  { getProvider, registry, intakePause = null, getBuiltinRows = () => [] },
+) {
   let busy = false,
     changes = [];
   const active = (id) =>
@@ -15,6 +18,18 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
       status = provider.status();
     if (!status.connected)
       return { ok: true, available: false, reason: "twitch_disconnected", rewards: [] };
+    const builtins = getBuiltinRows().filter(
+      (row) => purposes.has(row.handler) && row.trigger?.rewardId,
+    );
+    const admission = intakePause
+      ? {
+          chatControlsAvailable: true,
+          intakePaused: intakePause.paused(status.userId, "all"),
+          managedSongReward:
+            status.managedRewards.some((row) => row.purpose === "song_request") ||
+            builtins.some((row) => row.handler === "song_request"),
+        }
+      : {};
     const catalog = await provider.listRewards({ force });
     if (!catalog.ok)
       return {
@@ -25,16 +40,27 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
             ? "twitch_scope_missing"
             : "reward_status_unavailable",
         rewards: [],
+        ...admission,
       };
-    const known = new Map(status.managedRewards.map((row) => [row.rewardId, row.purpose]));
+    const known = new Map(
+      status.managedRewards.map((row) => [
+        row.rewardId,
+        { purpose: row.purpose, managementPurpose: row.purpose },
+      ]),
+    );
+    for (const row of builtins) {
+      const binding = known.get(row.trigger.rewardId);
+      if (binding) binding.purpose = row.handler;
+    }
     return {
       ok: true,
       available: true,
+      ...admission,
       rewards: catalog.rewards
-        .filter((row) => known.has(row.id) && purposes.has(known.get(row.id)))
+        .filter((row) => known.has(row.id) && purposes.has(known.get(row.id).purpose))
         .map((row) => ({
           id: row.id,
-          purpose: known.get(row.id),
+          ...known.get(row.id),
           title: row.title,
           cost: row.cost,
           paused: row.paused,
@@ -58,7 +84,7 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
       next(error);
     }
   });
-  async function update(body, toggle = false) {
+  async function update(body, toggle = false, controlsAdmission = true) {
     if (
       !body ||
       Object.keys(body).some((key) => !["purpose", "paused", "rewardId"].includes(key)) ||
@@ -75,17 +101,26 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
     busy = true;
     try {
       const before = await snapshot(true);
-      if (!before.available) throw fault(before.reason);
+      if (!before.available && !before.chatControlsAvailable) throw fault(before.reason);
       const selected = before.rewards.filter(
         (row) =>
           row.manageable &&
           (body.purpose === "all" || row.purpose === body.purpose) &&
           (!body.rewardId || row.id === body.rewardId),
       );
-      if (!selected.length) throw fault("managed_rewards_unavailable");
+      if (!selected.length && (!intakePause || body.rewardId))
+        throw fault("managed_rewards_unavailable");
       if (toggle && selected.some((row) => typeof row.paused !== "boolean"))
         throw fault("managed_rewards_state_unknown");
-      const paused = toggle ? selected.some((row) => row.paused === false) : body.paused;
+      const paused = toggle
+        ? intakePause && body.purpose === "all" && !body.rewardId
+          ? !before.intakePaused
+          : selected.some((row) => row.paused === false)
+        : body.paused;
+      if (intakePause && controlsAdmission) {
+        const purpose = body.rewardId ? selected[0].purpose : body.purpose;
+        intakePause.set(getProvider().status().userId, purpose, paused);
+      }
       // Intake admission owns song rewards. Never reopen a paused or unavailable queue.
       let songOpen = false;
       if (
@@ -108,6 +143,16 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
       }
       const results = [];
       for (const row of selected) {
+        if (!paused && intakePause?.paused(getProvider().status().userId, row.purpose)) {
+          results.push({
+            id: row.id,
+            purpose: row.purpose,
+            ok: false,
+            held: true,
+            error: "twitch_intake_paused",
+          });
+          continue;
+        }
         if (!paused && !songOpen && ["song_request", "add_to_playlist"].includes(row.purpose)) {
           results.push({
             id: row.id,
@@ -120,7 +165,7 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
         }
         try {
           const result = await getProvider().setManagedRewardPaused({
-            purpose: row.purpose,
+            purpose: row.managementPurpose || row.purpose,
             rewardId: row.id,
             paused,
           });
@@ -163,6 +208,7 @@ module.exports = function registerDashboardRewards(app, { getProvider, registry 
   return Object.freeze({
     snapshot,
     update,
+    updateChannelPoints: (body) => update(body, false, false),
     toggle: (purpose = "all") => update({ purpose, paused: false }, true),
     toggleReward: async (rewardId) => {
       if (typeof rewardId !== "string" || !/^[A-Za-z0-9_-]{1,160}$/.test(rewardId))

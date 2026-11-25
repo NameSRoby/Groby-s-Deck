@@ -185,6 +185,9 @@ const js = [
   read(path.join(root, "public/core/pill-input.js")).replace(/export function /g, "function "),
   read(path.join(root, "features/twitch-integration/ui/duration-input.js")),
   "const GrobyVariablePresets=" + JSON.stringify(presets) + ";",
+  "const GrobyBuiltinPresets=" +
+    JSON.stringify(require("../src/domains/twitch/builtin-presets")) +
+    ";",
   "const GrobyAutomationPresets=" +
     JSON.stringify(require("../src/domains/twitch/streamer-automation-presets")) +
     ";",

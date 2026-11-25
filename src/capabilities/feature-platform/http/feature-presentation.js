@@ -40,6 +40,22 @@ function contributionPresentation() {
   };
   window.addEventListener("message", (event) => {
     if (
+      event.source === parent &&
+      event.data?.channel === channel &&
+      event.data.type === "setup-view"
+    ) {
+      if (event.data.target === "song-setup")
+        document.querySelector('.playerViewTabs [data-view="setup"]')?.click();
+      if (event.data.target === "automation-presets") {
+        const examples = document.querySelector(".automationExamples");
+        if (examples) {
+          examples.open = true;
+          examples.scrollIntoView({ block: "start" });
+        }
+      }
+      return;
+    }
+    if (
       event.source !== parent ||
       event.data?.channel !== channel ||
       event.data.type !== "presentation"

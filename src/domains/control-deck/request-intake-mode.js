@@ -75,16 +75,18 @@ module.exports = function requestMode({ getFeatures, getRewards }) {
         const rewards = getRewards(),
           state = await rewards?.snapshot(true),
           song = state?.rewards?.find((row) => row.purpose === "song_request" && row.manageable);
+        const updateReward = (input) =>
+          rewards.updateChannelPoints ? rewards.updateChannelPoints(input) : rewards.update(input);
         if (
           chat &&
-          before.managedRewards?.some((row) => row.purpose === "song_request") &&
+          (before.managedRewards?.some((row) => row.purpose === "song_request") ||
+            state?.managedSongReward) &&
           !state?.available
         )
           throw fault("managed_rewards_state_unknown");
-        if (!chat && !song) throw fault("managed_song_reward_required");
         if (chat && song && !song.paused) {
           check();
-          const paused = await rewards.update({ purpose: "song_request", paused: true });
+          const paused = await updateReward({ purpose: "song_request", paused: true });
           if (paused?.ok === false || paused?.partial)
             throw fault("song_request_reward_pause_failed");
         }
@@ -94,9 +96,9 @@ module.exports = function requestMode({ getFeatures, getRewards }) {
           songRequestChatEnabled: chat,
         });
         if (!reply.ok || reply.value?.ok === false) throw fault("song_request_mode_change_failed");
-        if (!chat) {
+        if (!chat && song) {
           check();
-          const resumed = await rewards.update({ purpose: "song_request", paused: false });
+          const resumed = await updateReward({ purpose: "song_request", paused: false });
           if (
             resumed?.ok === false ||
             (resumed?.partial && resumed.results?.some((row) => !row.ok && !row.held))

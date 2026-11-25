@@ -3,6 +3,7 @@
  * Developer context and change constraints:
  * docs/DEVELOPMENT.md#request-security-and-the-feature-ui-relay
  */
+import { describeFeatureFailure, createFeatureFailureDetails } from "./feature-failure.js";
 const views = new Map();
 const themeKeys = [
   "bg",
@@ -50,12 +51,23 @@ window.addEventListener("message", (event) => {
       (item) => item.contentWindow === event.source,
     );
     if (!frame) continue;
+    if (
+      event.data.type === "feature-setup-link" &&
+      ["twitch", "songs", "presets", "deck", "lights"].includes(event.data.destination)
+    ) {
+      openSetupDestination(event.data.destination);
+      return;
+    }
     if (event.data.type === "feature-ready") {
       frame.dataset.ready = "true";
       present(frame);
       if (frame.playlistStart) {
         frame.contentWindow.postMessage(frame.playlistStart, location.origin);
         frame.playlistStart = null;
+      }
+      if (frame.setupView) {
+        frame.contentWindow.postMessage(frame.setupView, location.origin);
+        frame.setupView = null;
       }
     }
     if (event.data.type === "feature-height" && Number.isFinite(event.data.height))
@@ -97,12 +109,61 @@ new MutationObserver(() =>
   attributeFilter: ["style", "data-developer-mode"],
 });
 
-export function openFeaturePage(featureId, pageId) {
+export function openFeaturePage(featureId, pageId, setupTarget = "") {
   const view = views.get(featureId);
   if (!view) return false;
   selectMainTab(view.tab.dataset.tab);
-  view.open(pageId);
+  view.open(pageId, setupTarget);
   return true;
+}
+
+export function openSetupDestination(destination) {
+  if (destination === "deck") {
+    selectMainTab("dashboard");
+    document.getElementById("deckButtonMode")?.click();
+    document.getElementById("controlDeck")?.scrollIntoView({ block: "start" });
+    return;
+  }
+  if (destination === "lights") {
+    selectMainTab("lights");
+    return;
+  }
+  const targets = {
+    twitch: ["twitch-integration", "connection", ""],
+    songs: ["song-request", "player", "song-setup"],
+    presets: ["twitch-integration", "automations", "automation-presets"],
+  };
+  const target = targets[destination];
+  if (target && openFeaturePage(...target)) return;
+  selectMainTab("features");
+}
+
+function relatedSetup(featureId) {
+  const nav = document.createElement("nav");
+  nav.className = "relatedSetup";
+  nav.setAttribute("aria-label", "Related setup");
+  const label = document.createElement("span");
+  label.textContent = "Related setup:";
+  nav.append(label);
+  for (const [destination, title] of featureId === "song-request"
+    ? [
+        ["twitch", "Twitch connection"],
+        ["presets", "Rewards & chat presets"],
+        ["deck", "Button deck"],
+      ]
+    : [
+        ["songs", "Music player & request mode"],
+        ["lights", "Lights"],
+        ["deck", "Button deck"],
+      ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "setupLink";
+    button.textContent = title;
+    button.onclick = () => openSetupDestination(destination);
+    nav.append(button);
+  }
+  return nav;
 }
 
 export function selectMainTab(key) {
@@ -132,7 +193,9 @@ export function syncFeatureNavigation(features) {
     (feature) =>
       feature.id !== "music-to-light" &&
       (feature.lifecycle === "active" ||
-        (["crashed", "quarantined", "incompatible"].includes(feature.lifecycle) &&
+        (["crashed", "quarantined", "incompatible", "permission-required"].includes(
+          feature.lifecycle,
+        ) &&
           (feature.enabledOnStartup || views.has(feature.id))) ||
         (views.has(feature.id) &&
           ["active_rss_limit", "idle_cpu_limit"].includes(feature.stateReason))) &&
@@ -151,6 +214,7 @@ export function syncFeatureNavigation(features) {
       feature.version,
       feature.pid,
       feature.lifecycle,
+      feature.error,
       feature.stateReason,
       feature.uiContributions,
     ]);
@@ -180,18 +244,18 @@ export function syncFeatureNavigation(features) {
     view.panel.replaceChildren();
     const heading = document.createElement("h2");
     heading.textContent = feature.name.toUpperCase();
-    view.panel.append(heading);
+    view.panel.append(heading, relatedSetup(feature.id));
     if (feature.lifecycle !== "active") {
       const notice = document.createElement("p");
       notice.setAttribute("role", "status");
       notice.textContent = ["active_rss_limit", "idle_cpu_limit"].includes(feature.stateReason)
         ? `${feature.name} stopped after exceeding its resource budget. Open Packages to review its status and restart it.`
-        : `${feature.name} stopped unexpectedly or could not start. Open Packages to review its status and restart it. Playback in an external music player may continue.`;
+        : `${feature.name} stopped unexpectedly or could not start. ${describeFeatureFailure(feature).description} (${describeFeatureFailure(feature).code})`;
       const manage = document.createElement("button");
       manage.type = "button";
       manage.textContent = "Open Packages";
       manage.onclick = () => selectMainTab("features");
-      view.panel.append(notice, manage);
+      view.panel.append(notice, createFeatureFailureDetails(feature), manage);
       view.open = () => {};
       continue;
     }
@@ -298,10 +362,23 @@ export function syncFeatureNavigation(features) {
       else frame.playlistStart = message;
     };
     view.panel.append(tabs, overlayTools, surface);
-    view.open = (pageId) => {
+    view.open = (pageId, setupTarget = "") => {
       const requested = pages.find((page) => page.id === pageId);
       if (requested) open(requested);
       else if (!selected && pages.length) open(pages[0]);
+      if (["song-setup", "automation-presets"].includes(setupTarget)) {
+        const frame = frames.get(pageId);
+        if (frame) {
+          const message = {
+            channel: "ravelink-feature-ui-v1",
+            type: "setup-view",
+            target: setupTarget,
+          };
+          if (frame.dataset.ready === "true")
+            frame.contentWindow.postMessage(message, location.origin);
+          else frame.setupView = message;
+        }
+      }
     };
     if (!view.panel.hidden) view.open();
   }

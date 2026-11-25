@@ -92,7 +92,7 @@
     element("lightingProfileName").value = profile?.name || "";
     element("lightingProfileDefault").checked = profile?.isDefault === true;
     element("lightingProfileStrategy").value = profile?.strategy || "individual";
-    element("deleteLightingProfile").disabled = !profile;
+    element("deleteLightingProfile").disabled = !profile || profile.public === true;
     element("applyLightingProfile").disabled = !profile;
 
     const sharedHost = element("sharedLightingTarget");
@@ -174,7 +174,11 @@
     select.replaceChildren(
       new Option("NEW PROFILE", ""),
       ...profiles.map(
-        (row) => new Option(`${row.name}${row.isDefault ? " // DEFAULT" : ""}`, row.id),
+        (row) =>
+          new Option(
+            `${row.name}${row.public ? " · Public preset" : row.isDefault ? " // DEFAULT" : ""}`,
+            row.id,
+          ),
       ),
     );
     select.value = selectedId;
@@ -184,14 +188,20 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "lightingProfileCard";
+      button.dataset.profileId = profile.id;
       button.setAttribute("aria-pressed", String(profile.id === selectedId));
       const title = document.createElement("strong"),
         detail = document.createElement("small"),
         swatches = document.createElement("span");
       title.textContent = profile.name;
-      detail.textContent = `${Object.keys(profile.fixtureTargets || {}).length} fixtures${profile.isDefault ? " · Default" : ""}`;
+      detail.textContent = profile.public
+        ? "Public preset · Apply to configured lights"
+        : `${Object.keys(profile.fixtureTargets || {}).length} fixtures${profile.isDefault ? " · Default" : ""}`;
       swatches.className = "profilePalettePreview";
-      for (const target of Object.values(profile.fixtureTargets || {}).slice(0, 6)) {
+      for (const target of (profile.public
+        ? [profile.sharedTarget]
+        : Object.values(profile.fixtureTargets || {})
+      ).slice(0, 6)) {
         const dot = document.createElement("i");
         dot.style.background =
           target.on === false
@@ -268,7 +278,7 @@
       else delete fixtureTargets[id];
     }
     return {
-      id: existing?.id || slug(name),
+      id: existing?.public ? "custom-" + slug(name) : existing?.id || slug(name),
       name,
       isDefault: element("lightingProfileDefault").checked,
       strategy: element("lightingProfileStrategy").value,
