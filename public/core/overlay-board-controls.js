@@ -2,6 +2,40 @@
 /* global OverlayModel, OverlayGameRules, GrobyRandomId */
 globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, button, note) => {
   const selected = new WeakMap();
+  let highlightedTile;
+  a.selectChallengeTile = (id, tile) => {
+    const board = a.doc.widgets.find((w) => w.id === id);
+    if (!board) return;
+    selected.set(board, tile);
+    a.selection.clear();
+    a.selection.add(id);
+    a.showSelection();
+    a.showInspectorSection("content", false);
+    a.draw();
+    host.querySelector("#selectedChallengeTile")?.scrollIntoView({ block: "center" });
+  };
+  a.renderTileSelection = () => {
+    const board = a.selection.size === 1 && a.selected()[0];
+    const tile =
+      board?.type === "challenge-board" &&
+      Math.min(selected.get(board) || 1, OverlayGameRules.challengeCount(board));
+    const next =
+      !a.previewing && tile
+        ? a
+            .$("canvas")
+            .querySelector(
+              '[data-widget-id="' +
+                CSS.escape(board.id) +
+                '"] [data-challenge-tile="' +
+                tile +
+                '"]',
+            )
+        : null;
+    if (highlightedTile === next) return;
+    highlightedTile?.classList.remove("selectedChallengeTile");
+    next?.classList.add("selectedChallengeTile");
+    highlightedTile = next;
+  };
   const pageSize = 24;
   const percent = (value, min = 0) => Math.round(Math.max(min, Math.min(100, value)) * 10) / 10;
   const el = (tag, text) => {
@@ -338,12 +372,20 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     const visual = el("div");
     visual.className = "challengeEditor";
     visual.style.aspectRatio = w.width + " / " + w.height;
+    if (grid) {
+      const slots = Math.max(w.gridSize, (w.gridRows * w.width) / w.height);
+      visual.style.minWidth = Math.min(12000, Math.ceil(36 * slots)) + "px";
+    }
     const background = el("img");
     background.alt = "";
     background.style.objectFit = w.boardImageFit;
     setImage(background, w.boardImage);
     visual.append(background);
-    host.append(visual);
+    const preview = el("div");
+    preview.className = "challengePreview";
+    preview.append(visual);
+    if (tile) host.append(el("p", "Click a tile on the canvas to edit it."));
+    host.append(preview);
     const shown = w.tiles.slice(0, count);
     const title = (item, index) => item.text || "Tile " + (index + 1);
     function position(node, item, index) {
@@ -458,6 +500,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
 
     const node = nodes[active - 1];
     const tiles = labeled("Selected tile", el("select"));
+    tiles.id = "selectedChallengeTile";
     shown.forEach((item, index) => tiles.add(new Option(title(item, index), index + 1)));
     tiles.value = active;
     tiles.onchange = () => choose(tiles.selectedIndex, false);

@@ -58,8 +58,10 @@ Use **Data > Sample** to try moves on a draft.
   labels or pasted lists, and images for the board or each square. Choose winning
   patterns, completion marks, and whether to display a win announcement in
   **Style & text**. Changing dimensions starts a fresh round.
-- **Challenge board** lets you add image tiles and move, resize, or rotate them
-  independently. Progress stays with a tile when you adjust its placement.
+- **Challenge board** supports grids and freeform layouts. Click a tile on the
+  canvas to open its image, label, and sizing controls. Drag the sidebar divider
+  to make more room for settings, or double-click it to restore the default width.
+  Progress stays with a tile when you adjust its placement.
 - **Tile Match** shuffles two copies of every pair. Add labels or images, set the
   number of columns and how long mismatched cards stay visible, then flip tiles
   from the inspector or the Button Deck.

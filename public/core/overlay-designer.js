@@ -55,7 +55,7 @@
   document.addEventListener("overlay-media-error", (event) => a.notice(event.detail));
   const commands = setupOverlayCommands(a);
   a.commands = commands;
-  a.showInspectorSection = (name) => inspector.show(name);
+  a.showInspectorSection = inspector.show;
   function checkpoint() {
     const previousRedo = redo;
     undo.push(JSON.stringify({ document: doc, selection: [...selection] }));
@@ -230,8 +230,10 @@
       preview: true,
       audio: a.previewAudio === true,
     });
+    a.renderTileSelection();
   }
   function renderSelection() {
+    a.renderTileSelection();
     for (const layer of $("canvas").children) {
       const selected = selection.has(layer.dataset.widgetId);
       layer.classList.toggle("selected", selected);
