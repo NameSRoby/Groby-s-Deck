@@ -1051,7 +1051,9 @@ dialog header button {
   padding-inline: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 4px #000, 0 0 4px #000;
+  text-shadow:
+    0 1px 4px #000,
+    0 0 4px #000;
 }
 .challengeEditor button img {
   z-index: -1;
