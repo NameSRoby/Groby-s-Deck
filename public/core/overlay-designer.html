@@ -50,7 +50,7 @@
       </div>
     </header>
     <div class="workspace">
-      <aside class="layersPanel">
+      <aside id="layersPanel" class="layersPanel">
         <div class="panelHeading">
           <h2>Layers</h2>
           <button id="add" class="primary">+ Add widget</button>
@@ -78,6 +78,15 @@
           ><button id="front">Bring forward</button><button id="back">Send backward</button>
         </div>
       </aside>
+      <div
+        id="sidebarResize"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="Resize settings sidebar"
+        aria-controls="layersPanel"
+        title="Drag to resize. Double-click to reset."
+      ></div>
       <main class="canvasPanel">
         <div class="canvasToolbar">
           <button id="undo" aria-label="Undo">Undo</button

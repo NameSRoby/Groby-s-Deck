@@ -669,10 +669,10 @@ globalThis.setupOverlayInspector = function (a) {
   }
   return {
     draw,
-    show(name) {
+    show(name, refresh = true) {
       if (!sections.has(name)) return;
       tab = name;
-      draw();
+      if (refresh) draw();
     },
   };
 };

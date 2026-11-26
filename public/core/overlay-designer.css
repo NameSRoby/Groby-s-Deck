@@ -267,6 +267,14 @@ h3 {
 #canvas .overlayLayer .widgetBody {
   pointer-events: none;
 }
+body:not(.previewMode) #canvas [data-challenge-tile] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+#canvas .selectedChallengeTile {
+  outline: 4px solid #8acbff;
+  outline-offset: -4px;
+}
 #canvas .overlayLayer iframe {
   pointer-events: none;
 }
@@ -773,7 +781,37 @@ dialog header button {
 
 /* One left sidebar; the canvas owns the remaining viewport. */
 .workspace {
-  grid-template-columns: 280px minmax(0, 1fr);
+  --sidebar-default: 280px;
+  --sidebar-size: clamp(220px, var(--sidebar-width, var(--sidebar-default)), min(760px, 58vw));
+  position: relative;
+  grid-template-columns: var(--sidebar-size) minmax(0, 1fr);
+}
+#sidebarResize {
+  position: absolute;
+  inset-block: 0;
+  left: var(--sidebar-size);
+  transform: translateX(-50%);
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 4;
+}
+#sidebarResize::after {
+  content: "";
+  position: absolute;
+  inset: calc(50% - 20px) 4px;
+  background: var(--edge);
+  border-radius: 4px;
+}
+#sidebarResize:is(:hover, :focus-visible, :active)::after {
+  background: #8acbff;
+}
+.hideLayers #sidebarResize,
+.previewMode #sidebarResize {
+  display: none;
+}
+.workspace.resizingSidebar {
+  user-select: none;
 }
 .layersPanel {
   overflow: auto;
@@ -840,7 +878,7 @@ dialog header button {
   grid-template-columns: minmax(0, 1fr);
 }
 .hideInspector .workspace {
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-size) minmax(0, 1fr);
 }
 .hideLayers.hideInspector .workspace {
   grid-template-columns: minmax(0, 1fr);
@@ -866,7 +904,8 @@ dialog header button {
 @media (max-width: 760px) {
   .workspace,
   .hideInspector .workspace {
-    grid-template-columns: minmax(220px, 36vw) minmax(0, 1fr);
+    --sidebar-default: max(220px, 36vw);
+    grid-template-columns: var(--sidebar-size) minmax(0, 1fr);
     height: calc(100dvh - 200px);
     min-height: 300px;
   }
@@ -1011,6 +1050,10 @@ dialog header button {
 }
 .tileGeometry input {
   min-width: 0;
+}
+.challengePreview {
+  overflow: auto;
+  padding-inline: 1px;
 }
 .challengeEditor {
   position: relative;
@@ -1280,6 +1323,9 @@ dialog header button {
   }
 }
 @media (max-width: 600px) {
+  #sidebarResize {
+    display: none;
+  }
   .workspace,
   .hideInspector .workspace,
   .hideLayers .workspace,

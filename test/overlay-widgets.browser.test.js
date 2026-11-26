@@ -323,6 +323,63 @@ test("alignment guides snap a dragged edge with editor-only safe margins", async
   await page.locator("#preview").click();
   assert.equal(await page.locator(".overlaySafeMargins").isHidden(), true);
 });
+test("clicking a canvas tile opens its settings and dragging still moves the whole board", async (t) => {
+  const { page, add } = await setup(t);
+  await add("Challenge board");
+  await page.getByLabel("Tiles per row").fill("12");
+  await page.getByLabel("Rows", { exact: true }).fill("2");
+  await page.getByRole("button", { name: "Apply grid size" }).click();
+  await page.locator('[data-inspector="style"]').click();
+
+  const layer = page.locator('#canvas [data-widget-type="challenge-board"]');
+  const tile = layer.locator('[data-challenge-tile="20"]');
+  const position = () => layer.evaluate((node) => node.style.left);
+  const before = await position();
+  await tile.click();
+  const picker = page.getByLabel("Selected tile");
+  assert.equal(await picker.inputValue(), "20");
+  assert.equal(await position(), before);
+  assert.equal(await tile.evaluate((node) => node.matches(".selectedChallengeTile")), true);
+  const label = page.getByLabel("Tile label", { exact: true });
+  await label.fill("Canvas selection");
+  await label.press("Tab");
+  assert.equal(await tile.textContent(), "Canvas selection");
+
+  const rect = await tile.boundingBox();
+  const x = rect.x + rect.width / 2;
+  const y = rect.y + rect.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 65, y, { steps: 5 });
+  await page.mouse.up();
+  assert.notEqual(await position(), before);
+  assert.equal(await picker.inputValue(), "20");
+});
+
+test("the settings sidebar can be resized, restored across reloads and reset", async (t) => {
+  const { page } = await setup(t);
+  const divider = page.getByRole("separator", { name: "Resize settings sidebar" });
+  const width = () => page.locator("#layersPanel").evaluate((node) => node.offsetWidth);
+  const initial = await width();
+  const rect = await divider.boundingBox();
+  const x = rect.x + rect.width / 2;
+  const y = rect.y + rect.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 150, y, { steps: 5 });
+  await page.mouse.up();
+  assert.equal(await width(), initial + 150);
+  await page.reload();
+  await divider.waitFor();
+  assert.equal(await width(), initial + 150);
+  await divider.press("ArrowLeft");
+  assert.equal(await width(), initial + 134);
+  await divider.dblclick();
+  assert.equal(await width(), initial);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await divider.isHidden(), true);
+});
+
 test("challenge grid sizes tiles together or individually and restores tiles when expanded", async (t) => {
   const { page, add, service, base, browser } = await setup(t);
   await add("Challenge board");

@@ -428,8 +428,9 @@
       grid.style.setProperty(name, value);
     grid.dataset.markMode = w.markMode;
     if (w.boardImage) grid.append(image(w.boardImage, w.boardImageFit, "bingoImage"));
-    for (const item of board.cells) {
+    for (const [index, item] of board.cells.entries()) {
       const cell = el("div");
+      if (w.type === "challenge-board") cell.dataset.challengeTile = index + 1;
       cell.className =
         "bingoCell" + (item.marked ? " marked" : "") + (item.covered ? " covered" : "");
       if (board.freeform)

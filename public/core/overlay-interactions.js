@@ -94,21 +94,21 @@ globalThis.setupOverlayInteractions = function (a) {
       canvas.focus();
       return;
     }
-    if (
-      !a.selection.has(layer.dataset.widgetId) ||
-      event.shiftKey ||
-      event.ctrlKey ||
-      event.metaKey
-    )
-      a.select(layer.dataset.widgetId, event.shiftKey || event.ctrlKey || event.metaKey);
+    const widgetId = layer.dataset.widgetId;
+    const multi = event.shiftKey || event.ctrlKey || event.metaKey;
+    const tile =
+      !multi && Number(event.target.closest("[data-challenge-tile]")?.dataset.challengeTile);
+    if (!a.selection.has(widgetId) || multi) a.select(widgetId, multi);
     if (!a.selection.has(layer.dataset.widgetId)) return;
     a.showSelection?.();
     const selected = a.selected().filter((row) => !row.locked);
-    if (!selected.length) return;
+    if (!selected.length && !tile) return;
     gesture = {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      tile,
+      widgetId,
       corner: event.target.dataset.corner,
       rows: selected.map((row) => ({ ...row })),
       alignment: guides.capture(selected),
@@ -150,6 +150,12 @@ globalThis.setupOverlayInteractions = function (a) {
       return;
     }
     if (!gesture || event.pointerId !== gesture.id) return;
+    if (
+      gesture.tile &&
+      !gesture.changed &&
+      (!gesture.rows.length || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 4)
+    )
+      return;
     const scale = a.scale(),
       dx = (event.clientX - gesture.x) / scale,
       dy = (event.clientY - gesture.y) / scale;
@@ -245,7 +251,9 @@ globalThis.setupOverlayInteractions = function (a) {
       a.cancelCheckpoint(current.priorRedo);
     }
     if (canvas.hasPointerCapture(current.id)) canvas.releasePointerCapture(current.id);
-    a.draw();
+    if (!cancel && !current.changed && current.tile)
+      a.selectChallengeTile(current.widgetId, current.tile);
+    else a.draw();
   }
   for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
     canvas.addEventListener(type, (event) => {
