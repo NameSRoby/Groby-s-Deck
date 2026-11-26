@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         if: matrix.path == 'source'
         with:
-          ref: 7dcdea98f152250a24539e706cc449b3c47b77bb
+          ref: f46e03a70df03cb27b6f88a00172c2b6a877092e
           path: qa-source
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
