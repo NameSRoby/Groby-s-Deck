@@ -7,6 +7,61 @@ const { chromium } = require("playwright");
 const createCoreServer = require("../src/app/core/create-core-server");
 const createExtension = require("../src/app/optional/create-feature-platform-extension");
 
+test("the bundled Spotify renderer renews waiting polls without its interval and resumes after page restore", async (t) => {
+  const express = require("express"),
+    app = express(),
+    host = require("../integrations/spotify-desktop/host-bridge.cjs")();
+  app.get("/", (_req, res) => res.type("html").send("<html><body></body></html>"));
+  // The test page is served over loopback. Model the browser Origin sent by
+  // Spotify's renderer while exercising the real bundled client and router.
+  app.use(
+    "/api/spotify/bridge",
+    (req, _res, next) => {
+      req.headers.origin = "https://xpui.app.spotify.com";
+      next();
+    },
+    host.router(),
+  );
+  const server = await new Promise((resolve) => {
+    const listener = app.listen(0, "127.0.0.1", () => resolve(listener));
+  });
+  const browser = await chromium.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    host.close();
+    await new Promise((resolve) => server.close(resolve));
+  });
+  const url = "http://127.0.0.1:" + server.address().port;
+  const page = await browser.newPage();
+  page.setDefaultTimeout(6000);
+  await page.addInitScript(
+    (connection) => {
+      globalThis.__ravelinkSpotifyConfig = connection;
+      globalThis.setInterval = () => 0;
+    },
+    { coreUrl: url, token: host.pairing().token },
+  );
+  await page.goto(url);
+  const next = () => page.waitForRequest("**/api/spotify/bridge/next");
+  const firstPoll = next();
+  await page.addScriptTag({
+    path: path.join(__dirname, "../integrations/spotify-desktop/dist/renderer.js"),
+  });
+  assert.equal((await firstPoll).postDataJSON().wait, true);
+  const secondPoll = await next();
+  assert.equal(secondPoll.postDataJSON().wait, true);
+  await page.evaluate(() =>
+    dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true })),
+  );
+  await secondPoll.response();
+  const resumed = next();
+  await page.evaluate(() =>
+    dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+  );
+  assert.equal((await resumed).postDataJSON().wait, true);
+  assert.equal(host.status().connected, true);
+});
+
 test("Spotify entry pages boot in a fresh browser for existing modules, extracted snapshots and direct bundles", async (t) => {
   const {
     writeArchive,
@@ -79,12 +134,15 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
   );
   const actions = [];
   let connected = true,
-    prepared = true;
+    prepared = true,
+    officialMode = false;
   const status = () => ({
     ok: true,
     enabled: true,
-    ready: connected,
-    connected,
+    ready: connected || officialMode,
+    connected: connected || officialMode,
+    mode: officialMode ? "official" : "desktop",
+    desktop: { connected, ready: connected, localDevice: connected },
     controlsAvailable: connected,
     localDevice: connected,
     capacity: { limit: 10, queued: 10, available: 0, reported: true },
@@ -181,19 +239,34 @@ test("Spotify UI restores selection, separates setup, submits songs and keeps co
   await surface.locator("#spotifyPlaybackLaunch").waitFor({ state: "hidden" });
   assert.ok(actions.includes("launch"));
   await surface.locator("#spotifyOpenSetup").click();
+  assert.equal(
+    await surface.getByRole("link", { name: "Open Spotify country settings" }).getAttribute("href"),
+    "https://www.spotify.com/account/profile/",
+  );
   connected = false;
   prepared = false;
+  officialMode = true;
   await surface.locator("#spotifyCheck").click();
   await surface.locator("#spotifyLaunch[disabled]").waitFor({ state: "attached" });
+  await surface
+    .locator("#spotifySetupStatus")
+    .getByText(/Prepare the companion to enable/)
+    .waitFor();
+  const intake = await surface.locator(".playerSetupCard").boundingBox(),
+    setup = await surface.locator("#spotifySetup").boundingBox();
+  assert.ok(setup.y >= intake.y + intake.height + 12);
+  assert.equal(setup.x, intake.x);
   assert.equal(await surface.locator("#spotifyPlaybackLaunch").isVisible(), false);
   assert.equal(await surface.locator("#spotifyLaunch").isDisabled(), true);
   await surface.locator("#spotifyPrepare").click();
   assert.equal(await knownIssues.isVisible(), false);
   await page.waitForTimeout(100);
   assert.ok(actions.includes("prepare"));
+  await surface.locator("#spotifyLaunch:not([disabled])").waitFor({ state: "attached" });
   await surface.locator("#spotifyLaunch").click();
   await page.waitForTimeout(100);
   assert.ok(actions.includes("launch"));
+  officialMode = false;
   await surface.locator("#playerTab-player").click();
   await surface.locator("#videoInput").fill("Daft Punk One More Time");
   await surface.locator("#addSong").click();

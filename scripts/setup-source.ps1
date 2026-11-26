@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 # Setup uses only built-in modules; keep discovery local to this PowerShell process.
 $env:PSModulePath = "$PSHOME\Modules"
 $root = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+$stage = $null
 try {
   if (![Environment]::Is64BitOperatingSystem -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
     throw "Use a Windows 10 or 11 x64 PC. Native ARM64 is not currently supported."
@@ -21,7 +22,7 @@ try {
   $node = Join-Path $root 'runtime\Grobys-Deck-Node.exe'
   $lockHash = (Get-FileHash -LiteralPath (Join-Path $root 'package-lock.json') -Algorithm SHA256).Hash
   $ready = $false
-  if ((Test-Path -LiteralPath $stamp) -and (Test-Path -LiteralPath $node -PathType Leaf)) {
+  if (!$ReleaseArchive -and (Test-Path -LiteralPath $stamp) -and (Test-Path -LiteralPath $node -PathType Leaf)) {
     try {
       $state = Get-Content -LiteralPath $stamp -Raw | ConvertFrom-Json
       if ($state.lock -eq $lockHash -and $state.archive -eq $spec.sha256) {
@@ -96,9 +97,6 @@ try {
     & $stagedNode -e $copyScript $stage $root
     if ($LASTEXITCODE -ne 0) { throw 'Runtime installation failed. See the setup output above.' }
     @{ lock = $lockHash; archive = $spec.sha256 } | ConvertTo-Json | Set-Content -LiteralPath $stamp -Encoding UTF8
-    # Only this generated staging directory is removed, never application settings.
-    if (![IO.Path]::GetFullPath($stage).StartsWith("$stageRoot\ravelink-source-", [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid staging directory.' }
-    Remove-Item -LiteralPath $stage -Recurse -Force
   }
   $hostStamp = Join-Path $cache 'host.sha256'
   $hostHash = (@('desktop\windows-host\GrobyDeckHost.cs', 'desktop\windows-host\DashboardWindow.cs', 'desktop\windows-host\DesktopBrowserActions.cs', 'desktop\windows-host\DesktopPolicy.cs', 'desktop\windows-host\webview2-sdk.json', 'desktop\windows-host\app.manifest', 'assets\Grobys-Deck.ico', 'scripts\build-windows-host.ps1', 'scripts\restore-webview2.ps1') | ForEach-Object {
@@ -117,4 +115,8 @@ try {
 } catch {
   Write-Host "[SETUP] $($_.Exception.Message)" -ForegroundColor Red
   exit 1
+} finally {
+  if ($stage -and [IO.Path]::GetFullPath($stage).StartsWith("$stageRoot\ravelink-source-", [StringComparison]::OrdinalIgnoreCase)) {
+    Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }

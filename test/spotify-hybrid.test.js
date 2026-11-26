@@ -18,7 +18,8 @@ function fixture(t) {
     officialRows = [];
   let connected = true,
     nativeId = "device-a",
-    authConnected = true;
+    authConnected = true,
+    restoreRows;
   const current = (uid) => ({
     uri: URI,
     uid,
@@ -55,11 +56,15 @@ function fixture(t) {
     close() {},
   };
   const official = {
-    refresh: async () => {},
+    refresh: async () => {
+      if (restoreRows) officialRows.push(...restoreRows);
+      restoreRows = null;
+    },
     status: () => ({
       ok: true,
       connected: true,
       ready: true,
+      historyLoaded: !restoreRows,
       controlsAvailable: true,
       volumeAvailable: true,
       capacity: { reported: true, available: 10 },
@@ -105,6 +110,9 @@ function fixture(t) {
     calls,
     nativeRows,
     officialRows,
+    restoreOfficial(rows) {
+      restoreRows = rows;
+    },
     offline() {
       connected = false;
     },
@@ -119,6 +127,42 @@ function fixture(t) {
     },
   };
 }
+test("Spotify preserves invalid saved state while isolating the failure from Core startup", async (t) => {
+  const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-invalid-state-")),
+    root = path.join(runtimeDir, "spotify-desktop"),
+    journal = path.join(root, "requests.json");
+  t.after(() => fs.rmSync(runtimeDir, { recursive: true, force: true }));
+  fs.mkdirSync(root);
+  fs.writeFileSync(journal, "[");
+  const provider = create({ runtimeDir });
+  t.after(() => provider.close());
+  assert.equal((await provider.handle("status")).lastError, "spotify_state_invalid");
+  assert.equal((await provider.handle("enqueue")).ok, false);
+  assert.equal(fs.readFileSync(journal, "utf8"), "[");
+});
+
+test("Spotify binds ordinary request IDs that share names with object properties", async (t) => {
+  const f = fixture(t);
+  await f.provider.handle("enqueue", { entryId: "__proto__", candidate: { providerItemId: URI } });
+  assert.equal(f.calls.at(-1).route, "desktop");
+  f.offline();
+  await f.provider.handle("review", { entryId: "__proto__", decision: "absent" });
+  assert.equal(f.calls.at(-1).route, "desktop");
+});
+
+test("a ready desktop loads outstanding Premium receipts before admitting a request after restart", async (t) => {
+  const f = fixture(t);
+  f.restoreOfficial(
+    Array.from({ length: 10 }, (_, i) => ({ entryId: "official-" + i, phase: "appended" })),
+  );
+  assert.equal(
+    (await f.provider.handle("enqueue", { entryId: "new", candidate: { providerItemId: URI } }))
+      .error,
+    "spotify_native_queue_full",
+  );
+  assert.equal(f.calls.length, 0);
+});
+
 test("one Spotify player combines official lookup/controls with verified native queue ownership", async (t) => {
   const f = fixture(t),
     status = await f.provider.handle("status");

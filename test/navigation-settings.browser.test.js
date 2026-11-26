@@ -88,9 +88,14 @@ test("tab placement saves locally, survives reload and supports moving tabs back
   await page
     .locator('label:has(select[data-tab-id="features"]) [data-choice-value="main"]')
     .click();
+  await page.getByRole("radio", { name: "Side navigation" }).click();
   await page.locator("#saveNavigation").click();
   await page.locator("#navigationNotice").filter({ hasText: "Tab layout saved." }).waitFor();
   await page.locator("#closeNavigation").click();
+  assert.equal(
+    await page.locator("#tabs").evaluate((node) => getComputedStyle(node).flexDirection),
+    "column",
+  );
   assert.equal(
     await page.locator("#themePanel").isVisible(),
     false,
@@ -102,6 +107,13 @@ test("tab placement saves locally, survives reload and supports moving tabs back
   await page.locator('#moreNav [data-tab="fixtures"]').click();
   assert.equal(await page.locator('[data-panel="fixtures"]').isVisible(), true);
   await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.locator("html").getAttribute("data-workspace-profile"), "sidebar");
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await page.locator("#tabs").evaluate((node) => getComputedStyle(node).flexDirection),
+    "row",
+  );
+  await page.setViewportSize({ width: 1280, height: 720 });
   assert.equal(await page.locator('[data-tab="widget"]').isVisible(), false);
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(runtimeDir, "system/navigation.json"))).tabs.widget,
@@ -124,6 +136,34 @@ test("tab placement saves locally, survives reload and supports moving tabs back
   assert.equal(invalid.status, 400);
   await page.locator("#themeButton").click();
   await page.locator("#customizeTabs").click();
+  for (const [profile, name, height, font] of [
+    ["compact", "Compact", "34px", "13px"],
+    ["spacious", "Spacious", "50px", "17px"],
+  ]) {
+    await page.getByRole("radio", { name, exact: true }).click();
+    assert.equal(
+      await page
+        .locator('[data-panel="dashboard"]')
+        .evaluate((node) => getComputedStyle(node).fontSize),
+      font,
+    );
+    await page.locator("#saveNavigation").click();
+    await page.locator("#navigationNotice").filter({ hasText: "Tab layout saved." }).waitFor();
+    assert.equal(await page.locator("html").getAttribute("data-workspace-profile"), profile);
+    assert.equal(
+      await page.locator("#moreNav > summary").evaluate((node) => getComputedStyle(node).minHeight),
+      height,
+    );
+  }
+  await page.getByRole("radio", { name: "Compact", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.locator('html[data-workspace-profile="spacious"]').waitFor();
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(runtimeDir, "system/navigation.json"))).profile,
+    "spacious",
+  );
+  await page.locator("#themeButton").click();
+  await page.locator("#customizeTabs").click();
   await page.locator("#resetNavigation").click();
   await page
     .locator(
@@ -131,6 +171,7 @@ test("tab placement saves locally, survives reload and supports moving tabs back
     )
     .waitFor();
   await page.locator("#closeNavigation").click();
+  assert.equal(await page.locator("html").getAttribute("data-workspace-profile"), "normal");
   assert.equal(await page.locator('[data-tab="widget"]').isVisible(), true);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(

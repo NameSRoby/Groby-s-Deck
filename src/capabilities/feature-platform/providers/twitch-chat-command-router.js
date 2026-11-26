@@ -169,7 +169,7 @@ module.exports = function createTwitchChatCommandRouter(options = {}) {
     const policy = options.builtinPolicy?.("song_request");
     if (policy ? !policy.chatEnabled : config.songRequestChatEnabled !== true)
       return { handled: true, accepted: false, code: "channel_points_only" };
-    if (policy && !policy.commandPreferred && policy.role !== "viewer") {
+    if (policy && policy.role && policy.role !== "viewer") {
       const ranks = { viewer: 0, subscriber: 1, vip: 2, moderator: 3, broadcaster: 4 };
       const owner =
         event.chatter_user_id === event.broadcaster_user_id ||

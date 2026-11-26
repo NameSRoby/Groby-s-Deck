@@ -164,6 +164,10 @@
       w.bold,
       w.lineHeight,
       w.letterSpacing,
+      w.textCase,
+      w.accentStyle,
+      w.accentWidth,
+      w.verticalAlign,
       document.fonts?.status,
     ]);
     const cached = fitted.get(node);

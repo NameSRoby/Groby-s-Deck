@@ -11,6 +11,7 @@ const byId = (id) => document.getElementById(id);
 let state = { features: [] };
 let available = { features: [] };
 let lifecycleEvents;
+let installedMarkup, availableMarkup, failureText;
 
 function acceptSnapshot(snapshot) {
   if (snapshot.instanceId === state.instanceId && snapshot.revision < state.revision) return;
@@ -110,7 +111,7 @@ function render() {
     `${state.active || 0} ACTIVE // ${state.total || 0} INSTALLED`;
   byId("featureHostStatus").className = `statusLine${state.active > 0 ? " ok" : ""}`;
   const packageState = new Map(available.features.map((row) => [row.id, row]));
-  byId("featureRows").innerHTML = state.features.length
+  const installedRows = state.features.length
     ? state.features
         .map((row) => {
           const active = row.lifecycle === "active";
@@ -138,15 +139,30 @@ function render() {
         })
         .join("")
     : '<tr><td colspan="5">NO FEATURES INSTALLED</td></tr>';
-  for (const feature of failed) {
-    const row = [...byId("featureRows").rows].find(
-      (row) => row.querySelector("[data-feature-remove]")?.dataset.featureRemove === feature.id,
+  if (installedRows !== installedMarkup || warningText !== failureText) {
+    const table = byId("featureRows");
+    const open = new Set(
+      [...table.querySelectorAll("details[open]")].map(
+        (details) =>
+          details.closest("tr").querySelector("[data-feature-remove]")?.dataset.featureRemove,
+      ),
     );
-    if (row) row.cells[1].append(createFeatureFailureDetails(feature));
+    table.innerHTML = installedMarkup = installedRows;
+    failureText = warningText;
+    for (const feature of failed) {
+      const row = [...table.rows].find(
+        (row) => row.querySelector("[data-feature-remove]")?.dataset.featureRemove === feature.id,
+      );
+      if (row) {
+        const details = createFeatureFailureDetails(feature);
+        details.open = open.has(feature.id);
+        row.cells[1].append(details);
+      }
+    }
   }
   const installedIds = new Set(state.features.map((row) => row.id));
   const installable = available.features.filter((row) => !installedIds.has(row.id));
-  byId("availableFeatureRows").innerHTML = installable.length
+  const availableRows = installable.length
     ? installable
         .map(
           (row) =>
@@ -154,6 +170,8 @@ function render() {
         )
         .join("")
     : '<tr><td colspan="4">NO PACKAGES AVAILABLE</td></tr>';
+  if (availableRows !== availableMarkup)
+    byId("availableFeatureRows").innerHTML = availableMarkup = availableRows;
 }
 
 async function refresh() {

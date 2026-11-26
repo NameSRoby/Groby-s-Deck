@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/overlay-designer.css" />
     <link rel="stylesheet" href="/pill-input.css" />
     <link rel="stylesheet" href="/theme-surfaces.css" />
+    <link rel="stylesheet" href="/workspace-density.css" />
   </head>
   <body>
     <header class="studioHeader">
@@ -42,7 +43,8 @@
         ><button id="toggleInspector" aria-pressed="true" title="Show or hide widget settings">
           Widget settings
         </button>
-        <button id="canvasOptions">Canvas settings</button><button id="openOutput">OBS setup</button
+        <button id="canvasOptions">Canvas settings</button
+        ><button id="openGameChat">Game commands</button><button id="openOutput">OBS setup</button
         ><button id="preview">Preview</button
         ><button id="save" class="primary">Save overlay</button>
       </div>
@@ -234,6 +236,10 @@
       <p>In OBS, add a Browser source and use these settings.</p>
       <label>URL<input id="outputUrl" readonly /></label><button id="copyUrl">Copy URL</button>
       <p id="outputSize"></p>
+      <p id="outputDraftNotice" hidden>
+        You have unsaved changes. These dimensions match the saved OBS output.
+      </p>
+      <a id="viewOutput" target="_blank" rel="noopener">Open saved OBS output</a>
       <p>
         Background is transparent. Groby’s Deck must be running on the OBS computer. Only saved
         changes appear in OBS.
@@ -301,6 +307,7 @@ Hello from the sample chat!</textarea>
     <script src="/browser-random-id.js"></script>
     <script src="/overlay-game-rules.js"></script>
     <script src="/overlay-record-format.js"></script>
+    <script src="/overlay-board-controls.js"></script>
     <script src="/overlay-extra-controls.js"></script>
     <script src="/overlay-alert-rules.js"></script>
     <script src="/overlay-goal-sources.js"></script>
@@ -322,6 +329,7 @@ Hello from the sample chat!</textarea>
     <script src="/overlay-guides.js"></script>
     <script src="/overlay-interactions.js"></script>
     <script src="/overlay-live-preview.js"></script>
+    <script src="/overlay-game-chat-settings.js"></script>
     <script src="/overlay-designer.js"></script>
   </body>
 </html>

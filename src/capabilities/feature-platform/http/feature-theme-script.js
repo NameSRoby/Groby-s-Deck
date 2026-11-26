@@ -14,7 +14,7 @@ function overlayThemeHost() {
   }
   frame.addEventListener("load", send);
   async function refresh() {
-    if (closed) return;
+    if (closed || parent !== window) return;
     try {
       const r = await fetch("/api/presentation/theme", { cache: "no-store" }),
         body = await r.json();

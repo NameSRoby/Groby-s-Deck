@@ -1,53 +1,92 @@
 /** Saved output only. The editor's sample events and unsaved draft never reach OBS. */
-/* global OverlayRenderer, createOverlayChatFeed */
+/* global OverlayRenderer, OverlayModel, OverlayGameRules, createOverlayChatFeed */
 (() => {
   const id = new URLSearchParams(location.search).get("id"),
     host = document.getElementById("output");
+  if (!id) return;
   let doc = null,
     data = {},
-    stopped = false,
     timer,
-    revision = -1;
+    clock,
+    request,
+    active = false,
+    live = false,
+    revision = -1,
+    legacy = false;
   const chat = createOverlayChatFeed(draw);
+  function fit() {
+    if (!doc) return;
+    const scale = Math.min(innerWidth / doc.width, innerHeight / doc.height);
+    const x = (innerWidth - doc.width * scale) / 2;
+    const y = (innerHeight - doc.height * scale) / 2;
+    host.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  }
+  addEventListener("resize", fit);
   function draw() {
-    if (doc) OverlayRenderer.render(host, doc, chat.merge(data));
+    if (active && doc) OverlayRenderer.render(host, doc, chat.merge(data));
+  }
+  document.fonts?.addEventListener("loadingdone", draw);
+  document.fonts?.addEventListener("loadingerror", draw);
+  matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", draw);
+  async function read(signal) {
+    const path = "/api/stream-overlays/",
+      suffix = encodeURIComponent(id) + "?revision=" + revision,
+      options = { cache: "no-store", signal };
+    if (!legacy) {
+      const response = await fetch(path + "presentation/" + suffix, options);
+      if (response.status !== 404) return response.json();
+      legacy = true;
+    }
+    const [library, live] = await Promise.all([
+      fetch(path + "document/" + suffix, options).then((r) => r.json()),
+      fetch(path + "data?fast=1", options).then((r) => r.json()),
+    ]);
+    return { ...library, data: live.ok ? live : undefined };
   }
   async function poll() {
+    const controller = new AbortController();
+    request = controller;
     try {
-      const [library, live] = await Promise.all([
-        fetch("/api/stream-overlays/document/" + encodeURIComponent(id) + "?revision=" + revision, {
-          cache: "no-store",
-        }).then((r) => r.json()),
-        fetch("/api/stream-overlays/data?fast=1", { cache: "no-store" }).then((r) => r.json()),
-      ]);
-      if (library.ok) {
-        revision = library.revision;
-        if (!library.notModified) doc = library.document || null;
-        if (!doc) host.replaceChildren();
-        chat.sync(Boolean(doc?.widgets.some((widget) => widget.visible && widget.type === "chat")));
+      const frame = await read(controller.signal);
+      if (request !== controller) return;
+      if (frame.ok) {
+        const changed = frame.revision !== revision;
+        if (changed) {
+          const document = frame.document ? OverlayModel.document(frame.document) : null;
+          doc = document;
+          live = Boolean(doc?.widgets.some(OverlayModel.usesLiveData));
+          revision = frame.revision;
+          fit();
+          if (!doc) host.replaceChildren();
+          clearInterval(clock);
+          if (doc && OverlayRenderer.needsClock(doc)) clock = setInterval(draw, 1000);
+          chat.sync(
+            Boolean(doc?.widgets.some((widget) => widget.visible && widget.type === "chat")),
+          );
+        }
+        if (changed || frame.data) data = frame.data || {};
+        if (changed || live) draw();
       }
-      data = live.ok ? live : {};
-      draw();
     } catch {
-      data = {};
-      draw();
+      if (request === controller && live) draw();
     }
-    if (!stopped)
-      timer = setTimeout(
-        poll,
-        doc?.widgets.some((w) => w.visible && ["alerts", "credits"].includes(w.type)) ? 500 : 2000,
-      );
+    if (request === controller && active)
+      timer = setTimeout(poll, doc?.widgets.some(OverlayGameRules.responsive) ? 500 : 2000);
   }
-  const tick = setInterval(draw, 1000);
-  void poll();
-  addEventListener(
-    "pagehide",
-    () => {
-      stopped = true;
-      chat.stop();
-      clearTimeout(timer);
-      clearInterval(tick);
-    },
-    { once: true },
-  );
+  function start() {
+    if (active) return;
+    active = true;
+    revision = -1;
+    void poll();
+  }
+  addEventListener("pagehide", () => {
+    active = false;
+    request?.abort();
+    request = null;
+    chat.stop();
+    clearTimeout(timer);
+    clearInterval(clock);
+  });
+  addEventListener("pageshow", start);
+  start();
 })();

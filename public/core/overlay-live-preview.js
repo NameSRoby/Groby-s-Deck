@@ -14,12 +14,16 @@ globalThis.setupOverlayLivePreview = (a) => {
   const sampleMode = () => $("previewSource").value === "sample";
   const visible = () => pageActive && studioVisible && !document.hidden;
   const currentInterests = () =>
-    JSON.stringify(a.doc.widgets.filter((w) => w.visible).map(OverlayModel.interest));
+    JSON.stringify(a.doc.widgets.filter(OverlayModel.usesLiveData).map(OverlayModel.interest));
   function interestChanged() {
-    syncChat();
-    if (!session || session.pending || currentInterests() === session.interests) return;
+    const interests = currentInterests();
+    const existing = session;
+    syncSession(interests);
+    syncClock();
+    if (!session || session !== existing || session.pending || interests === session.interests)
+      return;
     clearTimeout(session.timer);
-    session.timer = setTimeout(poll, 80);
+    session.timer = setTimeout(() => poll(), 80);
   }
   function data() {
     events = events.filter((row) => Date.now() - row.at < 300000);
@@ -36,11 +40,11 @@ globalThis.setupOverlayLivePreview = (a) => {
       keepalive: true,
     }).catch(() => {});
   }
-  async function poll() {
+  async function poll(interests = currentInterests()) {
     const client = session;
     if (!client || client.pending) return;
     client.pending = true;
-    client.interests = currentInterests();
+    client.interests = interests;
     try {
       const next = await a.request("/preview-data", "POST", {
         clientId: client.id,
@@ -66,31 +70,46 @@ globalThis.setupOverlayLivePreview = (a) => {
       void release(client);
       return;
     }
-    const fast = a.doc.widgets.some((w) => w.visible && ["alerts", "credits"].includes(w.type));
+    const fast = a.doc.widgets.some(OverlayGameRules.responsive);
     syncChat();
     client.timer = setTimeout(
-      poll,
+      () => poll(),
       currentInterests() !== client.interests ? 80 : fast ? 500 : 2000,
     );
     a.renderContent();
   }
-  function tick() {
-    if (!visible()) return;
-    if (a.doc.widgets.some((widget) => widget.visible)) a.renderContent();
-    clock = setTimeout(tick, 1000);
+  function syncClock() {
+    const timedSample =
+      sampleMode() &&
+      a.doc.widgets.some(
+        (widget) =>
+          OverlayGameRules.responsive(widget) ||
+          (widget.visible && ["activity", "chat", "soundboard"].includes(widget.type)),
+      );
+    if (!visible() || (!OverlayRenderer.needsClock(a.doc) && !timedSample)) {
+      clearTimeout(clock);
+      clock = null;
+    } else if (!clock) {
+      clock = setTimeout(() => {
+        clock = null;
+        if (visible()) a.renderContent();
+        syncClock();
+      }, 1000);
+    }
   }
   function syncChat() {
     chat.sync(
       visible() && !sampleMode() && a.doc.widgets.some((w) => w.visible && w.type === "chat"),
     );
   }
-  function sync() {
+  function syncSession(interests = currentInterests()) {
     syncChat();
-    const shown = visible();
-    if (shown && !sampleMode()) {
+    const wantsLive = visible() && !sampleMode();
+    if (wantsLive && interests !== "[]") {
       if (!session) {
         session = { id: globalThis.GrobyRandomId(), pending: false };
-        void poll();
+        $("feedStatus").textContent = "Connecting live feed...";
+        void poll(interests);
       }
     } else if (session) {
       const previous = session;
@@ -98,8 +117,16 @@ globalThis.setupOverlayLivePreview = (a) => {
       clearTimeout(previous.timer);
       void release(previous);
     }
-    clearTimeout(clock);
-    if (shown) tick();
+    if (wantsLive && interests === "[]") {
+      live = {};
+      if ($("feedStatus").textContent !== "No live data needed")
+        $("feedStatus").textContent = "No live data needed";
+    }
+  }
+  function sync() {
+    syncSession();
+    syncClock();
+    if (visible()) a.renderContent();
   }
   function open(w) {
     if (w?.type === "chat") $("sampleEvent").value = "channel.chat.message";
@@ -164,7 +191,24 @@ globalThis.setupOverlayLivePreview = (a) => {
     $("testDialog").close();
   };
   sync();
+  const applyProfile = (value) => {
+    if (["normal", "compact", "spacious", "sidebar"].includes(value))
+      document.documentElement.dataset.workspaceProfile = value;
+  };
+  if (parent === window)
+    fetch("/api/presentation/navigation", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.ok) applyProfile(result.profile);
+      })
+      .catch(() => {});
   document.addEventListener("visibilitychange", sync);
+  const redrawVisible = () => {
+    if (visible()) a.renderContent();
+  };
+  document.fonts?.addEventListener("loadingdone", redrawVisible);
+  document.fonts?.addEventListener("loadingerror", redrawVisible);
+  matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", redrawVisible);
   addEventListener("message", (event) => {
     if (
       parent === window ||
@@ -173,6 +217,7 @@ globalThis.setupOverlayLivePreview = (a) => {
       event.data?.type !== "overlay-studio-visibility"
     )
       return;
+    applyProfile(event.data.profile);
     const next = event.data.visible !== false;
     if (studioVisible === next) return;
     studioVisible = next;
@@ -209,10 +254,22 @@ globalThis.setupOverlayLivePreview = (a) => {
     }
     if (!a.doc.id)
       throw Error("Save this overlay first, or switch Data to Sample to try it locally.");
+    const saved = a.savedWidget(w.id);
+    if (
+      OverlayGameRules.boardTypes.includes(w.type) &&
+      (!saved ||
+        OverlayGameRules.signature(saved) !== OverlayGameRules.signature(w) ||
+        (w.type === "challenge-board" &&
+          operation === "mark" &&
+          saved.tiles[input.cell - 1]?.id !== w.tiles[input.cell - 1]?.id) ||
+        (w.type === "bingo" && saved.freeCenter !== w.freeCenter))
+    )
+      throw Error("Save the board layout before changing live marks.");
     await a.request("/game-control", "POST", {
       documentId: a.doc.id,
       widgetId: w.id,
       operation,
+      revision: a.revision(),
       ...input,
     });
     live = await a.request("/data");

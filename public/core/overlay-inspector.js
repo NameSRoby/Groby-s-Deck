@@ -1,6 +1,6 @@
 /** Contextual controls: content, appearance and placement are separate views. */
 /* exported setupOverlayInspector */
-/* global OverlayWidgetControls, OverlayFonts, OverlayGoalSources, OverlayTextStyle, setupOverlayAlertControls */
+/* global OverlayWidgetControls, OverlayFonts, OverlayGoalSources, OverlayTextStyle, OverlayGameRules, setupOverlayAlertControls */
 globalThis.setupOverlayInspector = function (a) {
   const $ = a.$,
     host = $("widgetFields");
@@ -145,6 +145,7 @@ globalThis.setupOverlayInspector = function (a) {
         if (!file) return;
         try {
           const result = await a.request("/media", "POST", file, { "Content-Type": file.type });
+          if (!a.doc.widgets.includes(w)) return;
           a.change(() => {
             w.url = result.url;
           });
@@ -154,14 +155,26 @@ globalThis.setupOverlayInspector = function (a) {
       };
       label.append(upload);
       host.append(label);
-      select("Fit", "fit", [
-        ["contain", "Fit inside"],
-        ["cover", "Fill and crop"],
-      ]);
+      widgetTools.mediaFit(w);
       if (w.type === "video") check("Loop video (muted)", "loop");
     }
     if (w.type === "countdown") {
       num("Duration (seconds)", "duration", 1, 86400);
+      const finish = select("When time runs out", "countdownFinish", [
+        ["zero", "Keep showing zero"],
+        ["message", "Show a message"],
+        ["hide", "Hide the timer"],
+      ]);
+      const message = field("Finished message", "countdownMessage", "text", { maxLength: 200 });
+      const sync = () => {
+        message.parentElement.hidden = w.countdownFinish !== "message";
+      };
+      const change = finish.onchange;
+      finish.onchange = () => {
+        change();
+        sync();
+      };
+      sync();
       const button = document.createElement("button");
       button.textContent = "Start / restart countdown";
       button.onclick = () =>
@@ -172,7 +185,7 @@ globalThis.setupOverlayInspector = function (a) {
       host.append(button);
       const pause = document.createElement("button");
       pause.textContent = w.countdownPaused ? "Resume countdown" : "Pause countdown";
-      pause.disabled = !w.countdownPaused && !w.endsAt;
+      pause.disabled = !w.countdownPaused && w.endsAt <= Date.now();
       pause.onclick = () =>
         a.change(() => {
           if (w.countdownPaused) {
@@ -491,6 +504,9 @@ globalThis.setupOverlayInspector = function (a) {
         }
       }
       if (OverlayTextStyle.simple.has(w.type)) looks.unshift(...OverlayTextStyle.looks);
+      const board = OverlayGameRules.boardTypes.includes(w.type) && rows.length === 1;
+      const firstBoardField = host.children.length;
+      if (board) widgetTools.boardStyle(w, looks);
       if (w.type === "chat")
         looks.unshift(
           [
@@ -558,9 +574,13 @@ globalThis.setupOverlayInspector = function (a) {
         label.textContent = "Design preset";
         picker.setAttribute("aria-label", "Design preset");
         picker.append(
-          new Option("Choose a starting style", ""),
+          new Option("Custom style", ""),
           ...looks.map(([name]) => new Option(name, name)),
         );
+        picker.value =
+          looks.find(([, values]) =>
+            Object.entries(values).every(([key, value]) => w[key] === value),
+          )?.[0] || "";
         picker.onchange = () => {
           const look = looks.find(([name]) => name === picker.value);
           if (look)
@@ -569,7 +589,7 @@ globalThis.setupOverlayInspector = function (a) {
             });
         };
         label.append(picker);
-        host.append(label);
+        host.insertBefore(label, host.children[firstBoardField] || null);
       }
 
       field("Text color", "color", "color");

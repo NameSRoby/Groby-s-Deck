@@ -15,9 +15,9 @@ Windows 10 x64 build 19041 or later is required. App audio capture requires buil
 
 ## Install or upgrade
 
-Run **Grobys-Deck-Windows-v0.8.2b-setup-installer.exe**. When upgrading Core, use the existing application folder to retain your settings. Setup stops the old host before replacing application files and preserves `runtime`, accounts, mods and installed feature settings. Start-menu and desktop shortcuts use the new name.
+Run **Grobys-Deck-Windows-v0.8.2c-setup-installer.exe**. When upgrading Core, use the existing application folder to retain your settings. Setup stops the old host before replacing application files and preserves `runtime`, accounts, mods and installed feature settings.
 
-For portable use, extract **Grobys-Deck-Windows-v0.8.2b-self-contained.zip** completely and run **Groby's Deck.exe**. If WebView2 is missing or outdated, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-webview2.ps1`. The helper skips supported installations and repairs older ones. The desktop viewer also checks this minimum after an app update and offers browser recovery when it is not met.
+For portable use, extract **Grobys-Deck-Windows-v0.8.2c-self-contained.zip** completely and run **Groby's Deck.exe**. If WebView2 is missing or outdated, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-webview2.ps1`. The helper skips supported installations and repairs older ones. The desktop viewer also checks this minimum after an app update and offers browser recovery when it is not met.
 
 Setup and portable archives include Microsoft’s full Evergreen Standalone Installer. No internet is needed to install WebView2. The portable helper verifies its checksum and Microsoft signature; Setup verifies its pinned checksum. A failed install blocks an incomplete first launch.
 

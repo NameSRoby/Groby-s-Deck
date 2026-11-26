@@ -20,7 +20,12 @@ module.exports = function createSpotifyProvider(options) {
     if (!fs.existsSync(file)) return fallback;
     if (fs.lstatSync(file).isSymbolicLink() || fs.statSync(file).size > 1048576)
       throw Error("spotify_state_invalid");
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    const contents = fs.readFileSync(file, "utf8");
+    try {
+      return JSON.parse(contents);
+    } catch {
+      throw Error("spotify_state_invalid");
+    }
   };
   const write = (name, data) => {
     const file = path.join(root, name),
@@ -31,15 +36,14 @@ module.exports = function createSpotifyProvider(options) {
   const pairing = read("pairing.json", {
     token: crypto.randomBytes(32).toString("hex"),
   });
-  if (!/^[a-f0-9]{64}$/.test(pairing.token || "")) throw Error("spotify_pairing_invalid");
-  write("pairing.json", pairing);
+  if (!/^[a-f0-9]{64}$/.test(pairing?.token || "")) throw Error("spotify_pairing_invalid");
   const saved = read("requests.json", []);
   if (
     !Array.isArray(saved) ||
     saved.length > 250 ||
     saved.some(
       (row) =>
-        !/^[A-Za-z0-9_-]{1,100}$/.test(row.entryId || "") ||
+        !/^[A-Za-z0-9_-]{1,100}$/.test(row?.entryId || "") ||
         !trackUri(row.uri) ||
         !["pending", "unknown", "appended", "playing", "finished", "failed", "removed"].includes(
           row.phase,
@@ -67,6 +71,7 @@ module.exports = function createSpotifyProvider(options) {
     launchWork = null,
     launchDeadline = 0,
     launchError = "";
+  if (!fs.existsSync(path.join(root, "pairing.json"))) write("pairing.json", pairing);
   const now = options.now || Date.now;
   let verifyInstallation;
   const installed = () => {
@@ -104,23 +109,31 @@ module.exports = function createSpotifyProvider(options) {
     token: pairing.token,
     onSnapshot: observe,
   });
+  // These command IDs are created by this provider for a single operation.
+  // Request replay is governed by the durable entry receipt above.
+  const invokeOnce = (kind, payload, id = crypto.randomUUID()) =>
+    bridge.invoke(kind, payload, id, { oneShot: true });
   function observe(next) {
     snapshot = next;
     observedAt = Date.now();
     let changed = false;
     for (const row of receipts.values()) {
       if (
+        !next.localDevice ||
+        (row.deviceId && row.deviceId !== next.deviceId) ||
         !row.uid ||
         !["appended", "playing", "pending", "unknown"].includes(row.phase) ||
         observedAt <= (row.confirmedAt || 0)
       )
         continue;
       const phase =
-        next.current?.uid === row.uid
+        next.current?.uid === row.uid && next.current.uri === row.uri
           ? "playing"
-          : next.queue.some((item) => item.uid === row.uid)
+          : next.queue.some((item) => item.uid === row.uid && item.uri === row.uri)
             ? "appended"
-            : next.complete && ["appended", "playing"].includes(row.phase)
+            : next.complete &&
+                (!next.current || next.current.uid) &&
+                ["appended", "playing"].includes(row.phase)
               ? "finished"
               : row.phase;
       if (phase !== row.phase) {
@@ -137,7 +150,12 @@ module.exports = function createSpotifyProvider(options) {
       fresh = connection.connected && Date.now() - observedAt < 6000;
     const launching = launchState(connection.connected);
     const currentOwner = [...receipts.values()].find(
-      (row) => row.uid && row.uid === snapshot?.current?.uid,
+      (row) =>
+        row.phase === "playing" &&
+        snapshot?.localDevice &&
+        (!row.deviceId || row.deviceId === snapshot.deviceId) &&
+        row.uid === snapshot.current?.uid &&
+        row.uri === snapshot.current?.uri,
     );
     const active = [...receipts.values()].filter((row) =>
       ["pending", "unknown", "appended"].includes(row.phase),
@@ -171,15 +189,23 @@ module.exports = function createSpotifyProvider(options) {
               ...(currentOwner || {}),
             }
           : null,
-      handoffs: [...receipts.values()].slice(-50).map((row) => ({
-        ...row,
-        possibleMatches:
-          row.phase === "unknown"
-            ? (snapshot?.queue || [])
-                .filter((item) => item.uri === row.uri)
-                .map((item) => ({ uid: item.uid }))
-            : [],
-      })),
+      handoffs: [...receipts.values()]
+        .filter(
+          (row, index) =>
+            index >= receipts.size - 50 || !["finished", "removed"].includes(row.phase),
+        )
+        .map((row) => ({
+          ...row,
+          possibleMatches:
+            row.phase === "unknown" &&
+            fresh &&
+            snapshot.localDevice &&
+            (!row.deviceId || row.deviceId === snapshot.deviceId)
+              ? (snapshot?.queue || [])
+                  .filter((item) => item.uri === row.uri)
+                  .map((item) => ({ uid: item.uid }))
+              : [],
+        })),
       queueOrder: fresh
         ? (snapshot?.queue || []).map((item) => entryByUid.get(item.uid)).filter(Boolean)
         : [],
@@ -288,8 +314,9 @@ module.exports = function createSpotifyProvider(options) {
       const uri = trackUri(payload.candidate?.providerItemId);
       if (!uri || !/^[A-Za-z0-9_-]{1,100}$/.test(payload.entryId || ""))
         return { ok: false, error: "spotify_track_invalid" };
-      if (!status().ready) return { ok: false, error: "spotify_local_device_unverified" };
-      if (status().capacity.available < 1) return { ok: false, error: "spotify_native_queue_full" };
+      const state = status();
+      if (!state.ready) return { ok: false, error: "spotify_local_device_unverified" };
+      if (state.capacity.available < 1) return { ok: false, error: "spotify_native_queue_full" };
       if (
         receipts.size >= 250 &&
         ![...receipts.values()].some((row) => ["finished", "failed", "removed"].includes(row.phase))
@@ -299,6 +326,7 @@ module.exports = function createSpotifyProvider(options) {
         entryId: payload.entryId,
         createdAt: Date.now(),
         uri,
+        deviceId: state.deviceId,
         uid: crypto.randomBytes(16).toString("hex"),
         commandId: crypto.randomUUID(),
         trackId: uri.slice(14),
@@ -309,10 +337,20 @@ module.exports = function createSpotifyProvider(options) {
         phase: "pending",
       };
       receipts.set(row.entryId, row);
-      persist();
-      const result = await bridge.invoke("append", { uri, uid: row.uid }, row.commandId);
-      if (["appended", "playing"].includes(row.phase) && !result.ok)
+      try {
+        persist();
+      } catch (error) {
+        receipts.delete(row.entryId);
+        throw error;
+      }
+      const result = await invokeOnce("append", { uri, uid: row.uid }, row.commandId);
+      if (["appended", "playing", "finished"].includes(row.phase))
         return { ok: true, appended: true, uid: row.uid };
+      if (result.safeToRetry === true) {
+        receipts.delete(row.entryId);
+        persist();
+        return result;
+      }
       row.phase = result.ok
         ? "appended"
         : result.error === "spotify_delivery_unconfirmed"
@@ -331,24 +369,28 @@ module.exports = function createSpotifyProvider(options) {
     return ordered(async () => {
       const matches = [...receipts.values()].filter(
         (row) =>
-          ["appended", "playing"].includes(row.phase) &&
+          ["pending", "unknown", "appended", "playing"].includes(row.phase) &&
           (payload.entryId
             ? row.entryId === payload.entryId
             : payload.trackId
               ? row.trackId === payload.trackId
               : payload.requesterKey && row.requesterKey === payload.requesterKey),
       );
-      let removed = 0;
+      let removed = 0,
+        error = "";
       for (const row of matches) {
-        const current = status().current;
+        const state = status();
+        if (["pending", "unknown"].includes(row.phase)) {
+          error = "spotify_delivery_needs_review";
+          continue;
+        }
+        if (!state.localDevice || (row.deviceId && row.deviceId !== state.deviceId))
+          return { ok: false, removed, error: "spotify_local_device_unverified" };
+        const current = state.current;
         const result =
           current?.uid === row.uid
-            ? await bridge.invoke(
-                "control",
-                { action: "skip", currentUid: row.uid },
-                crypto.randomUUID(),
-              )
-            : await bridge.invoke("remove", { uri: row.uri, uid: row.uid }, crypto.randomUUID());
+            ? await invokeOnce("control", { action: "skip", currentUid: row.uid })
+            : await invokeOnce("remove", { uri: row.uri, uid: row.uid });
         if (!result.ok) return { ...result, removed };
         row.phase = "removed";
         removed++;
@@ -357,15 +399,14 @@ module.exports = function createSpotifyProvider(options) {
       if (payload.currentUid && !matches.some((row) => row.uid === payload.currentUid)) {
         if (status().current?.uid !== payload.currentUid)
           return { ok: false, error: "spotify_current_changed" };
-        const result = await bridge.invoke(
-          "control",
-          { action: "skip", currentUid: payload.currentUid },
-          crypto.randomUUID(),
-        );
+        const result = await invokeOnce("control", {
+          action: "skip",
+          currentUid: payload.currentUid,
+        });
         if (!result.ok) return result;
         removed++;
       }
-      return { ok: true, removed };
+      return error ? { ok: false, removed, error } : { ok: true, removed };
     });
   }
   function review(payload) {
@@ -374,6 +415,7 @@ module.exports = function createSpotifyProvider(options) {
       !row ||
       !["unknown", "failed"].includes(row.phase) ||
       !status().ready ||
+      (row.deviceId && row.deviceId !== snapshot.deviceId) ||
       Date.now() - (row.createdAt || 0) < 10000
     )
       return { ok: false, error: "spotify_review_unavailable" };
@@ -382,8 +424,18 @@ module.exports = function createSpotifyProvider(options) {
     );
     if (payload.decision === "adopt") {
       const selected = matches.find((item) => item.uid === payload.uid);
-      if (!selected) return { ok: false, error: "spotify_current_changed" };
+      if (
+        !selected ||
+        [...receipts.values()].some(
+          (other) =>
+            other !== row &&
+            other.uid === selected.uid &&
+            ["pending", "unknown", "appended", "playing"].includes(other.phase),
+        )
+      )
+        return { ok: false, error: "spotify_current_changed" };
       row.uid = selected.uid;
+      row.deviceId = snapshot.deviceId || "";
       row.phase = snapshot.current?.uid === selected.uid ? "playing" : "appended";
       row.lastError = "";
       row.confirmedAt = Date.now();
@@ -405,8 +457,8 @@ module.exports = function createSpotifyProvider(options) {
       if (method === "resolve") return await resolve(payload);
       if (method === "enqueue") return await enqueue(payload);
       if (method === "remove") return await remove(payload);
-      if (method === "control") return bridge.invoke("control", payload, crypto.randomUUID());
-      if (method === "review") return review(payload);
+      if (method === "control") return invokeOnce("control", payload);
+      if (method === "review") return await ordered(() => review(payload));
       return { ok: false, error: "spotify_method_invalid" };
     } catch (error) {
       return {

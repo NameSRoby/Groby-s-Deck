@@ -194,7 +194,7 @@ function installRequestSecurityMiddleware(app, options = {}) {
     const originValidation = validateBrowserOrigin(req, {
       allowRemoteWrite,
       port,
-      allowedOrigins: /^\/api\/spotify\/bridge\/(hello|next|result)$/.test(requestPath)
+      allowedOrigins: /^\/api\/spotify\/bridge\/(hello|next|result|heartbeat)$/.test(requestPath)
         ? ["https://xpui.app.spotify.com"]
         : widgetCrossOriginEnabled && requestPath === "/widget/events"
           ? widgetOrigins

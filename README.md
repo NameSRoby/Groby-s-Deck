@@ -196,6 +196,14 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.2c
+
+- **Workspace layout** profiles adjust controls, typography, rows and spacing across the app. Preview Compact, Spacious or Side navigation in **Choose Tabs**. Normal is the default.
+- **Overlay Designer** and the OBS browser source share the saved board appearance. Bingo supports board and square images, completion colors and symbols, and configurable announcements. Challenge boards support freely placed tiles. Tile Match adds a memory game.
+- **Game commands** let the broadcaster assign each command to moderators, VIPs or viewers for a selected saved game. Try `!complete <square name>` for Bingo or a Challenge board.
+- **Song Request** has a dedicated **Chat Responses** tab. Spotify reconnects to Core, reconciles confirmed handoffs after restart, and keeps uncertain writes available for review.
+- **Twitch Connection** supports selecting or clearing all optional features and shows how many are selected.
+
 ## What's fixed in 0.8.2b
 
 - Fresh installations provision the Twitch Integration and Song Request packages from the bundle.
@@ -258,7 +266,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Earlier versions
 
-Groby’s Deck 0.8 is the current release. Previous releases remain available in the
+Groby’s Deck 0.8.2c is the current release. Previous releases remain available in the
 [release archive](docs/RELEASE_ARCHIVE.md) for reference.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.

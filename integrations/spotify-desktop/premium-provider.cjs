@@ -17,6 +17,7 @@ module.exports = function premiumProvider(options) {
     now = options.now || Date.now;
   let state = null,
     observedAt = 0,
+    lastAttemptAt = null,
     work = null,
     serial = Promise.resolve(),
     lastError = "",
@@ -25,7 +26,8 @@ module.exports = function premiumProvider(options) {
     receipts = new Map(),
     devices = [],
     lastSnapshot = "",
-    lastQueue = "";
+    lastQueue = "",
+    generation = 0;
   const ordered = (action) => {
     const result = serial.then(action);
     serial = result.catch(() => {});
@@ -34,7 +36,7 @@ module.exports = function premiumProvider(options) {
   const save = () => {
     if (!journal) return;
     for (const [id, row] of receipts) {
-      if (receipts.size < 250) break;
+      if (receipts.size <= 250) break;
       if (["finished", "failed", "removed"].includes(row.phase)) receipts.delete(id);
     }
     const temporary = journal + ".tmp";
@@ -43,9 +45,10 @@ module.exports = function premiumProvider(options) {
     });
     fs.renameSync(temporary, journal);
   };
-  async function account() {
+  async function account(isCurrent) {
     if (owner) return;
     const profile = await api.profile();
+    if (!isCurrent()) return;
     if (!profile.ok) throw Error(profile.error);
     const identity = profile.value?.account_id || profile.value?.id;
     if (typeof identity !== "string" || !identity || identity.length > 200)
@@ -60,14 +63,19 @@ module.exports = function premiumProvider(options) {
     if (fs.existsSync(file)) {
       if (fs.lstatSync(file).isSymbolicLink() || fs.statSync(file).size > 1048576)
         throw Error("spotify_state_invalid");
-      rows = JSON.parse(fs.readFileSync(file, "utf8"));
+      const contents = fs.readFileSync(file, "utf8");
+      try {
+        rows = JSON.parse(contents);
+      } catch {
+        throw Error("spotify_state_invalid");
+      }
     }
     if (
       !Array.isArray(rows) ||
       rows.length > 250 ||
       rows.some(
         (row) =>
-          !/^[A-Za-z0-9_-]{1,100}$/.test(row.entryId || "") ||
+          !/^[A-Za-z0-9_-]{1,100}$/.test(row?.entryId || "") ||
           !trackUri(row.uri) ||
           !["pending", "unknown", "appended", "playing", "finished", "failed", "removed"].includes(
             row.phase,
@@ -85,20 +93,31 @@ module.exports = function premiumProvider(options) {
     journal = file;
   }
   async function refresh(force = false) {
-    if (work) return work;
-    if (!force && state && now() - observedAt < 5000) return;
+    if (!force && work) return work;
+    // A post-write observation must start after the write, even if a
+    // background observation was already in flight at the time.
+    while (work) await work;
+    if (!force && lastAttemptAt !== null && now() - lastAttemptAt < 5000) return;
+    lastAttemptAt = now();
+    const started = generation,
+      revision = options.auth.status().revision,
+      isCurrent = () => started === generation && revision === options.auth.status().revision;
     work = (async () => {
       try {
-        await account();
+        await account(isCurrent);
+        if (!isCurrent()) return;
         const playback = await api.playback();
+        if (!isCurrent()) return;
         if (!playback.ok) throw Error(playback.error);
         const queue = await api.queue();
+        if (!isCurrent()) return;
         if (!queue.ok) throw Error(queue.error);
         const item = playback.value?.item,
           uri = trackUri(item?.uri),
           position = Math.max(0, Number(playback.value?.progress_ms) || 0);
         const sameOccurrence =
           uri &&
+          playback.value?.device?.id === state?.deviceId &&
           uri === state?.current?.uri &&
           position + 3000 >= (state?.current?.positionMs || 0);
         const current = uri
@@ -119,7 +138,11 @@ module.exports = function premiumProvider(options) {
         const rows = queue.value?.queue;
         if (!Array.isArray(rows) || rows.length > 1000)
           throw Error("spotify_queue_shape_unavailable");
-        const entries = rows.map((row) => trackUri(row.uri)).filter(Boolean);
+        const entries = rows.map((row) => trackUri(row?.uri)).filter(Boolean);
+        const queueCurrent = queue.value?.currently_playing;
+        if (queueCurrent !== undefined && queueCurrent?.uri !== item?.uri)
+          throw Error("spotify_playback_snapshot_changed");
+        const recovered = state === null;
         state = {
           current,
           queue: entries,
@@ -134,7 +157,10 @@ module.exports = function premiumProvider(options) {
         let changed = false;
         for (const row of receipts.values()) {
           // A different Connect device cannot settle ownership on our target.
-          if (state.deviceId !== options.getDevice()) continue;
+          if (!state.deviceId || state.deviceId !== options.getDevice()) {
+            row.missing = 0;
+            continue;
+          }
           if (!["appended", "playing"].includes(row.phase)) continue;
           if (
             current?.uri === row.uri &&
@@ -145,14 +171,15 @@ module.exports = function premiumProvider(options) {
             row.phase = "playing";
             row.uid = current.uid;
             row.missing = 0;
-          } else if (
-            row.phase === "playing" ||
-            (state.complete &&
-              !entries.includes(row.uri) &&
-              (row.missing = (row.missing || 0) + 1) >= 2)
-          ) {
+          } else if (row.phase === "playing") {
             row.phase = "finished";
             changed = true;
+          } else {
+            row.missing = state.complete && !entries.includes(row.uri) ? (row.missing || 0) + 1 : 0;
+            if (row.missing >= 2) {
+              row.phase = "finished";
+              changed = true;
+            }
           }
         }
         if (changed) save();
@@ -168,11 +195,13 @@ module.exports = function premiumProvider(options) {
             current,
           });
         }
-        if (changed || queueKey !== lastQueue) {
+        if (recovered || changed || queueKey !== lastQueue) {
           lastQueue = queueKey;
           options.onQueueChanged?.();
         }
       } catch (error) {
+        if (!isCurrent()) return;
+        for (const row of receipts.values()) row.missing = 0;
         state = null;
         lastError = /^spotify_/.test(error.message) ? error.message : "spotify_api_unavailable";
       }
@@ -200,6 +229,7 @@ module.exports = function premiumProvider(options) {
       enabled: true,
       mode: "official",
       connected: options.auth.status().connected,
+      historyLoaded: Boolean(owner),
       ready: Boolean(selected),
       localDevice: Boolean(selected),
       controlsAvailable: Boolean(selected),
@@ -222,13 +252,20 @@ module.exports = function premiumProvider(options) {
               ...(currentOwner || {}),
             }
           : null,
-      handoffs: [...receipts.values()].slice(-50).map((row) => ({
-        ...row,
-        possibleMatches:
-          row.phase === "unknown" && state?.queue.filter((uri) => uri === row.uri).length === 1
-            ? [{ uid: "official-queue-" + row.entryId }]
-            : [],
-      })),
+      handoffs: [...receipts.values()]
+        .filter(
+          (row, index) =>
+            index >= receipts.size - 50 || !["finished", "removed"].includes(row.phase),
+        )
+        .map((row) => ({
+          ...row,
+          possibleMatches:
+            row.phase === "unknown" &&
+            selected &&
+            state.queue.filter((uri) => uri === row.uri).length === 1
+              ? [{ uid: "official-queue-" + row.entryId }]
+              : [],
+        })),
       queueOrder,
       queueTimingComplete: Boolean(fresh && state.queue.length === queueOrder.length),
     };
@@ -329,7 +366,10 @@ module.exports = function premiumProvider(options) {
     )
       return { ok: false, error: "spotify_current_changed" };
     const result = await api.control(payload, options.getDevice());
-    if (result.ok) observedAt = 0;
+    if (result.ok) {
+      observedAt = 0;
+      lastAttemptAt = null;
+    }
     return result;
   }
   async function remove(payload) {
@@ -394,11 +434,19 @@ module.exports = function premiumProvider(options) {
       return ordered(async () => {
         await refresh(true);
         const row = receipts.get(payload.entryId);
-        if (!row || !state?.complete || !["unknown", "failed"].includes(row.phase))
+        if (
+          !row ||
+          !status().ready ||
+          !state.complete ||
+          !["unknown", "failed"].includes(row.phase)
+        )
           return { ok: false, error: "spotify_review_unavailable" };
         if (
           payload.decision === "adopt" &&
           payload.uid === row.uid &&
+          ![...receipts.values()].some(
+            (other) => other !== row && other.uri === row.uri && other.phase === "appended",
+          ) &&
           state.queue.filter((uri) => uri === row.uri).length === 1
         ) {
           row.phase = "appended";
@@ -419,11 +467,15 @@ module.exports = function premiumProvider(options) {
     handle,
     status,
     reset() {
+      generation++;
       owner = "";
       journal = null;
       receipts = new Map();
       state = null;
       observedAt = 0;
+      lastAttemptAt = null;
+      lastError = "";
+      devices = [];
       lastSnapshot = "";
       lastQueue = "";
     },

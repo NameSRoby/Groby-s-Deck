@@ -434,8 +434,9 @@ The Spotify companion captures the minimal native platform facade and connects
 to the local host bridge with a pairing token, client identity, session, and leased
 commands. The renderer deduplicates command IDs and retries dropped receipts rather
 than re-executing writes. A timeout does not cancel the native operation. Read-only
-search/playlist history can be evicted; uncertain write receipts must remain until
-the bounded history is full, at which point the bridge refuses more work.
+history and acknowledged successes for single-use Core command IDs can be evicted.
+The bridge retains uncertain write receipts and reusable playlist write receipts
+in bounded storage and refuses more work if that storage fills.
 
 Both companions depend on external desktop-client internals. Their unit tests
 exercise reviewed adapters and recorded shapes, not a guarantee that every future

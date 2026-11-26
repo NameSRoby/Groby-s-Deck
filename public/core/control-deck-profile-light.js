@@ -1,11 +1,12 @@
 /** One recessed light per saved fixture; state feedback still overrides the palette. */
+import { findDeckAction } from "./control-deck-action-index.js";
 const painted = new WeakMap();
 export function profileLightingFor(steps, catalog) {
   if (steps?.length !== 1) return null;
   const step = steps[0];
   const id =
     step.actionId === "lighting.profile" ? "lighting.profile:" + step.params?.id : step.actionId;
-  return catalog.find((action) => action.id === id)?.profileLighting || null;
+  return findDeckAction(catalog, id)?.profileLighting || null;
 }
 export function paintProfileLighting(tile, lights, enabled = true) {
   const source = tile.querySelector(".deckLedSource");

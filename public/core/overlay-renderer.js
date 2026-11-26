@@ -21,6 +21,7 @@
   };
   const samples = () => ({
     sample: true,
+    sampleAt: Date.now(),
     connected: true,
     music: {
       current: {
@@ -94,48 +95,19 @@
     };
     if (w.type === "credits" && root.renderOverlayCredits)
       body.append(root.renderOverlayCredits(w, data, now));
-    else if (["slideshow", "rotating-text"].includes(w.type)) {
-      const index = Math.floor(now / (w.rotateEvery * 1000)) % (w.items.length || 1),
-        value = w.items[index];
-      if (value && w.type === "rotating-text") label(value);
-      else if (value) {
-        const video = /\.(mp4|webm)$/i.test(new URL(value, location.href).pathname),
-          media = el(video ? "video" : "img");
-        media.src = value;
-        media.style.objectFit = w.fit;
-        if (video) {
-          media.autoplay = true;
-          media.loop = true;
-          media.muted = true;
-          media.playsInline = true;
-        } else media.alt = w.name;
-        body.append(media);
-      }
+    else if (w.type === "rotating-text") {
+      const value = rotatingValue(w, now);
+      if (value) label(value);
     } else if (w.type === "text") label(w.text);
     else if (w.type === "shape") body.className = "shapeBody";
-    else if (["image", "video"].includes(w.type)) {
-      if (w.url) {
-        const media = el(w.type === "image" ? "img" : "video");
-        media.src = w.url;
-        media.style.objectFit = w.fit;
-        if (w.type === "video") {
-          media.autoplay = true;
-          media.loop = w.loop;
-          media.muted = true;
-          media.playsInline = true;
-          media.preload = "metadata";
-        } else media.alt = w.name;
-        body.append(media);
-      }
-    } else if (w.type === "clock")
+    else if (w.type === "clock")
       label(new Date(now).toLocaleTimeString([], { timeZone: w.timezone }));
-    else if (w.type === "countdown")
+    else if (w.type === "countdown") {
+      const seconds = countdownSeconds(w, now);
       label(
-        duration(
-          w.countdownPaused ? w.pausedSeconds : w.endsAt ? (w.endsAt - now) / 1000 : w.duration,
-        ),
+        seconds <= 0 && w.countdownFinish === "message" ? w.countdownMessage : duration(seconds),
       );
-    else if (w.type === "now-playing") {
+    } else if (w.type === "now-playing") {
       if (music?.current) {
         body.append(
           el("strong", music.current.title),
@@ -231,6 +203,29 @@
     }
     return body;
   }
+  function fitMedia(node, w) {
+    node.style.objectFit = w.fit;
+    node.style.objectPosition = w.mediaFocusX + "% " + w.mediaFocusY + "%";
+  }
+  const countdownSeconds = (w, now) =>
+    w.countdownPaused ? w.pausedSeconds : w.endsAt ? (w.endsAt - now) / 1000 : w.duration;
+  const rotatingValue = (w, now) =>
+    w.items[Math.floor(now / (w.rotateEvery * 1000)) % w.items.length];
+  function media(w, video, url, loop) {
+    const node = el(video ? "video" : "img");
+    node.src = url;
+    fitMedia(node, w);
+    if (video)
+      Object.assign(node, {
+        autoplay: true,
+        loop,
+        muted: true,
+        playsInline: true,
+        preload: "metadata",
+      });
+    else node.alt = w.name;
+    return node;
+  }
   function custom(w) {
     const frame = el("iframe");
     frame.title = w.name;
@@ -255,14 +250,24 @@
       "<\/script>";
     return frame;
   }
+  function place(node, w) {
+    node.style.left = w.x + "px";
+    node.style.top = w.y + "px";
+    const width = w.width + "px",
+      height = w.height + "px";
+    if (node.style.width === width && node.style.height === height) return false;
+    node.style.width = width;
+    node.style.height = height;
+    return true;
+  }
   function render(host, doc, data = {}, options = {}) {
     const now = options.now ?? Date.now();
     if (data.session && sessions.get(host) !== data.session) {
       queues.delete(host);
       sessions.set(host, data.session);
     }
-    if (!queues.has(host)) queues.set(host, new Map());
-    const queue = queues.get(host);
+    const queue = queues.get(host) ?? new Map();
+    queues.set(host, queue);
     for (const id of queue.keys())
       if (!doc.widgets.some((w) => w.id === id && w.type === "alerts")) queue.delete(id);
     host.style.width = doc.width + "px";
@@ -280,6 +285,9 @@
         node.remove();
       }
     doc.widgets.forEach((w, index) => {
+      const visible =
+        w.visible &&
+        !(w.type === "countdown" && w.countdownFinish === "hide" && countdownSeconds(w, now) <= 0);
       let node = layers.get(w.id);
       if (!node) {
         node = el("div");
@@ -290,14 +298,11 @@
         node.append(initial);
         host.append(node);
       }
+      place(node, w);
       Object.assign(node.style, {
-        left: w.x + "px",
-        top: w.y + "px",
-        width: w.width + "px",
-        height: w.height + "px",
         transform: "rotate(" + w.rotation + "deg)",
         opacity: String(w.opacity / 100),
-        display: w.visible ? "" : "none",
+        display: visible ? "" : "none",
         zIndex: String(index),
         color: w.color,
         fontSize: w.fontSize + "px",
@@ -319,21 +324,32 @@
       node.dataset.simpleText = String(root.OverlayTextStyle.simple.has(w.type));
       node.dataset.listLayout = w.listLayout;
       root.OverlayMotion?.apply(node, w);
-      if (!w.visible) {
+      if (!visible) {
         root.OverlayAlertRenderer?.stop(node);
         return;
       }
       const body = node.firstElementChild;
       // An unchanged media widget keeps its element and playback across live feed ticks.
-      if (w.type === "image" || w.type === "video") {
-        const mediaSetting = w.type === "image" ? w.name : w.loop;
-        const key = JSON.stringify([w.type, w.url, w.fit, mediaSetting]);
+      if (["image", "video", "slideshow"].includes(w.type)) {
+        const slideshow = w.type === "slideshow",
+          url = slideshow ? rotatingValue(w, now) : w.url,
+          video =
+            w.type === "video" ||
+            (slideshow && url && /\.(mp4|webm)$/i.test(new URL(url, location.href).pathname)),
+          key = JSON.stringify([w.type, url]);
         if (mediaKeys.get(node) !== key) {
-          const next = content(w, data, now);
-          next.classList.add("widgetBody");
+          const next = el("div");
+          next.className = "widgetBody";
+          if (url) next.append(media(w, video, url, slideshow || w.loop));
           body.replaceWith(next);
           mediaKeys.set(node, key);
           delete node.contentSignature;
+        }
+        const asset = node.firstElementChild.firstElementChild;
+        if (asset) {
+          fitMedia(asset, w);
+          if (video) asset.loop = slideshow || w.loop;
+          else asset.alt = w.name;
         }
         delete node.dataset.empty;
         return;
@@ -372,6 +388,7 @@
         }
         view = { ...data, events: state.current ? [{ ...state.current, at: state.started }] : [] };
       }
+      if (root.OverlayExtraRenderer.boardUnchanged(node, w, view, now)) return;
       const next = content(w, view, now);
       next.classList.add("widgetBody");
       const hasContent = Boolean(
@@ -385,7 +402,7 @@
                 .map((row) => row.id),
             )
           : null;
-      const signature = next.innerHTML;
+      const signature = JSON.stringify([next.className, next.innerHTML]);
       // Expiring messages can fade. Moderated messages and messages from a closed session disappear.
       if (chatIds)
         for (const row of [...body.children]) {
@@ -467,5 +484,18 @@
       return w.name + " - connect Twitch and select an automation counter, or use Sample data.";
     return w.name + " - waiting for data. Use Test widgets to preview.";
   }
-  root.OverlayRenderer = { render, samples };
+  const timedTypes = new Set([
+    "clock",
+    "countdown",
+    "uptime",
+    "slideshow",
+    "rotating-text",
+    "now-playing",
+  ]);
+  root.OverlayRenderer = {
+    render,
+    place,
+    samples,
+    needsClock: (doc) => doc.widgets.some((w) => w.visible && timedTypes.has(w.type)),
+  };
 })(globalThis);

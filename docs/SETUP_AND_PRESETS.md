@@ -12,16 +12,16 @@ All workspaces remain available in any order. A compact Setup bar stays above th
 
 ## Built-in viewer controls
 
-| Feature | Chat fallback when no reward is linked |
-| --- | --- |
-| Change lights | `!color blue` (`!colour`, `!lights`) |
-| Teach color | `!teachcolor ocean #123abc` (`!teach`, `!teachcolour`) |
-| Song Request | `!sr artist song` (`!songrequest`) |
+| Feature         | Chat fallback when no reward is linked                    |
+| --------------- | --------------------------------------------------------- |
+| Change lights   | `!color blue` (`!colour`, `!lights`)                      |
+| Teach color     | `!teachcolor ocean #123abc` (`!teach`, `!teachcolour`)    |
+| Song Request    | `!sr artist song` (`!songrequest`)                        |
 | Add to playlist | `!addtoplaylist artist song` (`!playlistadd`, `!addsong`) |
 
 Find these controls in **Twitch Integration → Rewards & automations → Built-in features**. The tab shows all four controls and indicates when Song Request needs to be enabled. Connecting a reward does not remove the built-in control. Deleting its reward returns an enabled control to chat fallback. Disabling a built-in control disables its fallback.
 
-The saved **Song Request → Setup → Request method** takes precedence: selecting **Chat commands** keeps `!sr` available even if the Channel Points automation is absent, disabled or paused. The request-mode deck button changes this same preference in both directions. Selecting Channel Points without a linked reward retains chat fallback until one is linked; it does not silently change the saved preference.
+**Song Request → Setup → Request method** selects where viewers send requests. With **Chat commands** selected, `!sr` can run even if the Channel Points rule is disabled. The switch under **Built-in features** pauses the whole feature, including chat intake. The request-mode deck button changes the saved request method. Selecting Channel Points without a linked reward keeps chat fallback available until you link a reward.
 
 **Pause rewards & chat intake** pauses viewer commands and managed redemptions, including on channels with no Channel Points rewards. Per-reward pause controls pause the corresponding built-in chat intake too. Switching request mode never clears this pause. Song Request's own queue pause, moderation and command access rules still apply. Resuming rewards cannot reopen a paused or unverified song queue.
 

@@ -3,20 +3,20 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
   const tab = document.createElement("button"),
     panel = document.createElement("section");
   tab.type = "button";
-  tab.textContent = "Bingo";
+  tab.textContent = "Game boards";
   tab.setAttribute("aria-controls", "deckBingo");
   tab.setAttribute("aria-pressed", "false");
   panel.id = "deckBingo";
   panel.hidden = true;
-  panel.setAttribute("aria-label", "Bingo controls");
+  panel.setAttribute("aria-label", "Game board controls");
   panel.innerHTML = `
     <div class="deckBingoBar">
-      <label>Saved board <select aria-label="Saved Bingo board"></select></label>
+      <label>Saved board <select aria-label="Saved game board"></select></label>
       <button type="button" data-reset>Reset board</button>
       <button type="button" data-designer>Overlay designer</button>
       <button type="button" data-retry hidden>Retry</button>
     </div>
-    <div class="deckBingoStage"><div class="deckBingoGrid" role="group" aria-label="Bingo squares"></div></div>
+    <div class="deckBingoStage"><div class="deckBingoGrid" role="group" aria-label="Board squares"></div></div>
     <p class="deckBingoStatus" role="status"></p>
     <dialog class="deckBingoConfirm">
       <p>Clear every mark on this board?</p>
@@ -43,6 +43,20 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
   const notice = (message) => {
     if (status.textContent !== message) status.textContent = message;
   };
+  function progress(board) {
+    if (board.operation === "flip") {
+      return board.won
+        ? "All pairs matched in " + board.attempts + " attempts."
+        : board.matched + " of " + board.cells.length / 2 + " pairs matched.";
+    }
+    return (
+      (board.won ? "Bingo! " : "") +
+      board.cells.filter((cell) => cell.marked).length +
+      " of " +
+      board.cells.length +
+      " marked."
+    );
+  }
   function paint() {
     const board = value?.board;
     if (value && JSON.stringify(value.boards) !== optionsKey) {
@@ -51,37 +65,80 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     }
     picker.disabled = !value?.boards.length || sending;
     reset.disabled =
-      !board || Boolean(value.error) || sending || !board.cells.some((c) => c.marked && !c.free);
+      !board ||
+      Boolean(value.error) ||
+      sending ||
+      !board.cells.some((c) =>
+        board.operation === "flip" ? !c.covered || board.attempts : c.marked && !c.free,
+      );
     if (board) picker.value = key(board);
     const cells = board?.cells || [];
+    grid.classList.toggle("freeform", board?.freeform === true);
     grid.style.setProperty("--bingo-columns", String(board?.columns || 1));
+    grid.style.aspectRatio = board?.freeform ? board.width + " / " + board.height : "";
+    grid.style.backgroundImage = board?.image ? `url(${JSON.stringify(board.image)})` : "";
+    grid.style.backgroundSize = board?.imageFit || "";
+    grid.style.setProperty("--board-mark-color", board?.markColor || "");
+    grid.style.setProperty("--board-mark-opacity", (board?.markOpacity ?? 100) / 100);
+    grid.style.setProperty("--board-symbol-color", board?.markSymbolColor || "");
+    grid.style.setProperty("--board-back-color", board?.matchBackColor || "");
+    grid.dataset.markMode = board?.markMode || "color";
     while (grid.children.length > cells.length) grid.lastElementChild.remove();
     for (const [index, cell] of cells.entries()) {
       let button = grid.children[index];
       if (!button) {
         button = document.createElement("button");
         button.type = "button";
-        button.onclick = () => void act("mark", index + 1);
+        button.onclick = () => void act(value?.board?.operation || "mark", index + 1);
+        const image = document.createElement("img"),
+          label = document.createElement("span"),
+          symbol = document.createElement("span");
+        image.alt = "";
+        symbol.className = "deckBoardSymbol";
+        symbol.setAttribute("aria-hidden", "true");
+        button.append(image, label, symbol);
         grid.append(button);
       }
-      if (button.textContent !== cell.text) button.textContent = cell.text;
+      const [image, label, symbol] = button.children;
+      image.hidden = !cell.image;
+      if (cell.image && image.getAttribute("src") !== cell.image) image.src = cell.image;
+      image.style.objectFit = board.cellImageFit;
+      button.classList.toggle("covered", cell.covered === true);
+      label.hidden =
+        board.showLabels === false && (Boolean(cell.image) || board.operation !== "flip");
+      const text = cell.covered ? board.matchBack : cell.text;
+      if (label.textContent !== text) label.textContent = text;
+      symbol.hidden = !cell.marked || board.markMode === "color";
+      if (symbol.textContent !== board.markSymbol) symbol.textContent = board.markSymbol;
+      if (board.freeform)
+        Object.assign(button.style, {
+          left: cell.x + "%",
+          top: cell.y + "%",
+          width: cell.width + "%",
+          height: cell.height + "%",
+          transform: `rotate(${cell.rotation}deg)`,
+        });
+      else button.removeAttribute("style");
       button.setAttribute("aria-pressed", String(cell.marked));
-      button.setAttribute("aria-label", "Square " + (index + 1) + ": " + cell.text);
-      button.disabled = cell.free || Boolean(value.error);
+      button.setAttribute(
+        "aria-label",
+        board.operation === "flip"
+          ? cell.covered
+            ? "Flip tile " + (index + 1)
+            : "Tile " + (index + 1) + ": " + cell.text
+          : "Square " + (index + 1) + ": " + cell.text,
+      );
+      button.disabled = cell.free || board.waiting === true || Boolean(value.error);
     }
     grid.setAttribute("aria-busy", String(sending));
     notice(
       error ||
         value?.error ||
         (board
-          ? (board.won ? "Bingo! " : "") +
-            cells.filter((cell) => cell.marked).length +
-            " of " +
-            cells.length +
-            " marked."
+          ? progress(board)
           : value
-            ? "Save a visible Bingo board in Overlay designer to play here."
-            : "Loading saved Bingo boards…"),
+            ? "Save a visible board in Overlay Designer to play here."
+            : "Loading saved boards…"),
     );
   }
   function schedule(delay = 1000) {
@@ -112,11 +169,11 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
         retry.hidden = false;
         value = null;
         paint();
-        notice("Could not load Bingo boards. Check that Core is up to date and connected.");
+        notice("Could not load saved boards. Check that Core is up to date and connected.");
       }
     } finally {
       pending = false;
-      schedule(selected && selected !== target ? 0 : 1000);
+      schedule(selected && selected !== target ? 0 : value?.board?.waiting ? 250 : 1000);
     }
   }
   async function act(operation, cell, confirmed = null) {
@@ -166,6 +223,12 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     const board = value?.board;
     if (!board) return;
     const confirmed = { target: key(board), version: board.version, revision: value.revision };
+    dialog.querySelector("p").textContent =
+      board.operation === "flip"
+        ? "Shuffle the tiles and start a new round?"
+        : "Clear every mark on this board?";
+    dialog.querySelector('[value="reset"]').textContent =
+      board.operation === "flip" ? "New round" : "Clear marks";
     dialog.returnValue = "";
     dialog.onclose = () => {
       if (dialog.returnValue === "reset") void act("reset", undefined, confirmed);

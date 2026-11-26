@@ -23,9 +23,11 @@ const defaults = {
   "feature:song-request": "main",
   "feature:twitch-integration": "main",
 };
+const profiles = ["normal", "compact", "spacious", "sidebar"];
 module.exports = function registerNavigationRoutes(app, { runtimeDir, rateLimitOptions = {} }) {
   const file = path.join(runtimeDir, "system", "navigation.json");
   let tabs = { ...defaults },
+    profile = "normal",
     configured = false;
   const valid = (value) =>
     value &&
@@ -41,6 +43,7 @@ module.exports = function registerNavigationRoutes(app, { runtimeDir, rateLimitO
     const saved = JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, ""));
     if (valid(saved.tabs)) {
       tabs = { ...defaults, ...saved.tabs };
+      if (profiles.includes(saved.profile)) profile = saved.profile;
       configured = true;
     }
   } catch {}
@@ -48,7 +51,7 @@ module.exports = function registerNavigationRoutes(app, { runtimeDir, rateLimitO
     isLocalOrSameHostRequest(req) && validateBrowserOrigin(req).ok
       ? next()
       : res.status(403).json({ ok: false, error: "navigation_loopback_required" });
-  const snapshot = () => ({ ok: true, configured, tabs });
+  const snapshot = () => ({ ok: true, configured, tabs, profile });
   app.get("/api/presentation/navigation", local, (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.json(snapshot());
@@ -63,20 +66,30 @@ module.exports = function registerNavigationRoutes(app, { runtimeDir, rateLimitO
     message: { ok: false, error: "navigation_rate_limited" },
   });
   app.put("/api/presentation/navigation", local, saveLimit, (req, res) => {
-    if (!valid(req.body?.tabs))
+    const requestedProfile = req.body?.profile;
+    if (
+      !valid(req.body?.tabs) ||
+      (requestedProfile !== undefined && !profiles.includes(requestedProfile))
+    )
       return res.status(400).json({ ok: false, error: "navigation_invalid" });
-    const next = { ...defaults, ...req.body.tabs };
+    const next = { ...defaults, ...req.body.tabs },
+      nextProfile = requestedProfile ?? profile;
     if (
       configured &&
+      nextProfile === profile &&
       Object.keys(next).length === Object.keys(tabs).length &&
       Object.entries(next).every(([id, mode]) => tabs[id] === mode)
     )
       return res.json(snapshot());
     try {
       fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file + ".tmp", JSON.stringify({ version: 1, tabs: next }) + "\n");
+      fs.writeFileSync(
+        file + ".tmp",
+        JSON.stringify({ version: 1, tabs: next, profile: nextProfile }) + "\n",
+      );
       fs.renameSync(file + ".tmp", file);
       tabs = next;
+      profile = nextProfile;
       configured = true;
     } catch {
       return res.status(503).json({ ok: false, error: "navigation_save_failed" });

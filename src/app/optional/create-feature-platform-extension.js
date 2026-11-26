@@ -100,6 +100,8 @@ function createFeaturePlatformExtension(options = {}) {
           onChat: async (event, monitorConfig) => {
             if (intakePause.paused(twitchProvider().status().userId, "all"))
               return { handled: true, accepted: false, code: "twitch_intake_paused" };
+            const game = await context.streamOverlays?.gameChatHandle?.(event, twitchProvider());
+            if (game?.handled) return game;
             const automation = await automations.chat(event);
             if (automation.handled) return automation;
             const handled = await chatCommands.handle(event, monitorConfig);

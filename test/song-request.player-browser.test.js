@@ -862,6 +862,13 @@ test("local player waits for a user start, then plays and permits re-request aft
   await surface.locator("#viewerLimit").fill("7");
   await surface.getByRole("tab", { name: "Moderation", exact: true }).press("ArrowLeft");
   assert.equal(
+    await surface
+      .getByRole("tab", { name: "Chat Responses", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  await surface.getByRole("tab", { name: "Chat Responses", exact: true }).press("ArrowLeft");
+  assert.equal(
     await surface.getByRole("tab", { name: "Setup", exact: true }).getAttribute("aria-selected"),
     "true",
   );
@@ -884,7 +891,10 @@ test("local player waits for a user start, then plays and permits re-request aft
   const secondPage = await context.newPage();
   await secondPage.goto(`${base}/features-ui/song-request/player`);
   const secondSurface = secondPage.locator("#surface").contentFrame();
-  await secondSurface.locator("#connection").filter({ hasText: "CONNECTED" }).waitFor();
+  await secondSurface
+    .locator("#connection")
+    .filter({ hasText: "Song Request connected" })
+    .waitFor();
   await secondSurface.locator("body").evaluate(async () => {
     while (!window.__testYT) await new Promise((resolve) => setTimeout(resolve, 10));
   });

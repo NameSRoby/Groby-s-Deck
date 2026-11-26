@@ -66,6 +66,8 @@ test("only approved additional widget types are implemented and validated", () =
     "chat-vote",
     "wheel",
     "bingo",
+    "challenge-board",
+    "tile-match",
     "soundboard",
   ])
     assert.ok(model.definitions.some((row) => row.type === type));
@@ -83,6 +85,85 @@ test("only approved additional widget types are implemented and validated", () =
   });
   assert.equal(schedule.timezone, "UTC");
   assert.equal(schedule.schedule[0].title, "Tuesday");
+});
+test("Tile Match flips a pair, delays mismatches, and saves progress without exposing the shuffle", async (t) => {
+  const rules = require("../public/core/overlay-game-rules");
+  const widget = model.widget({
+    type: "tile-match",
+    id: "matching-game",
+    matchPairs: [
+      { id: "moon", text: "Moon" },
+      { id: "sun", text: "Sun" },
+    ],
+    matchRevealSeconds: 2,
+  });
+  const flip = (state, cell, now) =>
+    rules.control(state, widget, "flip", { cell }, now, (n) => n - 1);
+  const first = flip(rules.initial(widget), 1, 100);
+  const wrong = flip(first, 2, 200);
+  assert.equal(rules.board(widget, wrong, 250).waiting, true);
+  assert.throws(() => flip(wrong, 3, 250), /Wait/);
+  assert.equal(rules.board(widget, wrong, 2200).cells.filter((cell) => cell.covered).length, 4);
+  const match = flip(flip(wrong, 1, 2201), 3, 2202);
+  const won = flip(flip(match, 2, 2203), 4, 2204);
+  assert.equal(rules.board(widget, won, 2204).won, true);
+  assert.equal(rules.board(widget, won, 2204).attempts, 3);
+  const { service, save, create } = fixture(t);
+  const doc = save([widget]);
+  const id = doc.widgets[0].id;
+  service.execute("overlay.game.flip", { widget: doc.id + "/" + id, cell: 1 });
+  const state = (await service.data()).games[doc.id][id];
+  assert.equal(state.matchOrder, undefined);
+  assert.deepEqual(Object.keys(state.matchFaces), ["0"]);
+  const reloaded = create();
+  t.after(() => reloaded.close());
+  assert.equal(
+    reloaded.bingoDeck({ documentId: doc.id, widgetId: id }).board.cells[0].covered,
+    false,
+  );
+});
+test("large Bingo marks and freeform tile IDs survive reloads and layout edits", async (t) => {
+  const { service, save, create } = fixture(t);
+  const doc = save([
+    { type: "bingo", id: "bingo", gridSize: 12, gridRows: 10, bingoPatterns: ["all"] },
+    {
+      type: "challenge-board",
+      id: "challenge",
+      tiles: [
+        { id: "one", text: "One" },
+        { id: "two", text: "Two", x: 55, y: 12, width: 30, height: 40, rotation: -15 },
+      ],
+    },
+  ]);
+  const mark = (widgetId, cell) =>
+    service.execute("overlay.game.mark", { widget: doc.id + "/" + widgetId, cell });
+  const markAction = service.actionCatalog().find((row) => row.id === "overlay.game.mark");
+  assert.ok(markAction.parameters.properties.cell.maximum >= 120);
+  for (let i = 1; i <= 120; i++) mark("bingo", i);
+  mark("challenge", 2);
+  const board = service.bingoDeck({ documentId: doc.id, widgetId: "bingo" }).board;
+  assert.equal(board.cells.length, 120);
+  assert.equal(board.won, true);
+  assert.ok((await service.data()).games[doc.id].bingo.bingoAt);
+  const edited = service.store.get(doc.id);
+  edited.widgets[1].tiles.reverse();
+  edited.widgets[1].tiles[0].width = 45;
+  service.save({ document: edited, expectedRevision: service.store.revision() });
+  const fresh = create();
+  t.after(() => fresh.close());
+  assert.equal(
+    fresh.bingoDeck({ documentId: doc.id, widgetId: "bingo" }).board.cells[119].marked,
+    true,
+  );
+  const challenge = fresh.bingoDeck({ documentId: doc.id, widgetId: "challenge" }).board;
+  assert.equal(challenge.freeform, true);
+  assert.deepEqual(
+    challenge.cells.map(({ id, marked, width }) => [id, marked, width]),
+    [
+      ["two", true, 45],
+      ["one", false, 25],
+    ],
+  );
 });
 test("wheel rules share a saved result, remove one selected entry, and reject overlapping spins without mutations", (t) => {
   const f = fixture(t),

@@ -30,18 +30,60 @@
   grid-template-columns: repeat(var(--bingo-columns, 1), minmax(56px, 1fr));
   min-width: calc(var(--bingo-columns, 1) * 64px - 8px);
   gap: 8px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.deckBingoGrid.freeform {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.deckBingoGrid.freeform button {
+  position: absolute;
+  min-height: 0;
 }
 .deckBingoGrid button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   min-height: 58px;
   padding: 6px 4px;
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.deckBingoGrid button[aria-pressed="true"] {
-  background: #1c564d;
-  color: #edfffb;
-  border-color: #4bb9a5;
-  box-shadow: inset 0 -3px #4bb9a5;
+.deckBingoGrid button.covered {
+  background: var(--board-back-color);
+  font-size: 1.5em;
+}
+.deckBingoGrid img,
+.deckBoardSymbol,
+.deckBingoGrid button::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.deckBingoGrid img {
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+}
+.deckBingoGrid:not([data-mark-mode="symbol"]) button[aria-pressed="true"]::before {
+  content: "";
+  background: var(--board-mark-color);
+  opacity: var(--board-mark-opacity);
+  z-index: -1;
+}
+.deckBoardSymbol {
+  display: grid;
+  place-items: center;
+  font-size: 1.6em;
+  font-weight: bold;
+  color: var(--board-symbol-color);
+  text-shadow: 0 1px 4px #000;
+}
+.deckBingoGrid [hidden] {
+  display: none;
 }
 .deckBingoGrid button[aria-pressed="true"]:disabled {
   opacity: 0.8;

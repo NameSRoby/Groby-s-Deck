@@ -16,6 +16,7 @@ function normalize(input, accountId, { canonicalize = true } = {}) {
       "cooldownSeconds",
       "userCooldownSeconds",
       "role",
+      "builtinPaused",
     ]) ||
     JSON.stringify(input).length > 120000
   )
@@ -116,6 +117,9 @@ function normalize(input, accountId, { canonicalize = true } = {}) {
     cooldownSeconds,
     userCooldownSeconds: input.userCooldownSeconds ?? 15,
     role,
+    ...(!canonicalize && input.handler !== "flow" && input.builtinPaused === true
+      ? { builtinPaused: true }
+      : {}),
   };
 }
 module.exports = { normalize, HANDLERS };

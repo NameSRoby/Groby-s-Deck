@@ -1,4 +1,5 @@
 /** LEDs describe confirmed owner state. A macro result is only a brief receipt. */
+import { findDeckAction } from "./control-deck-action-index.js";
 const SUCCESS_MS = 700;
 const colors = {
   active: "#27c58a",
@@ -82,7 +83,7 @@ export function deckIndicator({
     ...(button.alternateSteps || []),
     ...(button.holdSteps || []),
   ];
-  const actions = steps.map((step) => catalog.find((action) => action.id === step.actionId));
+  const actions = steps.map((step) => findDeckAction(catalog, step.actionId));
   if (steps.some((step) => step.type)) {
     if (button.toggleStates && button.alternateSteps?.length) {
       const selected = button.toggleStates[state?.toggled ? "on" : "off"];

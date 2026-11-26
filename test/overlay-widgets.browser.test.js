@@ -8,13 +8,22 @@ const test = require("node:test"),
 async function setup(t, getRecords) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "groby-widgets-ui-")),
     app = express();
+  const replies = [];
   const provider = {
     status: () => ({
       connected: true,
       userId: "123",
-      scopes: ["user:read:chat", "channel:read:predictions", "channel:manage:redemptions"],
+      scopes: [
+        "user:read:chat",
+        "user:write:chat",
+        "channel:read:predictions",
+        "channel:manage:redemptions",
+      ],
     }),
     refreshSubscriptions() {},
+    async sendChat(input) {
+      replies.push(input);
+    },
   };
   const service = require("../src/domains/overlays/stream-overlays.service")({
     runtimeDir: root,
@@ -54,8 +63,191 @@ async function setup(t, getRecords) {
     await page.locator("#add").click();
     await page.locator("#widgetCatalog").getByRole("button", { name, exact: true }).click();
   };
-  return { page, service, add, base, browser };
+  return { page, service, add, base, browser, provider, replies };
 }
+
+test("static scenes stay idle and a burst of pointer events keeps the final widget position", async (t) => {
+  const { page, service, base, browser } = await setup(t);
+  const saved = service.save({
+    expectedRevision: 0,
+    document: {
+      name: "Static canvas",
+      width: 1280,
+      height: 720,
+      widgets: [
+        { id: "label", type: "text", text: "Static", x: 40, y: 40, width: 180, height: 80 },
+      ],
+    },
+  });
+  const previewCalls = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/preview-data"))
+      previewCalls.push(request.url());
+  });
+  await page.reload();
+  await page.locator("#overlayLibrary > summary").click();
+  await page.getByRole("button", { name: /Static canvas/ }).click();
+  const layer = page.locator('[data-widget-id="label"]');
+  await layer.waitFor();
+  assert.equal((await service.presentation(saved.selectedId)).data, null);
+  await page.locator("#feedStatus").getByText("No live data needed").waitFor();
+  await page.evaluate(() => {
+    const render = window.OverlayRenderer.render;
+    window.sceneRenders = 0;
+    window.OverlayRenderer.render = (...args) => {
+      window.sceneRenders++;
+      return render(...args);
+    };
+    document.getElementById("canvas").addEventListener("pointerdown", (event) => {
+      window.gesturePointer = event.pointerId;
+    });
+  });
+  const rect = await layer.boundingBox();
+  const x = rect.x + rect.width / 2,
+    y = rect.y + rect.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  const burstRenders = await page.evaluate(
+    ({ x, y }) => {
+      const canvas = document.getElementById("canvas"),
+        before = window.sceneRenders;
+      for (let i = 1; i <= 60; i++)
+        canvas.dispatchEvent(
+          new PointerEvent("pointermove", {
+            clientX: x + i,
+            clientY: y,
+            pointerId: window.gesturePointer,
+            buttons: 1,
+          }),
+        );
+      return window.sceneRenders - before;
+    },
+    { x, y },
+  );
+  await page.mouse.up();
+  assert.equal(burstRenders, 0);
+  assert.ok(Number.parseFloat(await layer.evaluate((node) => node.style.left)) > 90);
+  assert.deepEqual(previewCalls, []);
+
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + saved.selectedId);
+  await output.locator('[data-widget-id="label"]').waitFor();
+  const nextPoll = output.waitForResponse((response) => response.url().includes("presentation/"));
+  await output.evaluate(() => {
+    const render = window.OverlayRenderer.render;
+    window.sceneRenders = 0;
+    window.OverlayRenderer.render = (...args) => {
+      window.sceneRenders++;
+      return render(...args);
+    };
+  });
+  await nextPoll;
+  assert.equal(await output.evaluate(() => window.sceneRenders), 0);
+});
+
+test("trusted Twitch roles control only the chosen game and repeated completion stays marked in OBS", async (t) => {
+  const { page, service, base, browser, provider, replies } = await setup(t);
+  const saved = service.save({
+    expectedRevision: 0,
+    document: {
+      name: "Games",
+      width: 1280,
+      height: 720,
+      widgets: [
+        {
+          id: "active",
+          name: "Hero wins",
+          type: "challenge-board",
+          tiles: [
+            { id: "hero", text: "First Hero", x: 5, y: 10 },
+            { id: "second", text: "Second Hero", x: 55, y: 10 },
+          ],
+        },
+        { id: "other", name: "Other board", type: "bingo" },
+        {
+          id: "vote",
+          name: "Direction",
+          type: "chat-vote",
+          items: ["Left", "Right"],
+          votePrefix: "!goleft",
+        },
+      ],
+    },
+  });
+  const doc = saved.documents[0];
+  await page.locator("#openGameChat").click();
+  await page.locator("#gameChatTarget").selectOption(doc.id + "/active");
+  await page.locator("#gameChatEnabled").check();
+  const vip = page.locator('tr[data-command="uncomplete"]').getByRole("checkbox", { name: /vip$/ });
+  await vip.check();
+  assert.equal(
+    await page.getByText("!complete <square name or number>", { exact: true }).isVisible(),
+    true,
+  );
+  assert.equal(await page.locator('tr[data-command="spin"]').isHidden(), true);
+  await page.locator("#saveGameChat").click();
+  await page.getByText("Game command permissions saved.").waitFor();
+  await page.reload();
+  await page.locator("#openGameChat").click();
+  await page.getByText("Game commands are enabled for your connected Twitch channel.").waitFor();
+  assert.equal(await page.locator("#gameChatTarget").inputValue(), doc.id + "/active");
+  assert.equal(await vip.isChecked(), true);
+  assert.ok(service.events("123").includes("channel.chat.message"));
+  const say = (actor, id, text, badges = [], fields = {}) =>
+    service.gameChatHandle(
+      {
+        broadcaster_user_id: "123",
+        chatter_user_id: actor,
+        message_id: id,
+        message: { text },
+        badges: badges.map((set_id) => ({ set_id })),
+        ...fields,
+      },
+      provider,
+    );
+  assert.equal((await say("222", "denied", "!complete First Hero")).accepted, false);
+  assert.equal(
+    await say("223", "foreign", "!complete First Hero", ["moderator"], {
+      source_broadcaster_user_id: "7",
+    }),
+    undefined,
+  );
+  assert.equal((await say("123", "complete-one", "!complete first   hero")).accepted, true);
+  assert.equal((await say("223", "complete-again", "!complete #1", ["moderator"])).accepted, true);
+  const show = await browser.newPage();
+  await show.goto(base + "/stream-overlay.html?id=" + doc.id);
+  const marked = show.locator(".extra-challenge-board .bingoCell.marked");
+  await marked.getByText("First Hero").waitFor();
+  assert.match(replies.at(-1).message, /already complete/);
+  assert.equal((await say("224", "uncomplete", "!uncomplete First Hero", ["vip"])).accepted, true);
+  await marked.waitFor({ state: "hidden" });
+  assert.equal((await say("223", "complete-again", "!complete 1", ["moderator"])).accepted, false);
+  const boards = service.bingoDeck({ documentId: doc.id, widgetId: "other" });
+  assert.deepEqual(
+    boards.board.cells.filter((cell) => cell.marked && !cell.free),
+    [],
+  );
+  service.gameChatConfigure({
+    revision: service.gameChatStatus().revision,
+    enabled: true,
+    target: doc.id + "/vote",
+    permissions: { cast_vote: { viewer: false } },
+  });
+  assert.equal((await say("225", "open-vote", "!openvotes", ["moderator"])).accepted, true);
+  for (const [id, text, badges] of [
+    ["229", "!goleft 1", []],
+    ["230", "!goleft 2", [{ set_id: "vip" }]],
+  ]) {
+    service.receive("channel.chat.message", {
+      broadcaster_user_id: "123",
+      chatter_user_id: id,
+      message_id: "vote-" + id,
+      message: { text },
+      badges,
+    });
+  }
+  assert.deepEqual((await service.data({ fast: true })).games[doc.id].vote.counts, [0, 1]);
+});
 test("wheel, bingo and voting can be tested as unsaved drafts, then controlled live after saving", async (t) => {
   const { page, service, add } = await setup(t);
   await add("Wheel of names");
@@ -130,6 +322,119 @@ test("alignment guides snap a dragged edge with editor-only safe margins", async
   assert.equal(await page.locator(".overlayAlignGuide.vertical").isHidden(), true);
   await page.locator("#preview").click();
   assert.equal(await page.locator(".overlaySafeMargins").isHidden(), true);
+});
+test("board designer saves images, custom marks, announcements and freeform geometry to OBS", async (t) => {
+  const { page, add, service, base, browser } = await setup(t);
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jia0AAAAASUVORK5CYII=",
+    "base64",
+  );
+  const upload = async (label) => {
+    const response = page.waitForResponse(
+      (r) => r.url().endsWith("/api/stream-overlays/media") && r.request().method() === "POST",
+    );
+    await page
+      .getByLabel(label, { exact: true })
+      .setInputFiles({ name: "tile.png", mimeType: "image/png", buffer: png });
+    const result = await (await response).json();
+    assert.equal(result.ok, true);
+    await page.locator("#canvas img").filter({ visible: true }).first().waitFor();
+    return result.url;
+  };
+  await add("Bingo board");
+  await page.getByLabel("Board size").selectOption("2");
+  await page.getByText("Board background image", { exact: true }).click();
+  const image = await upload("Board image");
+  await page.getByText("Square image", { exact: true }).click();
+  const square = await upload("Square 1 image");
+  await page.locator('[data-inspector="style"]').click();
+  await page.getByLabel("Design preset").selectOption("Photo tiles");
+  await page.getByLabel("Completed square").selectOption("both");
+  await page.getByLabel("Completion symbol").fill("★");
+  await page.getByLabel("Completion symbol").press("Tab");
+  await page.getByLabel("Announcement text", { exact: true }).fill("Line complete");
+  await page.getByLabel("Announcement text", { exact: true }).press("Tab");
+  await page.getByLabel("Announcement placement").selectOption("overlay");
+  await add("Challenge board");
+  await page.locator('[data-inspector="content"]').click();
+  await page.getByRole("button", { name: "Add tile", exact: true }).click();
+  await page.getByLabel("Tile label", { exact: true }).fill("First hero");
+  await page.getByLabel("Tile label", { exact: true }).press("Tab");
+  for (const [label, value] of [
+    ["Left (%)", "34"],
+    ["Width (%)", "45"],
+    ["Rotation (°)", "-22"],
+  ]) {
+    await page.getByLabel(label, { exact: true }).fill(value);
+    await page.getByLabel(label, { exact: true }).press("Tab");
+  }
+  const tileImage = await upload("Tile image");
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const [doc] = service.store.snapshot().documents;
+  const [bingo, challenge] = doc.widgets;
+  for (const [widgetId, cell] of [
+    [bingo.id, 1],
+    [bingo.id, 2],
+    [challenge.id, 1],
+  ])
+    service.gameControl({ documentId: doc.id, widgetId, operation: "mark", cell });
+  const output = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  for (const view of [page, output]) {
+    await view.locator(".bingoAnnouncement").getByText("Line complete").waitFor();
+    assert.equal(await view.locator(".extra-bingo .bingoSymbol").first().textContent(), "★");
+    assert.equal(await view.locator(".extra-bingo .bingoGrid > img").getAttribute("src"), image);
+    assert.equal(await view.locator(".extra-bingo .bingoCell img").getAttribute("src"), square);
+    const tile = view.locator(".extra-challenge-board .bingoCell.marked");
+    assert.equal(await tile.locator("img").getAttribute("src"), tileImage);
+    assert.deepEqual(
+      await tile.evaluate((node) => [node.style.left, node.style.width, node.style.transform]),
+      ["34%", "45%", "rotate(-22deg)"],
+    );
+  }
+  assert.equal((await output.locator("#output").boundingBox()).width, 960);
+  await page.locator("#canvasOptions").click();
+  await page.locator("#canvasWidth").fill("1200");
+  await page.locator("#applySize").click();
+  await page.keyboard.press("Escape");
+  await page.locator("#openOutput").click();
+  assert.match(
+    await page.locator("#outputSize").textContent(),
+    new RegExp("Width: " + doc.width + " px"),
+  );
+  assert.equal(await page.locator("#outputDraftNotice").isVisible(), true);
+  await output.evaluate(() =>
+    dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true })),
+  );
+  service.save({
+    expectedRevision: service.store.revision(),
+    document: { ...doc, width: 1234 },
+  });
+  await output.evaluate(() =>
+    dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+  );
+  await output.waitForFunction(() => document.querySelector("#output").style.width === "1234px");
+});
+test("Tile Match pairs can be edited and tried in the designer without changing the live overlay", async (t) => {
+  const { page, add, service } = await setup(t);
+  await add("Tile Match");
+  await page.locator("#previewSource").selectOption("sample");
+  await page.getByText("Moon", { exact: true }).click();
+  await page.getByLabel("Pair 1 label").fill("Night");
+  await page.getByLabel("Pair 1 label").press("Tab");
+  assert.equal(await page.locator("#canvas .bingoCell.covered").count(), 12);
+  await page.getByRole("button", { name: "Flip tile 1", exact: true }).click();
+  assert.equal(await page.locator("#canvas .bingoCell.covered").count(), 11);
+  assert.equal(service.store.snapshot().documents.length, 0);
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const [doc] = service.store.snapshot().documents;
+  assert.equal(doc.widgets[0].matchPairs[0].text, "Night");
+  assert.equal(
+    service.bingoDeck({ documentId: doc.id }).board.cells.filter((cell) => cell.covered).length,
+    12,
+  );
 });
 test("schedule rows and record source controls remain editable; every added widget uses shared OBS rendering", async (t) => {
   const { page, add, service, browser, base } = await setup(t);
@@ -229,7 +534,7 @@ test("widget category and search filters keep the picker compact and preserve ac
   const { page } = await setup(t);
   await page.locator("#add").click();
   await page.locator("#widgetGroup").selectOption("Games");
-  assert.equal(await page.locator("#widgetCatalog button").count(), 3);
+  assert.equal(await page.locator("#widgetCatalog button").count(), 5);
   await page.locator("#widgetSearch").fill("wheel");
   assert.equal(await page.locator("#widgetCatalog button").count(), 1);
   await page.locator("#widgetSearch").fill("");

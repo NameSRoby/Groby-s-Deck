@@ -450,9 +450,17 @@ module.exports = function createFeatureHostRegistry(options = {}) {
     );
     await discover();
     let restoredDefaults = false;
-    for (const id of defaultFeatureIds) {
+    const bundled = defaultFeatureIds.length
+      ? await packageManager.listAvailable({ bundledOnly: true, featureIds: defaultFeatureIds })
+      : { features: [] };
+    for (const { id, updateAvailable } of bundled.features) {
       await serialize(async () => {
-        if (!stateStore.get(id).enabled || catalog.has(id)) return;
+        const { reason } = stateStore.get(id);
+        if (
+          reason === "uninstalled" ||
+          (catalog.has(id) ? !updateAvailable : reason === "setup-skipped")
+        )
+          return;
         const result = fs.existsSync(path.join(featuresRoot, id))
           ? await packageManager.update(id, { bundledOnly: true, repairInvalid: true })
           : await packageManager.install(id, { bundledOnly: true });

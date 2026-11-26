@@ -124,9 +124,9 @@ module.exports = function overlayEvents(now = Date.now) {
       rows = rows.slice(-100);
     },
     chatRows: chat.rows,
-    snapshot() {
+    snapshot(types) {
       return structuredClone({
-        events: rows.filter((row) => now() - row.at < 3600000),
+        events: rows.filter((row) => (!types || types.has(row.type)) && now() - row.at < 3600000),
         poll,
         hype,
         prediction,

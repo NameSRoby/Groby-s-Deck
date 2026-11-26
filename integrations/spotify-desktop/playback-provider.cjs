@@ -5,7 +5,7 @@
  */
 const fs = require("node:fs"),
   path = require("node:path");
-module.exports = function playbackProvider(options) {
+function playbackProvider(options) {
   const root = path.join(options.runtimeDir, "spotify-desktop");
   fs.mkdirSync(root, { recursive: true });
   const settingsPath = path.join(root, "premium-device.json"),
@@ -14,14 +14,22 @@ module.exports = function playbackProvider(options) {
     if (!fs.existsSync(file)) return fallback;
     if (fs.lstatSync(file).isSymbolicLink() || fs.statSync(file).size > maximum)
       throw Error("spotify_state_invalid");
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    const contents = fs.readFileSync(file, "utf8");
+    try {
+      return JSON.parse(contents);
+    } catch {
+      throw Error("spotify_state_invalid");
+    }
   };
   let settings = read(settingsPath, { deviceId: "" }, 4096),
     bindings = read(routesPath, {}, 65536),
     closed = false,
     serial = Promise.resolve();
   if (
-    !/^[A-Za-z0-9_-]{0,120}$/.test(settings.deviceId || "") ||
+    !settings ||
+    Array.isArray(settings) ||
+    typeof settings.deviceId !== "string" ||
+    !/^[A-Za-z0-9_-]{0,120}$/.test(settings.deviceId) ||
     !bindings ||
     Array.isArray(bindings) ||
     typeof bindings !== "object" ||
@@ -32,6 +40,7 @@ module.exports = function playbackProvider(options) {
     )
   )
     throw Error("spotify_state_invalid");
+  bindings = Object.assign(Object.create(null), bindings);
   const write = (file, value) => {
     const temporary = file + ".tmp";
     fs.writeFileSync(temporary, JSON.stringify(value), { mode: 0o600 });
@@ -52,18 +61,18 @@ module.exports = function playbackProvider(options) {
   const desktop = (options.createDesktop || require("./provider.cjs"))({
     ...options,
     onSnapshot: (value) => {
-      if (!auth.status().connected || !settings.deviceId || value.deviceId === settings.deviceId)
+      if (
+        !auth.status().connected ||
+        !settings.deviceId ||
+        (value.localDevice && value.complete && value.deviceId === settings.deviceId)
+      )
         options.onSnapshot?.(value);
     },
     onQueueChanged: () => options.onQueueChanged?.(),
   });
-  const nativePreferred = () => {
-    const state = desktop.status();
-    return (
-      state.ready &&
-      (!auth.status().connected || !settings.deviceId || state.deviceId === settings.deviceId)
-    );
-  };
+  const nativePreferred = (state = desktop.status()) =>
+    state.ready &&
+    (!auth.status().connected || !settings.deviceId || state.deviceId === settings.deviceId);
   const api =
     options.api ||
     require("./official-adapter.cjs")({
@@ -94,11 +103,16 @@ module.exports = function playbackProvider(options) {
     })),
   ];
   const officialActive = () => (premium.status().handoffs || []).some(active);
+  const routeFor = (id) => bindings[id] || rows().find((row) => row.entryId === id)?.transport;
   async function status() {
-    if (auth.status().connected) await premium.refresh();
+    if (
+      auth.status().connected &&
+      (!premium.status().historyLoaded || (settings.deviceId && !nativePreferred()))
+    )
+      await premium.refresh();
     const native = desktop.status(),
       official = premium.status(),
-      useNative = nativePreferred();
+      useNative = nativePreferred(native);
     const selected =
       useNative || !auth.status().connected || !settings.deviceId ? native : official;
     const all = [...new Map(rows().map((row) => [row.entryId, row])).values()],
@@ -126,6 +140,14 @@ module.exports = function playbackProvider(options) {
     return {
       ...selected,
       current,
+      desktop: {
+        connected: native.connected,
+        ready: native.ready,
+        localDevice: native.localDevice,
+        launching: native.launching,
+        launchError: native.launchError,
+        lastError: native.lastError,
+      },
       mode:
         useNative && auth.status().connected
           ? "hybrid"
@@ -137,7 +159,9 @@ module.exports = function playbackProvider(options) {
       sameDevice: matching,
       queueRemoval: useNative,
       volumeAvailable: Boolean(official.volumeAvailable && (selected === official || matching)),
-      handoffs: all.slice(-50),
+      handoffs: all.filter(
+        (row, index) => index >= all.length - 50 || !["finished", "removed"].includes(row.phase),
+      ),
       capacity: {
         limit: 10,
         queued: count,
@@ -151,6 +175,7 @@ module.exports = function playbackProvider(options) {
   }
   async function setup(input) {
     if (["configure", "disconnect"].includes(input.action)) {
+      if (auth.status().connected) await premium.refresh();
       if (officialActive()) return { ok: false, error: "spotify_mode_has_requests" };
       const result = auth[input.action](input);
       if (result.ok) {
@@ -181,10 +206,10 @@ module.exports = function playbackProvider(options) {
     return desktop.handle("setup", input);
   }
   async function enqueue(payload) {
+    if (typeof payload?.entryId !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(payload.entryId))
+      return { ok: false, error: "spotify_track_invalid" };
     const state = await status(),
-      existing =
-        bindings[payload.entryId] ||
-        rows().find((row) => row.entryId === payload.entryId)?.transport;
+      existing = routeFor(payload.entryId);
     if (!existing && (state.capacity.available < 1 || !state.ready))
       return {
         ok: false,
@@ -193,9 +218,7 @@ module.exports = function playbackProvider(options) {
             ? "spotify_native_queue_full"
             : state.lastError || "spotify_device_selection_required",
       };
-    const route = existing || (nativePreferred() ? "desktop" : "official");
-    if (!/^[A-Za-z0-9_-]{1,100}$/.test(payload.entryId || ""))
-      return { ok: false, error: "spotify_track_invalid" };
+    const route = existing || (state.mode === "official" ? "official" : "desktop");
     if (!existing) {
       const live = new Set(
         rows()
@@ -279,7 +302,7 @@ module.exports = function playbackProvider(options) {
         );
       }
       if (method === "status") return await status();
-      if (method === "setup") return await setup(payload || {});
+      if (method === "setup") return await ordered(() => setup(payload || {}));
       if (method === "enqueue") return await ordered(() => enqueue(payload));
       if (method === "remove") return await ordered(() => remove(payload));
       if (method === "control") return await ordered(() => control(payload));
@@ -287,12 +310,11 @@ module.exports = function playbackProvider(options) {
         const result = await premium.handle(method, payload);
         if (result.ok || !desktop.status().connected) return result;
       }
-      const route =
-        method === "review"
-          ? bindings[payload.entryId] ||
-            rows().find((row) => row.entryId === payload.entryId)?.transport
-          : "desktop";
-      return await (route === "official" ? premium : desktop).handle(method, payload || {});
+      if (method === "review")
+        return await ordered(() =>
+          (routeFor(payload.entryId) === "official" ? premium : desktop).handle(method, payload),
+        );
+      return await desktop.handle(method, payload || {});
     } catch (error) {
       return {
         ok: false,
@@ -304,13 +326,17 @@ module.exports = function playbackProvider(options) {
     handle,
     router: desktop.router,
     status: () => desktop.status(),
-    async callback(input, redirectUri) {
-      const result = await auth.callback(input, redirectUri);
-      if (result.ok) {
-        premium.reset();
-        await premium.refresh(true);
-      }
-      return result;
+    callback(input, redirectUri) {
+      return ordered(async () => {
+        if (auth.status().connected) await premium.refresh();
+        if (officialActive()) return { ok: false, error: "spotify_mode_has_requests" };
+        const result = await auth.callback(input, redirectUri);
+        if (result.ok) {
+          premium.reset();
+          await premium.refresh(true);
+        }
+        return result;
+      });
     },
     close() {
       closed = true;
@@ -319,4 +345,30 @@ module.exports = function playbackProvider(options) {
       desktop.close();
     },
   };
+}
+module.exports = function createPlaybackProvider(options) {
+  try {
+    return playbackProvider(options);
+  } catch (cause) {
+    const error = cause.message;
+    if (!["spotify_state_invalid", "spotify_pairing_invalid"].includes(error)) throw cause;
+    const result = { ok: false, error };
+    const status = () => ({
+      ok: true,
+      enabled: true,
+      connected: false,
+      ready: false,
+      lastError: error,
+      installation: { prepared: false, error },
+      capacity: { limit: 10, queued: 0, available: 0, reported: false },
+      handoffs: [],
+    });
+    return {
+      status,
+      handle: async (method) => (method === "status" ? status() : result),
+      router: () => (_req, res) => res.status(503).json(result),
+      callback: async () => result,
+      close() {},
+    };
+  }
 };
