@@ -10,6 +10,14 @@ The public regression inventory includes Spotify desktop and Premium
 adapters, the optional Premium setup page, Twitch connection permission
 choices, and the shared Song Request chat responses page.
 
+The release sweep caught a Core-only startup dependency on the optional
+Twitch command router. A shared role check now serves both command paths,
+and the Core-only startup regression runs in the public suite.
+
+The source scan also flagged the OBS link and media rendering paths. The
+link now uses the saved overlay ID directly, and the renderer validates
+URLs before assigning them to image and video elements.
+
 In a Chromium probe with 20 static text layers, idle editor renders fell
 from six to zero and idle OBS browser-source renders from two to zero over
 4.2 seconds. During a burst of 60 pointer events, full scene renders fell
@@ -18,12 +26,12 @@ game-board parity, layout density in feature pages, and Twitch game command
 permissions. The dependency audit reported zero vulnerabilities in the
 locked graph.
 
-Clean Windows runner checks exercise the installer, portable ZIP and
-source bootstrap with simulated accounts. Real Spotify and Twitch sessions,
+Clean Windows runner checks exercise the installer, portable ZIP, source
+bootstrap and in-place upgrade with simulated accounts. Real Spotify and Twitch sessions,
 physical lighting hardware, and OBS production scenes require separate
 acceptance.
 
-## Unreleased audit
+## Packaging and performance audit
 
 The Windows packaging run reproduced a file-lock failure when the release
 runtime was also running tests. The build now checks the cached executable and

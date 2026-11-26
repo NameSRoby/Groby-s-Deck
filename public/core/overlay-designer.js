@@ -742,13 +742,13 @@
   };
   $("openOutput").onclick = () => {
     const published = documents.find((row) => row.id === doc.id);
-    $("outputUrl").value = published
-      ? location.origin + "/stream-overlay.html?id=" + encodeURIComponent(published.id)
-      : "";
+    const url = new URL("/stream-overlay.html", location.origin);
+    if (published) url.searchParams.set("id", published.id);
+    $("outputUrl").value = published ? url.href : "";
     $("copyUrl").disabled = !published;
     $("copyUrl").textContent = "Copy URL";
     $("viewOutput").hidden = !published;
-    if (published) $("viewOutput").href = $("outputUrl").value;
+    if (published) $("viewOutput").href = url.href;
     $("outputSize").textContent = published
       ? "Width: " + published.width + " px · Height: " + published.height + " px"
       : "Save this overlay to create an OBS URL.";
