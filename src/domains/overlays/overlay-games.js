@@ -3,7 +3,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { randomInt } = require("node:crypto");
 const { writeJsonFile } = require("../../shared/fs/json-file-store");
-const TYPES = ["wheel", "bingo", "chat-vote"];
+const rules = require("../../../public/core/overlay-game-rules");
+const { boardLimit } = require("../../../public/core/overlay-model");
+const { types: TYPES, signature, initial } = rules;
 module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt }) => {
   const file = path.join(runtimeDir, "system", "overlay-games.json");
   let states = {},
@@ -30,7 +32,7 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
         !Array.isArray(s.entries) ||
         s.entries.length > 100 ||
         !Array.isArray(s.marks) ||
-        s.marks.length > 100 ||
+        s.marks.length > boardLimit ||
         !Array.isArray(s.counts) ||
         s.counts.length > 100 ||
         !s.votes ||
@@ -46,8 +48,6 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
   }
   let totalVoters = Object.values(states).reduce((sum, s) => sum + (s.voterCount || 0), 0);
   const key = (doc, w) => doc.id + ":" + w.id;
-  const rules = require("../../../public/core/overlay-game-rules"),
-    { signature, initial } = rules;
   function state(doc, w) {
     const id = key(doc, w);
     if (!states[id] || states[id].signature !== signature(w)) {
@@ -93,7 +93,9 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
       throw Error("This game changed in another window. Try again.");
     const before =
       ["start", "collect"].includes(operation) && s.owner && s.owner !== owner ? initial(w) : s;
-    states[key(doc, w)] = rules.control(before, w, operation, input, now(), random);
+    const next = rules.control(before, w, operation, input, now(), random);
+    if (next === s) return { ok: true, unchanged: true };
+    states[key(doc, w)] = next;
     totalVoters += (states[key(doc, w)].voterCount || 0) - (s.voterCount || 0);
     if (["start", "collect"].includes(operation)) states[key(doc, w)].owner = owner;
     states[key(doc, w)].version = s.version + 1;
@@ -101,7 +103,7 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
     flush();
     return { ok: true };
   }
-  function receive(event, metadata, owner) {
+  function receive(event, metadata, owner, allowsParticipation = () => true) {
     if (
       blocked ||
       metadata?.isAppMessage ||
@@ -124,7 +126,8 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
               .toLowerCase() === w.joinCommand &&
             /^[a-z0-9_]{1,25}$/.test(login) &&
             !Object.hasOwn(s.entrants, event.chatter_user_id) &&
-            s.entries.length < 100
+            s.entries.length < 100 &&
+            allowsParticipation(doc, w, event, owner)
           ) {
             s.entrants[event.chatter_user_id] = login;
             s.entries.push(login);
@@ -146,7 +149,8 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
           choice >= w.items.length ||
           Object.hasOwn(s.votes, voter) ||
           (s.voterCount || 0) >= 20000 ||
-          totalVoters >= 100000
+          totalVoters >= 100000 ||
+          !allowsParticipation(doc, w, event, owner)
         )
           continue;
         s.votes[voter] = choice;
@@ -157,9 +161,9 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
         changed();
       }
   }
-  function snapshot(owner) {
+  function snapshot(owner, documentId) {
     const result = {};
-    for (const doc of documents())
+    for (const doc of documents(documentId))
       for (const w of doc.widgets) {
         if (!TYPES.includes(w.type) || !w.visible) continue;
         const s = state(doc, w),
@@ -168,8 +172,11 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
             entrants: _entrants,
             signature: _config,
             owner: _account,
+            matchOrder: _hiddenTiles,
+            matchOpen: _flippedTiles,
             ...publicState
           } = s;
+        if (w.type === "tile-match") publicState.matchFaces = rules.matchFaces(s, now());
         if (w.type === "chat-vote" && s.owner !== owner) {
           publicState.open = false;
           publicState.counts = w.items.map(() => 0);
@@ -202,9 +209,9 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
   }
   return {
     control,
-    bingo(doc, widget) {
+    board(doc, widget) {
       const current = state(doc, widget);
-      return { ...rules.bingoBoard(widget, current.marks), version: current.version };
+      return { ...rules.board(widget, current, now()), version: current.version };
     },
     receive,
     snapshot,

@@ -4,7 +4,11 @@
   let scroll = 0;
   const visibility = (visible) =>
     frame.contentWindow?.postMessage(
-      { type: "overlay-studio-visibility", visible },
+      {
+        type: "overlay-studio-visibility",
+        visible,
+        profile: document.documentElement.dataset.workspaceProfile || "normal",
+      },
       location.origin,
     );
   const open = () => {
@@ -16,6 +20,13 @@
   frame.addEventListener("load", () =>
     visibility(document.body.classList.contains("overlayStudioOpen")),
   );
+  new MutationObserver(() => {
+    if (frame.getAttribute("src"))
+      visibility(document.body.classList.contains("overlayStudioOpen"));
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-workspace-profile"],
+  });
   document.querySelector('[data-tab="overlays"]')?.addEventListener("click", open);
   document.querySelectorAll('[data-tab]:not([data-tab="overlays"])').forEach((button) =>
     button.addEventListener("click", () => {

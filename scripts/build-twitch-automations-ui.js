@@ -192,6 +192,7 @@ const js = [
     JSON.stringify(require("../src/domains/twitch/streamer-automation-presets")) +
     ";",
   read(path.join(root, "features/twitch-integration/ui/automations-list.js")),
+  read(path.join(root, "features/twitch-integration/ui/automation-reward-editor.js")),
   ...modules.map(([name, exports]) => {
     let source = read(path.join(root, `public/core/control-deck-${name}.js`)).replace(
       /^import .*;\n/gm,

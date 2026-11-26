@@ -50,11 +50,19 @@ the file stored on this server.
 
 ## Available widgets and their sources
 
-Save a visible **Bingo board** to see it under **Dashboard > Button deck > Bingo**.
-Choose 1–10 rows and 1–10 columns and set the square text in the widget's Content
-section. The deck gives every square a button. Deck marks, automation actions and
-OBS share one board. Rows and columns count toward Bingo. Diagonals also count on
-square boards. Changing dimensions clears the marks.
+Save a visible board to play it under **Dashboard > Button Deck > Game boards**.
+The inspector, deck controls, automation actions and OBS share the saved game.
+Use **Data > Sample** to try moves on a draft.
+
+- **Bingo board** supports rectangular layouts up to 10,000 squares, individual
+  labels or pasted lists, and images for the board or each square. Choose winning
+  patterns, completion marks, and whether to display a win announcement in
+  **Style & text**. Changing dimensions starts a fresh round.
+- **Challenge board** lets you add image tiles and move, resize, or rotate them
+  independently. Progress stays with a tile when you adjust its placement.
+- **Tile Match** shuffles two copies of every pair. Add labels or images, set the
+  number of columns and how long mismatched cards stay visible, then flip tiles
+  from the inspector or the Button Deck.
 
 The picker includes only implemented widget types. Music and Twitch entries
 appear when their respective packages are active. A widget can be configured
@@ -179,7 +187,9 @@ controls. Presets only change editable fields.
 | Stream schedule      | Editable weekly rows: day, time, title and timezone. This is an independent schedule, not an imported Twitch calendar.                                                                                    |
 | Chat voting          | Editable choices, command and duration. Start, close and reset from the inspector or an automation. Viewers send e.g. `!vote 2`; only the first vote per Twitch user counts.                              |
 | Wheel of names       | Editable entry pills, or chat entries using e.g. `!join`. Open/close entries, spin and reset. Colors, duration and removal of a selected entry are editable.                                              |
-| Bingo board          | 1–10 rows and columns, editable square text and an optional free center on odd boards. Control it from the Bingo deck tab, inspector or automation actions.                                               |
+| Bingo board          | Rectangular boards with custom images, completion marks and announcements.                                                                                                                                |
+| Challenge board      | Freeform tiles with individual labels, images, placement, size, and rotation.                                                                                                                             |
+| Tile Match           | A memory game with editable pairs, image cards, hidden faces and match progress.                                                                                                                          |
 | Soundboard indicator | Displays native soundboard playback and an optional last-played label (3 seconds by default, editable or off) so short sounds remain visible. Never creates another audio player or changes outputs.      |
 
 ### Sample versus live game controls

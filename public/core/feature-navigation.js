@@ -5,6 +5,7 @@
  */
 import { describeFeatureFailure, createFeatureFailureDetails } from "./feature-failure.js";
 const views = new Map();
+const presentations = new WeakMap();
 const themeKeys = [
   "bg",
   "panel",
@@ -20,29 +21,24 @@ const themeKeys = [
   "accent-text",
   "accent-glow",
 ];
-function present(frame) {
+function presentation() {
   const style = getComputedStyle(document.documentElement);
   const theme = Object.fromEntries(
     themeKeys.map((key) => [key, style.getPropertyValue(`--${key}`).trim()]),
   );
   const developerMode = document.documentElement.dataset.developerMode === "true";
-  frame.contentWindow.postMessage(
-    {
-      channel: "ravelink-feature-ui-v1",
-      type: "presentation",
-      theme,
-      developerMode,
-    },
-    location.origin,
-  );
-  requestAnimationFrame(() => {
-    const wrapper = frame.contentDocument;
-    if (!wrapper) return;
-    wrapper.documentElement.style.background = "transparent";
-    if (wrapper.body) wrapper.body.style.background = "transparent";
-    const surface = wrapper.getElementById("surface");
-    if (surface) surface.style.background = "transparent";
-  });
+  return {
+    channel: "ravelink-feature-ui-v1",
+    type: "presentation",
+    theme,
+    developerMode,
+    profile: document.documentElement.dataset.workspaceProfile || "normal",
+  };
+}
+function present(frame, message, signature = JSON.stringify(message)) {
+  if (presentations.get(frame) === signature) return;
+  presentations.set(frame, signature);
+  frame.contentWindow?.postMessage(message, location.origin);
 }
 window.addEventListener("message", (event) => {
   if (event.origin !== location.origin || event.data?.channel !== "ravelink-feature-ui-v1") return;
@@ -60,7 +56,8 @@ window.addEventListener("message", (event) => {
     }
     if (event.data.type === "feature-ready") {
       frame.dataset.ready = "true";
-      present(frame);
+      presentations.delete(frame);
+      present(frame, presentation());
       if (frame.playlistStart) {
         frame.contentWindow.postMessage(frame.playlistStart, location.origin);
         frame.playlistStart = null;
@@ -70,8 +67,10 @@ window.addEventListener("message", (event) => {
         frame.setupView = null;
       }
     }
-    if (event.data.type === "feature-height" && Number.isFinite(event.data.height))
-      frame.style.height = `${Math.max(240, Math.min(200000, Math.ceil(event.data.height)))}px`;
+    if (event.data.type === "feature-height" && Number.isFinite(event.data.height)) {
+      const height = `${Math.max(240, Math.min(200000, Math.ceil(event.data.height)))}px`;
+      if (frame.style.height !== height) frame.style.height = height;
+    }
     if (event.data.type === "feature-open") {
       if (
         id === "song-request" &&
@@ -102,11 +101,20 @@ window.addEventListener("message", (event) => {
     break;
   }
 });
-new MutationObserver(() =>
-  views.forEach((view) => view.panel.querySelectorAll(".featurePageFrame").forEach(present)),
-).observe(document.documentElement, {
+let presentationFrame;
+new MutationObserver(() => {
+  if (presentationFrame) return;
+  presentationFrame = requestAnimationFrame(() => {
+    presentationFrame = null;
+    const message = presentation();
+    const signature = JSON.stringify(message);
+    for (const view of views.values())
+      for (const frame of view.panel.querySelectorAll(".featurePageFrame[data-ready]"))
+        present(frame, message, signature);
+  });
+}).observe(document.documentElement, {
   attributes: true,
-  attributeFilter: ["style", "data-developer-mode"],
+  attributeFilter: ["style", "data-developer-mode", "data-workspace-profile"],
 });
 
 export function openFeaturePage(featureId, pageId, setupTarget = "") {
@@ -215,12 +223,13 @@ export function syncFeatureNavigation(features) {
       };
       views.set(feature.id, view);
     }
-    view.tab.textContent = feature.name.toUpperCase();
+    const title = feature.name.toUpperCase();
+    if (view.tab.textContent !== title) view.tab.textContent = title;
     if (view.signature === signature) continue;
     view.signature = signature;
     view.panel.replaceChildren();
     const heading = document.createElement("h2");
-    heading.textContent = feature.name.toUpperCase();
+    heading.textContent = title;
     view.panel.append(heading);
     if (feature.lifecycle !== "active") {
       const notice = document.createElement("p");

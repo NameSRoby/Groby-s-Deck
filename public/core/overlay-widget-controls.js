@@ -3,6 +3,25 @@
 globalThis.OverlayWidgetControls = function (a, tools) {
   const { host, num, select, check, field } = tools;
   const extra = OverlayExtraControls(a, tools);
+  function mediaFit(w, label = "Fit") {
+    const fit = select(label, "fit", [
+      ["contain", "Fit inside"],
+      ["cover", "Fill and crop"],
+    ]);
+    const focus = [
+      num("Horizontal crop focus (%)", "mediaFocusX", 0, 100),
+      num("Vertical crop focus (%)", "mediaFocusY", 0, 100),
+    ];
+    const sync = () => {
+      for (const input of focus) input.parentElement.hidden = w.fit !== "cover";
+    };
+    const change = fit.onchange;
+    fit.onchange = () => {
+      change();
+      sync();
+    };
+    sync();
+  }
   function content(w) {
     extra.content(w);
     if (
@@ -163,11 +182,7 @@ globalThis.OverlayWidgetControls = function (a, tools) {
     }
 
     if (w.type !== "credits") num("Time per entry (seconds)", "rotateEvery", 2, 3600);
-    if (w.type === "slideshow")
-      select("Media fit", "fit", [
-        ["contain", "Fit inside"],
-        ["cover", "Fill and crop"],
-      ]);
+    if (w.type === "slideshow") mediaFit(w, "Media fit");
     if (w.type === "credits") {
       const presetLabel = document.createElement("label"),
         preset = document.createElement("select");
@@ -347,5 +362,5 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       : "Preview is available. Restart Core before saving animated styles or the new widgets.";
     host.append(note);
   }
-  return { content, style };
+  return { content, style, mediaFit, boardStyle: extra.boardStyle };
 };

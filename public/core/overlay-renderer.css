@@ -2,6 +2,14 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  transform-origin: top left;
+  color-scheme: dark;
+  font: 14px/1.5 system-ui;
+  color: white;
+}
+.overlayCanvas,
+.overlayCanvas * {
+  box-sizing: border-box;
 }
 .overlayLayer {
   position: absolute;
@@ -82,24 +90,69 @@
 }
 .overlayLayer .bingoGrid {
   display: grid;
-  gap: 4px;
+  position: relative;
+  isolation: isolate;
+  gap: var(--cell-gap);
   flex: 1;
   min-height: 0;
+  min-width: 0;
+}
+.overlayLayer .bingoGrid.freeform {
+  display: block;
+  overflow: hidden;
+}
+.overlayLayer .freeform .bingoCell {
+  position: absolute;
+}
+.overlayLayer .bingoImage {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.overlayLayer .bingoCell > .bingoImage {
+  z-index: -2;
+}
+.overlayLayer .bingoCell.covered {
+  background: var(--tile-back);
+  font-size: 1.25em;
 }
 .overlayLayer .bingoCell {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid currentColor;
-  padding: 3px;
+  border: var(--cell-border) solid var(--cell-line);
+  border-radius: var(--cell-radius);
+  background: var(--cell-fill);
   overflow: hidden;
   text-align: center;
   font-size: 0.55em;
   overflow-wrap: anywhere;
 }
-.overlayLayer .bingoCell.marked {
-  background: var(--cell-accent);
-  box-shadow: inset 0 0 0 3px currentColor;
+.overlayLayer .bingoGrid[data-mark-mode="color"] .marked::before,
+.overlayLayer .bingoGrid[data-mark-mode="both"] .marked::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cell-mark);
+}
+.overlayLayer .bingoSymbol {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2.2em;
+  font-weight: 800;
+  color: var(--cell-symbol);
+  text-shadow: 0 1px 4px #000;
+}
+.overlayLayer .bingoGrid > .bingoAnnouncement {
+  position: absolute;
+  inset: 50% 0 auto;
+  transform: translateY(-50%);
+  text-align: center;
 }
 .overlayLayer img.chatBadge,
 .overlayLayer img.chatEmote {

@@ -1,5 +1,5 @@
 /** Editor drafts and sample events are local; Save is the only live document write. */
-/* global OverlayModel, OverlayRenderer, setupOverlayInspector, setupOverlayInteractions, setupOverlayViewport, setupOverlayCommands, setupOverlayLivePreview */
+/* global OverlayModel, OverlayRenderer, OverlayGameRules, setupOverlayInspector, setupOverlayInteractions, setupOverlayViewport, setupOverlayCommands, setupOverlayLivePreview, setupOverlayGameChatSettings */
 (() => {
   const $ = (id) => document.getElementById(id),
     selection = new Set();
@@ -26,6 +26,9 @@
     livePreviewReady: false,
     previewing,
     doc,
+    savedWidget: (id) =>
+      documents.find((row) => row.id === doc.id)?.widgets.find((w) => w.id === id),
+    revision: () => revision,
     selected: () => doc.widgets.filter((w) => selection.has(w.id)),
     showSelection: () => showSettings("widget"),
     notice: (message) => {
@@ -35,6 +38,7 @@
     request,
     draw,
     renderContent,
+    renderSelection,
     change,
     checkpoint,
     cancelCheckpoint: (previousRedo) => {
@@ -47,6 +51,7 @@
     testWidget: (w) => feed.open(w),
   };
   const inspector = setupOverlayInspector(a);
+  setupOverlayGameChatSettings(a);
   document.addEventListener("overlay-media-error", (event) => a.notice(event.detail));
   const commands = setupOverlayCommands(a);
   a.commands = commands;
@@ -226,12 +231,7 @@
       audio: a.previewAudio === true,
     });
   }
-  function renderDraft(fields = true) {
-    a.doc = doc;
-    a.previewing = previewing;
-    feed?.interestChanged();
-    renderContent();
-    $("canvas").classList.toggle("showGrid", $("grid").checked);
+  function renderSelection() {
     for (const layer of $("canvas").children) {
       const selected = selection.has(layer.dataset.widgetId);
       layer.classList.toggle("selected", selected);
@@ -247,6 +247,14 @@
           layer.append(handle);
         }
     }
+  }
+  function renderDraft(fields = true) {
+    a.doc = doc;
+    a.previewing = previewing;
+    feed?.interestChanged();
+    renderContent();
+    $("canvas").classList.toggle("showGrid", $("grid").checked);
+    renderSelection();
     $("canvasSize").textContent = doc.width + " × " + doc.height;
     $("saveState").textContent = !doc.id
       ? "New overlay - save to create its OBS link"
@@ -328,7 +336,7 @@
       library();
       return;
     }
-    doc = structuredClone(documents.find((row) => row.id === id) || OverlayModel.document());
+    doc = OverlayModel.document(documents.find((row) => row.id === id));
     a.doc = doc;
     selection.clear();
     undo = [];
@@ -652,6 +660,23 @@
       );
       return;
     }
+    if (!a.boardsReady && doc.widgets.some((w) => OverlayGameRules.boardTypes.includes(w.type))) {
+      a.notice("Restart Core to save board settings. Your draft is still here.");
+      return;
+    }
+    if (
+      !a.refinementsReady &&
+      doc.widgets.some(
+        (w) =>
+          w.type === "tile-match" ||
+          (w.mediaFocusX ?? 50) !== 50 ||
+          (w.mediaFocusY ?? 50) !== 50 ||
+          (w.countdownFinish || "zero") !== "zero",
+      )
+    ) {
+      a.notice("Restart Core to save the new widget settings. Your draft is still here.");
+      return;
+    }
     if (
       !a.livePreviewReady &&
       doc.widgets.some((w) => w.hideBotMessages || w.hiddenAccounts?.length)
@@ -716,9 +741,18 @@
     }
   };
   $("openOutput").onclick = () => {
-    $("outputUrl").value =
-      location.origin + "/stream-overlay.html?id=" + encodeURIComponent(doc.id);
-    $("outputSize").textContent = "Width: " + doc.width + " px · Height: " + doc.height + " px";
+    const published = documents.find((row) => row.id === doc.id);
+    const url = new URL("/stream-overlay.html", location.origin);
+    if (published) url.searchParams.set("id", published.id);
+    $("outputUrl").value = published ? url.href : "";
+    $("copyUrl").disabled = !published;
+    $("copyUrl").textContent = "Copy URL";
+    $("viewOutput").hidden = !published;
+    if (published) $("viewOutput").href = url.href;
+    $("outputSize").textContent = published
+      ? "Width: " + published.width + " px · Height: " + published.height + " px"
+      : "Save this overlay to create an OBS URL.";
+    $("outputDraftNotice").hidden = !published || !dirty();
     $("outputDialog").showModal();
   };
   $("copyUrl").onclick = async () => {
@@ -760,6 +794,8 @@
       a.motionReady = result.presentationEffects === true;
       a.livePreviewReady = result.livePreview === true;
       a.enhancedReady = result.designerVersion >= 4;
+      a.boardsReady = result.designerVersion >= 5;
+      a.refinementsReady = result.designerVersion >= 6;
       library();
       if (documents.length && !dirty()) void load(documents[0].id);
     })

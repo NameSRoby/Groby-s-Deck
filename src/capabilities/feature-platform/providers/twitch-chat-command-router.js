@@ -4,6 +4,7 @@
  * docs/DEVELOPMENT.md#chat-command-permissions-and-player-controls
  */
 const { youtubeVideoId } = require("../../../shared/media/youtube-reference");
+const { boundedText, roleFromEvent } = require("../../../shared/security/twitch-chat-role");
 const { normalizeCommandPermissions } = require("./twitch-command-policy");
 const { classify: classifySongInput } = require("./song-link-input");
 
@@ -63,29 +64,6 @@ const BUILTIN_ALIASES = new Map([
   ["teachcolour", "teach"],
   ["teach", "teach"],
 ]);
-
-function boundedText(value, maximum) {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maximum);
-}
-
-function roleFromEvent(event = {}) {
-  const badges = Array.isArray(event.badges) ? event.badges : [];
-  const badgeIds = new Set(
-    badges.map((row) => boundedText(row?.set_id || row?.id, 40).toLowerCase()),
-  );
-  if (
-    (event.chatter_user_id && event.chatter_user_id === event.broadcaster_user_id) ||
-    badgeIds.has("broadcaster") ||
-    badgeIds.has("moderator")
-  )
-    return "moderator";
-  return badgeIds.has("vip") ? "vip" : "viewer";
-}
 
 function resultValue(result) {
   return result?.ok === true && result.value && typeof result.value === "object"
@@ -169,7 +147,7 @@ module.exports = function createTwitchChatCommandRouter(options = {}) {
     const policy = options.builtinPolicy?.("song_request");
     if (policy ? !policy.chatEnabled : config.songRequestChatEnabled !== true)
       return { handled: true, accepted: false, code: "channel_points_only" };
-    if (policy && !policy.commandPreferred && policy.role !== "viewer") {
+    if (policy && policy.role && policy.role !== "viewer") {
       const ranks = { viewer: 0, subscriber: 1, vip: 2, moderator: 3, broadcaster: 4 };
       const owner =
         event.chatter_user_id === event.broadcaster_user_id ||

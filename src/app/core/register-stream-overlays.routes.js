@@ -30,12 +30,16 @@ module.exports = function registerOverlays(
       catalog: service.catalog(),
       presentationEffects: true,
       livePreview: true,
-      designerVersion: 4,
+      designerVersion: 6,
     })),
   );
   app.get(
     "/api/stream-overlays/data",
     route((req) => service.data({ fast: req.query.fast === "1" })),
+  );
+  app.get(
+    "/api/stream-overlays/presentation/:id",
+    route((req) => service.presentation(req.params.id, req.query.revision)),
   );
   app.get(
     "/api/stream-overlays/goals",
@@ -82,6 +86,15 @@ module.exports = function registerOverlays(
   app.get(
     "/api/stream-overlays/bingo-deck",
     route((req) => service.bingoDeck(req.query)),
+  );
+  app.get(
+    "/api/stream-overlays/game-commands",
+    route(() => service.gameChatStatus()),
+  );
+  app.put(
+    "/api/stream-overlays/game-commands",
+    writes,
+    route((req) => service.gameChatConfigure(req.body)),
   );
   app.put(
     "/api/stream-overlays",

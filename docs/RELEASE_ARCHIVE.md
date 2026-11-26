@@ -1,6 +1,8 @@
 # Release archive
 
-Use [0.8.2a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2a) for current fixes and new installations.
+Use [0.8.2c](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2c) for current fixes and new installations.
+
+[0.8.2b](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2b), [0.8.2a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2a), and [0.8.2](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.2) remain available for release history.
 
 [0.8.1b](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1b), [0.8.1a](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1a), [0.8.1](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.1) and [0.8](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8) remain available for release history.
 

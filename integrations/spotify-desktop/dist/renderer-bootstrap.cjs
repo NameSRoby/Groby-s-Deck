@@ -11,7 +11,6 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
   let captured = false,
     client = null,
     connection = null,
-    timer = null,
     failed = false;
   const bridge = {};
   Object.defineProperty(bridge, "capturePlatform", {
@@ -44,11 +43,8 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
         (...args) => (client ? client[method](...args) : unavailable()),
       ]),
     );
-    connection = createConnection(proxy, options.connection);
-    if (options.autoPoll !== false)
-      timer = setInterval(() => {
-        void connection.step();
-      }, 1000);
+    connection = createConnection(proxy, { ...options.connection, longPoll: true });
+    if (options.autoPoll !== false) startPump(root, connection);
   }
   Object.defineProperty(bridge, "status", {
     value() {
@@ -72,13 +68,47 @@ module.exports = function installSpotifyRuntime(root, options = {}) {
     configurable: false,
     enumerable: false,
   });
-  root.addEventListener?.(
-    "pagehide",
-    () => {
-      clearInterval(timer);
-      connection?.close();
-    },
-    { once: true },
-  );
   return root.__ravelinkSpotify;
 };
+
+function startPump(root, connection) {
+  let retry,
+    pumping = false,
+    suspended = false,
+    stopped = false;
+  function poll() {
+    if (stopped || suspended || pumping) return;
+    clearTimeout(retry);
+    pumping = true;
+    void connection.step().finally(() => {
+      pumping = false;
+      if (stopped || suspended) return;
+      const status = connection.status();
+      // Core completes a waiting request when it has a command. Successful
+      // polls don't wait on a Spotify window's background timer.
+      if (status.waitForCommand && !status.lastError) poll();
+      else retry = setTimeout(poll, 1000);
+    });
+  }
+  const heartbeat = setInterval(() => {
+    if (pumping && !suspended) void connection.step();
+  }, 1000);
+  root.addEventListener?.("focus", poll);
+  root.addEventListener?.("online", poll);
+  root.document?.addEventListener?.("visibilitychange", () => {
+    if (!root.document.hidden) poll();
+  });
+  root.addEventListener?.("pagehide", (event) => {
+    suspended = true;
+    clearTimeout(retry);
+    if (event?.persisted) return;
+    stopped = true;
+    clearInterval(heartbeat);
+    connection.close();
+  });
+  root.addEventListener?.("pageshow", () => {
+    suspended = false;
+    poll();
+  });
+  poll();
+}

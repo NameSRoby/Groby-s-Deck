@@ -33,9 +33,8 @@ module.exports = function createNativeFacade(platform, options = {}) {
   };
   const milliseconds = (input) =>
     Number.isFinite(Number(input)) ? Math.max(0, Math.min(86400000, Number(input))) : 0;
-  function progress() {
-    const value = state(),
-      position = milliseconds(value.positionAsOfTimestamp),
+  function progress(value = state()) {
+    const position = milliseconds(value.positionAsOfTimestamp),
       duration = milliseconds(value.duration);
     const timestamp = Number(value.timestamp),
       elapsed =
@@ -185,32 +184,35 @@ module.exports = function createNativeFacade(platform, options = {}) {
       try {
         value = state();
       } catch {
-        value = {};
+        value = null;
       }
-      const item = value.item || {},
+      const item = value?.item || {},
         metadata = item.metadata || current?.metadata || {};
       const uri = trackUri(current?.uri || item.uri),
-        uid = current?.uid || item.uid || value.playbackId || "";
+        uid = current?.uid || item.uid || value?.playbackId || "";
       let deviceId = "";
       try {
         const device = service("ConnectDevicesAPI")?.getActiveDevice?.();
         const value = device?.id || device?.device_id || device?.deviceId;
         if (/^[A-Za-z0-9_-]{1,120}$/.test(value || "")) deviceId = value;
       } catch {}
-      const manual = snapshot.nextTracks.filter((row) => row.provider === "queue");
-      return {
-        ok: true,
-        complete: manual.length <= 40,
-        localDevice: facade.localDevice(),
-        ...(deviceId ? { deviceId } : {}),
-        queue: manual
+      const manual = snapshot.nextTracks.filter((row) => row?.provider === "queue"),
+        entries = manual
           .slice(0, 40)
           .map((row) => ({
             uri: trackUri(row.contextTrack?.uri || row.uri),
             uid: row.contextTrack?.uid || row.uid || "",
-            origin: row.provider === "queue" ? "manual" : "playlist",
+            origin: "manual",
           }))
-          .filter((row) => row.uri && row.uid),
+          .filter(
+            (row) => row.uri && typeof row.uid === "string" && row.uid.length <= 200 && row.uid,
+          );
+      return {
+        ok: true,
+        complete: manual.length === entries.length && (!uri || Boolean(uid)),
+        localDevice: facade.localDevice(),
+        ...(deviceId ? { deviceId } : {}),
+        queue: entries,
         current: uri
           ? {
               uri,
@@ -228,10 +230,10 @@ module.exports = function createNativeFacade(platform, options = {}) {
                 ]
                   .map(artworkUrl)
                   .find(Boolean) || "",
-              durationMs: milliseconds(value.duration),
-              positionMs: progress(),
-              paused: value.isPaused === true,
-              buffering: value.isBuffering === true,
+              durationMs: milliseconds(value?.duration),
+              positionMs: value ? progress(value) : 0,
+              paused: value?.isPaused !== false,
+              buffering: value?.isBuffering === true,
             }
           : null,
       };

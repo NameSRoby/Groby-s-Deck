@@ -1,11 +1,12 @@
 /** Compact, editable controls for record, game and schedule widgets. */
-/* global OverlayGameRules, OverlayRecordFormat */
+/* global OverlayGameRules, OverlayRecordFormat, OverlayBoardControls */
 globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
   const note = (text) => {
     const p = document.createElement("small");
     p.textContent = text;
     host.append(p);
   };
+  const board = OverlayBoardControls(a, { host, num, select, check, field }, button, note);
   function button(name, fn) {
     const b = document.createElement("button");
     b.textContent = name;
@@ -153,67 +154,7 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
         "Viewers type the command and a choice number, for example !vote 2. One vote per Twitch user, up to 20,000 voters. App-sent replies never vote.",
       );
     }
-    if (w.type === "bingo") {
-      const dimensions = [
-        select(
-          "Board size",
-          "gridSize",
-          Array.from({ length: 10 }, (_, i) => [i + 1, i + 1 + " columns"]),
-        ),
-        select("Rows", "gridRows", [
-          [0, "Same as columns"],
-          ...Array.from({ length: 10 }, (_, i) => [i + 1, String(i + 1)]),
-        ]),
-      ];
-      for (const input of dimensions) {
-        const change = input.onchange;
-        input.onchange = () => {
-          change();
-          a.draw();
-        };
-      }
-      const { count } = OverlayGameRules.bingoLayout(w);
-      const free = check("Free center square (odd-sized boards)", "freeCenter");
-      const grid = document.createElement("div");
-      grid.className = "bingoEditor";
-      grid.style.gridTemplateColumns = `repeat(${Math.min(w.gridSize, 3)},minmax(0,1fr))`;
-      for (let i = 0; i < count; i++) {
-        const cell = document.createElement("input");
-        const isFree = () => i === OverlayGameRules.bingoLayout(w).center;
-        cell.value = isFree() ? "FREE" : w.items[i] || "";
-        cell.disabled = !!isFree();
-        cell.placeholder = "Square " + (i + 1);
-        cell.maxLength = 200;
-        cell.setAttribute("aria-label", "Bingo text " + (i + 1));
-        cell.onchange = () =>
-          a.change(() => {
-            while (w.items.length <= i) w.items.push("");
-            w.items[i] = cell.value;
-          }, false);
-        grid.append(cell);
-      }
-      const freeChange = free.onchange;
-      free.onchange = () => {
-        freeChange();
-        const i = Math.floor(count / 2),
-          input = grid.children[i];
-        input.disabled = OverlayGameRules.bingoLayout(w).center >= 0;
-        input.value = input.disabled ? "FREE" : w.items[i] || "";
-      };
-      host.append(grid);
-      const input = document.createElement("input");
-      input.type = "number";
-      input.min = 1;
-      input.max = count;
-      input.value = 1;
-      input.setAttribute("aria-label", "Bingo square to mark");
-      host.append(input);
-      const toggle = button("Toggle square", () => run("mark", { cell: Number(input.value) }));
-      controls.append(toggle);
-      note(
-        "Save the board to use it in the Button deck’s Bingo tab. You can also mark squares from the action builder. Changing the dimensions clears the current marks.",
-      );
-    }
+    if (OverlayGameRules.boardTypes.includes(w.type)) board.content(w, run);
     b("Reset game", "reset");
     host.append(controls);
     note(
@@ -223,7 +164,7 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
   return {
     content(w) {
       if (w.type === "schedule") schedule(w);
-      if (["wheel", "chat-vote", "bingo"].includes(w.type)) game(w);
+      if (OverlayGameRules.types.includes(w.type)) game(w);
       if (w.type === "counter") {
         field("Saved counter name", "counterName");
         note("Reads the same named counter as your commands; displaying it does not increment it.");
@@ -272,5 +213,6 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
         );
       }
     },
+    boardStyle: board.style,
   };
 };

@@ -1,5 +1,57 @@
 # Repository health and security review
 
+## 0.8.2c
+
+The release pairs Song Request 0.45.32 and Twitch Integration 0.12.70 with
+both the bundled installer and the online Packages catalog. The source
+launcher pins the Windows archive by SHA-256.
+
+The public regression inventory includes Spotify desktop and Premium
+adapters, the optional Premium setup page, Twitch connection permission
+choices, and the shared Song Request chat responses page.
+
+The release sweep caught a Core-only startup dependency on the optional
+Twitch command router. A shared role check now serves both command paths,
+and the Core-only startup regression runs in the public suite.
+
+The source scan also flagged the OBS link and media rendering paths. The
+link now uses the saved overlay ID directly, and the renderer validates
+URLs before assigning them to image and video elements.
+
+In a Chromium probe with 20 static text layers, idle editor renders fell
+from six to zero and idle OBS browser-source renders from two to zero over
+4.2 seconds. During a burst of 60 pointer events, full scene renders fell
+from 60 to zero before the drag ended. Browser checks also cover saved
+game-board parity, layout density in feature pages, and Twitch game command
+permissions. The dependency audit reported zero vulnerabilities in the
+locked graph.
+
+Clean Windows runner checks exercise the installer, portable ZIP, source
+bootstrap and in-place upgrade with simulated accounts. Real Spotify and Twitch sessions,
+physical lighting hardware, and OBS production scenes require separate
+acceptance.
+
+## Packaging and performance audit
+
+The Windows packaging run reproduced a file-lock failure when the release
+runtime was also running tests. The build now checks the cached executable and
+license against the pinned archive before reuse. It reads the release version
+from `package.json`, creates one ZIP for both portable filenames, and hashes the
+large artifacts in chunks. Source setup verifies an explicitly supplied archive
+even with a warm cache, and removes its temporary extraction if setup fails.
+
+The overlay browser source now receives the saved revision and live data in one
+request. Regular widgets receive the scene's data. Custom widgets retain the
+existing complete feed. In a synthetic library of 12 overlays with 100 wheel
+entries each, the steady response fell from 55,707 to 4,944 bytes. Slideshows
+also retain the current media element between ticks. The Button Deck indexes
+actions once per catalog so each tile can use direct lookups for live feedback.
+
+The fresh-package checks cover releases with both first-party packages enabled,
+an existing disabled package upgrade, an explicit installer skip, and a prior
+uninstall. The built-in Twitch switch pauses all intake for that feature,
+independently of the saved Song Request method or Channel Points rule.
+
 ## 0.8.2b
 
 Windows Setup, the portable archive and the public source tree now provision

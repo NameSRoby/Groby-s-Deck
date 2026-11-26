@@ -287,7 +287,9 @@ module.exports = ({
     return serial(async () => {
       const owner = check(input.revision),
         row = normalize(input.automation, owner),
-        existing = rows(owner).find((other) => other.id === row.id);
+        current = rows(owner, true),
+        existing = current.find((other) => other.id === row.id);
+      builtins.prepareEdit(existing, row, current);
       if (data.rows.some((other) => other.id === row.id && other.accountId !== owner))
         throw fault("twitch_automation_account_changed");
       if (runs.has(row.id)) throw fault("control_deck_busy");
@@ -307,7 +309,7 @@ module.exports = ({
         )
       )
         throw fault("twitch_automation_trigger_exists");
-      if (row.trigger.rewardId) {
+      if (row.trigger.rewardId && row.trigger.rewardId !== existing?.trigger.rewardId) {
         const bound = await getProvider().bindReward({
           purpose: row.handler === "flow" ? "automation:" + row.id : row.handler,
           rewardId: row.trigger.rewardId,
@@ -482,7 +484,12 @@ module.exports = ({
       );
     if (!row && !detached) return { handled: false };
     const liveAllowed = !row || (await liveRewards.allowRedemption(row, owner));
-    if (!row?.enabled || !liveAllowed || intakePaused(row?.handler || "all")) {
+    if (
+      !row?.enabled ||
+      (builtinAvailable && row.handler !== "flow" && !builtinAvailable(row.handler)) ||
+      !liveAllowed ||
+      intakePaused(row?.handler || "all")
+    ) {
       await getProvider().settle({
         broadcasterId: owner,
         rewardId: event.reward.id,
@@ -584,7 +591,7 @@ module.exports = ({
       const owner = account(),
         row =
           data.rows.find((row) => row.id === input.id && row.accountId === owner) ||
-          rows(owner).find((row) => row.id === input.id);
+          rows(owner, true).find((row) => row.id === input.id);
       const trigger = require("./twitch-automation-controls").prepare(
         row,
         input.operation,
@@ -596,8 +603,7 @@ module.exports = ({
         data.rows.push(row);
       }
       row.trigger = trigger;
-      row.enabled =
-        input.operation === "pause" ? false : input.operation === "toggle" ? !row.enabled : true;
+      builtins.toggled(row, input.operation);
       if (
         input.operation === "restart" ||
         (row.enabled &&

@@ -1,11 +1,13 @@
 /** Pointer coordinates are converted from preview pixels to document pixels. */
 /* exported setupOverlayInteractions */
-/* global setupOverlayGuides */
+/* global setupOverlayGuides, OverlayRenderer, OverlayTextStyle */
 globalThis.setupOverlayInteractions = function (a) {
   const canvas = a.$("canvas");
   const guides = setupOverlayGuides(a);
   let gesture = null,
-    marquee = null;
+    marquee = null,
+    motionFrame = null,
+    pendingMove = null;
   const box = document.createElement("div");
   box.className = "marqueeSelection";
   box.hidden = true;
@@ -115,7 +117,7 @@ globalThis.setupOverlayInteractions = function (a) {
     event.preventDefault();
     canvas.focus();
   });
-  canvas.addEventListener("pointermove", (event) => {
+  function updatePointer(event) {
     if (marquee && event.pointerId === marquee.id) {
       const left = Math.min(event.clientX, marquee.x),
         top = Math.min(event.clientY, marquee.y),
@@ -134,8 +136,9 @@ globalThis.setupOverlayInteractions = function (a) {
         if (row.locked || !row.visible) continue;
         const rect = canvas
           .querySelector('[data-widget-id="' + CSS.escape(row.id) + '"]')
-          .getBoundingClientRect();
+          ?.getBoundingClientRect();
         if (
+          rect &&
           rect.right >= left &&
           rect.left <= left + width &&
           rect.bottom >= top &&
@@ -143,7 +146,7 @@ globalThis.setupOverlayInteractions = function (a) {
         )
           a.selection.add(row.id);
       }
-      a.draw(false);
+      a.renderSelection();
       return;
     }
     if (!gesture || event.pointerId !== gesture.id) return;
@@ -195,10 +198,27 @@ globalThis.setupOverlayInteractions = function (a) {
         row.x = start.x + moveX;
         row.y = start.y + moveY;
       }
+      const layer = canvas.querySelector('[data-widget-id="' + CSS.escape(row.id) + '"]');
+      if (layer && OverlayRenderer.place(layer, row)) OverlayTextStyle.fit(layer, row);
     }
-    a.draw(false);
+  }
+  canvas.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== (gesture || marquee)?.id) return;
+    pendingMove = event;
+    if (motionFrame) return;
+    motionFrame = requestAnimationFrame(() => {
+      motionFrame = null;
+      const latest = pendingMove;
+      pendingMove = null;
+      if (latest) updatePointer(latest);
+    });
   });
   function end(cancel = false) {
+    cancelAnimationFrame(motionFrame);
+    motionFrame = null;
+    const latest = pendingMove;
+    pendingMove = null;
+    if (!cancel && latest) updatePointer(latest);
     guides.clear();
     if (marquee) {
       const current = marquee;
@@ -227,9 +247,10 @@ globalThis.setupOverlayInteractions = function (a) {
     if (canvas.hasPointerCapture(current.id)) canvas.releasePointerCapture(current.id);
     a.draw();
   }
-  canvas.addEventListener("pointerup", () => end());
-  canvas.addEventListener("pointercancel", () => end(true));
-  canvas.addEventListener("lostpointercapture", () => end());
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+    canvas.addEventListener(type, (event) => {
+      if (event.pointerId === (gesture || marquee)?.id) end(type === "pointercancel");
+    });
   document.addEventListener("keydown", (event) => {
     const command = event.ctrlKey || event.metaKey;
     if (event.key === "Escape" && (gesture || marquee)) {

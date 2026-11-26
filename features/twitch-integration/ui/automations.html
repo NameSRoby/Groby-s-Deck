@@ -4517,7 +4517,7 @@ dialog::backdrop {
 </div>
       </div>
       <dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmText"><div class="visibleDialogContent"><h2 id="confirmTitle"></h2><p id="confirmText"></p></div><div class="toolbar"><button id="confirmCancel" autofocus>Cancel</button><button id="confirmProceed" class="danger">Delete</button></div></dialog>
-<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.66</span></p>
+<p class="automationBuild">Twitch Integration <span id="automationBuildVersion">0.12.70</span></p>
     </main>
     
 <!-- TWITCH_FLOW_SCRIPT_START -->
@@ -5158,6 +5158,7 @@ const GrobyVariablePresets=[{"id":"commands","name":"Help with stream commands",
 const GrobyBuiltinPresets=[{"id":"builtin-lights","name":"Change lights","handler":"lights","command":"!color","aliases":["!colour","!lights"],"description":"Apply a color to configured stream lights. Uses chat while no Channel Points reward is bound.","group":"Built-in features","trigger":{"type":"reward","rewardId":""},"steps":[],"role":"viewer","cooldownSeconds":0,"userCooldownSeconds":15},{"id":"builtin-teach","name":"Teach color","handler":"teach","command":"!teachcolor","aliases":["!teach","!teachcolour"],"description":"Teach a named color, for example !teachcolor ocean glow #12ABEF. Uses chat while no reward is bound.","group":"Built-in features","trigger":{"type":"reward","rewardId":""},"steps":[],"role":"viewer","cooldownSeconds":0,"userCooldownSeconds":15},{"id":"builtin-song-request","name":"Song Request","handler":"song_request","command":"!sr","aliases":["!songrequest"],"description":"Request a song on the selected player. Uses chat while no Song Request reward is bound.","group":"Built-in features","trigger":{"type":"reward","rewardId":""},"steps":[],"role":"viewer","cooldownSeconds":0,"userCooldownSeconds":15},{"id":"builtin-add-to-playlist","name":"Add to playlist","handler":"add_to_playlist","command":"!addtoplaylist","aliases":["!playlistadd","!addsong"],"description":"Add a song to the selected request playlist using the same validation and limits as a reward.","group":"Built-in features","trigger":{"type":"reward","rewardId":""},"steps":[],"role":"viewer","cooldownSeconds":0,"userCooldownSeconds":15}];
 const GrobyAutomationPresets=[{"id":"discord","name":"Discord invite (edit details)","group":"Community information","description":"Replace REPLACE_WITH_DISCORD_INVITE with your own invite. Everyone can request this information.","trigger":{"type":"command","command":"!discord"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Join our community Discord: REPLACE_WITH_DISCORD_INVITE"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":60},{"id":"discord-reminder","name":"Discord invite reminder (edit details)","group":"Community information","description":"Replace REPLACE_WITH_DISCORD_INVITE with your own invite. Live-only, every 40 minutes and at least 10 new chat messages. Use alongside, or instead of, its chat command.","trigger":{"type":"timer","intervalMs":2400000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Join our community Discord: REPLACE_WITH_DISCORD_INVITE"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"socials","name":"Social links (edit details)","group":"Community information","description":"Replace REPLACE_WITH_SOCIAL_LINKS with your public social links. Everyone can request this information.","trigger":{"type":"command","command":"!socials"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Keep up with the stream: REPLACE_WITH_SOCIAL_LINKS"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":60},{"id":"socials-reminder","name":"Social links reminder (edit details)","group":"Community information","description":"Replace REPLACE_WITH_SOCIAL_LINKS with your public social links. Live-only, every 50 minutes and at least 10 new chat messages. Use alongside, or instead of, its chat command.","trigger":{"type":"timer","intervalMs":3000000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Keep up with the stream: REPLACE_WITH_SOCIAL_LINKS"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"schedule","name":"Stream schedule (edit details)","group":"Community information","description":"Replace REPLACE_WITH_DAYS_TIMES_AND_TIMEZONE with your schedule, including its time zone. Everyone can request this information.","trigger":{"type":"command","command":"!schedule"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Our usual stream schedule: REPLACE_WITH_DAYS_TIMES_AND_TIMEZONE"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":60},{"id":"schedule-reminder","name":"Stream schedule reminder (edit details)","group":"Community information","description":"Replace REPLACE_WITH_DAYS_TIMES_AND_TIMEZONE with your schedule, including its time zone. Live-only, every 60 minutes and at least 10 new chat messages. Use alongside, or instead of, its chat command.","trigger":{"type":"timer","intervalMs":3600000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Our usual stream schedule: REPLACE_WITH_DAYS_TIMES_AND_TIMEZONE"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"rules","name":"Community rules","group":"Moderation responses","description":"Public reminder of your community rules. Edit these rules to match your channel; this sends text and does not change Twitch moderation settings.","trigger":{"type":"command","command":"!rules"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Be kind, respect everyone, avoid harassment and spam, and follow the channel rules. Thank you for keeping chat welcoming!"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":60},{"id":"spoilers","name":"No spoilers reminder","group":"Moderation responses","description":"Moderators can post a calm spoiler reminder without interrupting the stream. Sends a message only.","trigger":{"type":"command","command":"!spoilers"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Please keep story spoilers and hints out of chat unless the streamer asks. Let everyone enjoy the discovery!"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":30},{"id":"backseat","name":"Backseating reminder","group":"Moderation responses","description":"Moderator-only reminder. Edit the policy to reflect whether advice is welcome; no timeout or ban is issued.","trigger":{"type":"command","command":"!backseat"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Please ask before giving gameplay advice. We will let chat know when help is wanted. Thanks!"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":30},{"id":"links","name":"Ask before posting links","group":"Moderation responses","description":"Moderator-only message explaining your link policy. This does not enable or disable Twitch link filtering.","trigger":{"type":"command","command":"!links"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Please ask a moderator before posting links. Tell us what you would like to share first."},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":30},{"id":"brb","name":"Announce a short break","group":"Stream operations","description":"Moderator-only highlighted break notice. Needs Chat announcements access; this does not change scenes or mute audio.","trigger":{"type":"command","command":"!brb"},"steps":[{"actionId":"twitch.action.announcement","params":{"message":"Taking a short break. Get some water, stretch, and we will be right back!","color":"orange"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"back","name":"Announce return from break","group":"Stream operations","description":"Moderator-only highlighted return notice. Needs Chat announcements access.","trigger":{"type":"command","command":"!back"},"steps":[{"actionId":"twitch.action.announcement","params":{"message":"We are back! Thanks for waiting, and welcome back everyone.","color":"green"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"win","name":"Add a stream win","group":"Stream counters","description":"Moderator only. Adds one to the persistent streamwins counter. These totals survive restarts; reset explicitly with !resetrecord confirm.","trigger":{"type":"command","command":"!win"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Wins: ${countstreamwins} | Losses: ${readcountstreamlosses}"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"loss","name":"Add a stream loss","group":"Stream counters","description":"Moderator only. Adds one to the persistent streamlosses counter. These are channel totals, separate from viewer duel statistics.","trigger":{"type":"command","command":"!loss"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Wins: ${readcountstreamwins} | Losses: ${countstreamlosses}"},"delayMs":0}],"role":"moderator","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"record","name":"Read stream win/loss record","group":"Stream counters","description":"Everyone can read the same stream counters without changing them. Install Add a stream win/loss to update these totals.","trigger":{"type":"command","command":"!record"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Wins: ${readcountstreamwins} | Losses: ${readcountstreamlosses}"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"resetrecord","name":"Reset stream win/loss record","group":"Stream counters","description":"Broadcaster only. !resetrecord confirm resets only streamwins and streamlosses. Other counters and viewer records remain unchanged.","trigger":{"type":"command","command":"!resetrecord"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${if same ${1} \"confirm\"}Record reset. Wins: ${resetcountstreamwins} | Losses: ${resetcountstreamlosses}${else}Type !resetrecord confirm to reset the stream win/loss record.${end}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"goal","name":"Read a named goal","group":"Goals","description":"!goal name shows that goal's progress. Does not create or reset goals. Use the named goal controls or a goal setup preset first.","trigger":{"type":"command","command":"!goal"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${if same ${1} \"\"}Usage: !goal name${else}${goal ${1}}${end}"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"time","name":"Current UTC time","group":"Community information","description":"Shows the current UTC date and time, explicitly labelled so viewers can compare time zones.","trigger":{"type":"command","command":"!time"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Current date and time: ${date} ${time}"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"clip-reminder","name":"Clip memorable moments reminder","group":"Timers","description":"While live, every 55 minutes after at least 10 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":3300000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"See a moment worth keeping? Use Twitch's Clip button to save and share it!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"accessibility-reminder","name":"Captions and accessibility reminder","group":"Timers","description":"While live, every 75 minutes after at least 5 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":4500000,"repeatLimit":0,"onlyLive":true,"minMessages":5},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Need captions or another accessibility adjustment? Let us know what would help and we will do our best."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"community-question","name":"Conversation starter rotation","group":"Timers","description":"While live, every 35 minutes after at least 15 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":2100000,"repeatLimit":0,"onlyLive":true,"minMessages":15},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${random.pick \"What game, show or hobby are you enjoying lately?\" \"What was a highlight of your week?\" \"What snack would you bring to community game night?\"}"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"goal-progress-reminder","name":"Named goal progress reminder","group":"Goals","description":"Live-only, every 35 minutes after 10 new chat messages. Change community to your goal's name, or create it with !addgoal community bits 10000 first. Reads progress without resetting it.","trigger":{"type":"timer","intervalMs":2100000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Community goal: ${goal community}"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"stream-live-welcome","name":"Going live welcome","group":"Stream operations","description":"One welcome per stream.online event. Twitch can deliver this before all stream metadata is ready, so the message does not depend on title or category lookups.","trigger":{"type":"event","event":"stream.online"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"We are live! Welcome in, make yourselves comfortable, and enjoy the stream: ${link}"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"stream-offline-thanks","name":"End of stream thank-you","group":"Stream operations","description":"Posts a closing message when Twitch reports that the stream went offline. Set your own schedule or community link in the text.","trigger":{"type":"event","event":"stream.offline"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thanks for spending time with us today! Take care, and see you next stream."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"ad-break-notice","name":"Ad break notice","group":"Stream operations","description":"Announce an ad break after Twitch confirms it started. Requires Ad controls event access. This does not schedule or start an ad.","trigger":{"type":"event","event":"channel.ad_break.begin"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"An ad break has started. Thanks for your patience and for supporting the stream!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"poll-open-notice","name":"Poll voting opens","group":"Polls & predictions","description":"Tell chat when Twitch opens a poll. Requires Poll events access; does not create a poll.","trigger":{"type":"event","event":"channel.poll.begin"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"A channel poll is open! Use the poll panel to vote for your choice."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"poll-closed-notice","name":"Poll voting closes","group":"Polls & predictions","description":"Acknowledge the end of voting. Check Twitch's poll result for the outcome; cancelled polls do not announce a winner.","trigger":{"type":"event","event":"channel.poll.end"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"The poll has ended. Thank you for voting! Check the poll panel for its result."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"prediction-open-notice","name":"Prediction opens","group":"Polls & predictions","description":"Tell chat when Twitch opens a prediction. Requires Prediction widgets & events access; does not create a prediction.","trigger":{"type":"event","event":"channel.prediction.begin"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"A prediction is open! Choose your outcome in the prediction panel before entries close."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"prediction-locked-notice","name":"Prediction entries lock","group":"Polls & predictions","description":"Explain that entries have closed without claiming that the prediction has been settled.","trigger":{"type":"event","event":"channel.prediction.lock"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Prediction entries are now locked. Good luck, everyone! We are waiting for the outcome."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"prediction-end-notice","name":"Prediction ends","group":"Polls & predictions","description":"Works for both settled and cancelled predictions without inventing a winning outcome or payout.","trigger":{"type":"event","event":"channel.prediction.end"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"The prediction has ended. Check the prediction panel for its result and any points returned or awarded."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"hype-start-notice","name":"Hype Train starts","group":"Audience events","description":"Acknowledge the start of a real Twitch Hype Train. Requires Hype Train events access.","trigger":{"type":"event","event":"channel.hype_train.begin"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"A Hype Train has started! Thank you for the support. Enjoy the ride, everyone!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"hype-end-thanks","name":"Hype Train thank-you","group":"Audience events","description":"Thank the community once the Hype Train ends, without posting repeated progress messages.","trigger":{"type":"event","event":"channel.hype_train.end"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you to everyone who joined the Hype Train! We appreciate you being here."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"bits-milestone","name":"Large cheer: 1,000+ Bits","group":"Audience events","description":"Alternative to the regular Bits thank-you. Only posts for cheers of at least 1,000 Bits; edit the If threshold. Anonymous cheers work too.","trigger":{"type":"event","event":"channel.cheer"},"steps":[{"type":"if","condition":{"actionId":"twitch.event.bits","field":"value","operator":"greater","value":999},"then":[{"actionId":"twitch.action.chat","params":{"message":"An incredible ${bits} Bits! Thank you for your generosity and support."},"delayMs":0}],"else":[]}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"gift-milestone","name":"Gift bundle: 5+ subscriptions","group":"Audience events","description":"Alternative to the regular gift thank-you. Only posts for bundles of at least five gifts; edit the If threshold. Does not reveal anonymous gifters.","trigger":{"type":"event","event":"channel.subscription.gift"},"steps":[{"type":"if","condition":{"actionId":"twitch.event.gifts","field":"value","operator":"greater","value":4},"then":[{"actionId":"twitch.action.chat","params":{"message":"${gifts} gifted subscriptions! Thank you for sharing the love with the community."},"delayMs":0}],"else":[]}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"charity-start-notice","name":"Charity campaign starts","group":"Charity & creator goals","description":"React to a Twitch-hosted charity campaign starting. Requires Charity goals & donations access. Add your campaign link before enabling.","trigger":{"type":"event","event":"channel.charity_campaign.start"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Our Twitch charity campaign is now live! Open the channel's charity panel to learn about the cause and how to contribute."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"charity-donation-thanks","name":"Charity donation thank-you","group":"Charity & creator goals","description":"Thank a Twitch charity donation without exposing a donor's identity or inventing a currency amount. External tip services require their own integration.","trigger":{"type":"event","event":"channel.charity_campaign.donate"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you for donating to our charity campaign and helping make a difference!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"charity-end-thanks","name":"Charity campaign closes","group":"Charity & creator goals","description":"A closing thank-you when Twitch reports the campaign stopped. Does not assume the target was reached.","trigger":{"type":"event","event":"channel.charity_campaign.stop"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Our charity campaign has closed. Thank you to everyone who donated, shared the cause, or cheered us on!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"creator-goal-start","name":"Twitch creator goal starts","group":"Charity & creator goals","description":"React to a goal created on Twitch. Requires Twitch creator goals access. Named local goals are managed separately with !addgoal.","trigger":{"type":"event","event":"channel.goal.begin"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"A new channel goal is underway! Check the Twitch goal panel to see our target."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"creator-goal-end","name":"Twitch creator goal ends","group":"Charity & creator goals","description":"Acknowledge an ended Twitch goal. The event can represent success or cancellation, so this does not claim the goal was achieved.","trigger":{"type":"event","event":"channel.goal.end"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Our Twitch channel goal has ended. Thank you for your support! Check the goal panel for the final result."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-followers","name":"New followers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: followers. Adjust its target with !addgoal followers followers 20.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal followers followers 20}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-subscriptions","name":"New subscriptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: subscriptions. Adjust its target with !addgoal subscriptions subscriptions 10.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal subscriptions subscriptions 10}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-resubscriptions","name":"Resubscriptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: resubscriptions. Adjust its target with !addgoal resubscriptions resubscriptions 10.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal resubscriptions resubscriptions 10}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-gift-subscriptions","name":"Gift subscriptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: gift-subscriptions. Adjust its target with !addgoal gift-subscriptions gift-subscriptions 10.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal gift-subscriptions gift-subscriptions 10}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-bits","name":"Bits goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: bits. Adjust its target with !addgoal bits bits 1000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal bits bits 1000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-cheers","name":"Cheer events goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: cheers. Adjust its target with !addgoal cheers cheers 10.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal cheers cheers 10}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-raids","name":"Incoming raids goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: raids. Adjust its target with !addgoal raids raids 5.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal raids raids 5}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-raiders","name":"Incoming raiders goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: raiders. Adjust its target with !addgoal raiders raiders 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal raiders raiders 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-messages","name":"Chat messages goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: messages. Adjust its target with !addgoal messages messages 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal messages messages 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-redemptions","name":"Channel Points redemptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: redemptions. Adjust its target with !addgoal redemptions redemptions 25.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal redemptions redemptions 25}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-redeemed-points","name":"Channel Points redeemed goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: redeemed-points. Adjust its target with !addgoal redeemed-points redeemed-points 10000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal redeemed-points redeemed-points 10000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-donations","name":"Twitch charity donations goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: donations. Adjust its target with !addgoal donations donations 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal donations donations 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-charity-donors","name":"Charity donation events goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: charity-donors. Adjust its target with !addgoal charity-donors charity-donors 10.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal charity-donors charity-donors 10}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-viewers","name":"Current viewers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: viewers. Adjust its target with !addgoal viewers viewers 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal viewers viewers 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-follower-total","name":"Total followers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: follower-total. Adjust its target with !addgoal follower-total follower-total 1000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal follower-total follower-total 1000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-subscriber-total","name":"Active subscribers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: subscriber-total. Adjust its target with !addgoal subscriber-total subscriber-total 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal subscriber-total subscriber-total 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-subscription-points","name":"Subscription points goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: subscription-points. Adjust its target with !addgoal subscription-points subscription-points 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal subscription-points subscription-points 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-uptime","name":"Live minutes goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: uptime. Adjust its target with !addgoal uptime uptime 120.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal uptime uptime 120}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-hype-level","name":"Hype Train level goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: hype-level. Adjust its target with !addgoal hype-level hype-level 5.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal hype-level hype-level 5}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-hype-points","name":"Hype Train points goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: hype-points. Adjust its target with !addgoal hype-points hype-points 10000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal hype-points hype-points 10000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-poll-votes","name":"Poll votes goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: poll-votes. Adjust its target with !addgoal poll-votes poll-votes 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal poll-votes poll-votes 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-prediction-points","name":"Prediction Channel Points goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: prediction-points. Adjust its target with !addgoal prediction-points prediction-points 10000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal prediction-points prediction-points 10000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-goal","name":"Twitch creator goal progress goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-goal. Adjust its target with !addgoal creator-goal creator-goal 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-goal creator-goal 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-follow","name":"Twitch goal: followers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-follow. Adjust its target with !addgoal creator-follow creator-follow 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-follow creator-follow 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-subscription","name":"Twitch goal: net subscription points goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-subscription. Adjust its target with !addgoal creator-subscription creator-subscription 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-subscription creator-subscription 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-subscription-count","name":"Twitch goal: net subscriptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-subscription-count. Adjust its target with !addgoal creator-subscription-count creator-subscription-count 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-subscription-count creator-subscription-count 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-new-subscription","name":"Twitch goal: new subscription points goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-new-subscription. Adjust its target with !addgoal creator-new-subscription creator-new-subscription 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-new-subscription creator-new-subscription 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-new-subscription-count","name":"Twitch goal: new subscriptions goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-new-subscription-count. Adjust its target with !addgoal creator-new-subscription-count creator-new-subscription-count 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-new-subscription-count creator-new-subscription-count 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-new-bit","name":"Twitch goal: Bits goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-new-bit. Adjust its target with !addgoal creator-new-bit creator-new-bit 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-new-bit creator-new-bit 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-creator-new-cheerer","name":"Twitch goal: unique cheerers goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: creator-new-cheerer. Adjust its target with !addgoal creator-new-cheerer creator-new-cheerer 100.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal creator-new-cheerer creator-new-cheerer 100}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"track-goal-charity-total","name":"Twitch charity campaign total goal","group":"Goals","description":"One-time setup timer: creates a named goal after one second, then stops. Twitch events or current readings update it automatically. Add a Goal in Overlay Designer and use this name: charity-total. Adjust its target with !addgoal charity-total charity-total 1000.","trigger":{"type":"timer","intervalMs":1000,"repeatLimit":1,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${addgoal charity-total charity-total 1000}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"add-goal","name":"Create or update a named goal","group":"Goals","description":"Broadcaster only. !addgoal name tracking amount. Example: !addgoal community bits 10000. Progress is tracked from Twitch events; an existing goal keeps its progress when its tracking is unchanged.","trigger":{"type":"command","command":"!addgoal"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${addgoal ${1} ${2} ${3}}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"reset-goal","name":"Reset a named goal","group":"Goals","description":"Broadcaster only. !resetgoal name resets progress and keeps the tracking source and target.","trigger":{"type":"command","command":"!resetgoal"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${resetgoal ${1}}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"goal-donations","name":"Donation goal progress timer","group":"Timers","description":"While live, every 30 minutes after at least 5 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":1800000,"repeatLimit":0,"onlyLive":true,"minMessages":5},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Twitch charity goal: ${goal donations}. Thank you for supporting the campaign."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"xp-seasons","name":"XP season: every two months","group":"Seasons & records","description":"Save the top three XP records, reset everyone's XP and start the next season without posting chat. Every rule is editable public syntax. Uses two calendar months, not 60 days; review the UTC date before enabling. Other fields are preserved. Add a chat step to announce a new season.","trigger":{"type":"timer","calendarMonths":2,"nextAt":0,"repeatLimit":0,"onlyLive":false,"minMessages":0},"steps":[{"actionId":"twitch.action.recipe","params":{"message":"${set season readcountseason}\n${if season == 0}${set season setcount season 1}${end}\n\n${saveboard \"S${season}\" xp 3}\n\n${resetstats xp}\n\n${set previous season}\n${set season addcount season 1}\n\n${board \"S${previous}\"} • S${season} begins! XP is reset; other player records are unchanged."},"delayMs":0}],"role":"broadcaster","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"new-season","name":"Start the next XP season","group":"Seasons & records","description":"Broadcaster only. Type !newseason confirm to archive the top three, reset XP and advance the shared season counter. Uses the same generic recipe as the scheduled season.","trigger":{"type":"command","command":"!newseason"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${if same ${1} \"confirm\"}${set season readcountseason}\n${if season == 0}${set season setcount season 1}${end}\n\n${saveboard \"S${season}\" xp 3}\n\n${resetstats xp}\n\n${set previous season}\n${set season addcount season 1}\n\n${board \"S${previous}\"} • S${season} begins! XP is reset; other player records are unchanged.${else}Type !newseason confirm to save the leaderboard and reset everyone's XP.${end}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":60,"userCooldownSeconds":60},{"id":"reset-xp","name":"Reset everyone's XP","group":"Seasons & records","description":"Broadcaster only. Type !resetxp confirm. Only XP is reset; other fields and saved leaderboards remain. This example does not start a new season.","trigger":{"type":"command","command":"!resetxp"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${if same ${1} \"confirm\"}${resetstats xp}All player XP has been reset.${else}Type !resetxp confirm to reset everyone's XP.${end}"},"delayMs":0}],"role":"broadcaster","cooldownSeconds":60,"userCooldownSeconds":60},{"id":"season-history","name":"Saved season leaderboards","group":"Seasons & records","description":"Type !season to list saved seasons, or !season S1 to see its archived top players.","trigger":{"type":"command","command":"!season"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"${if same ${1} \"\"}${boards}${else}${board ${1}}${end}"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":15},{"id":"raid-native","name":"Raid: native Twitch shoutout","group":"Raids","description":"Automatically shout out the broadcaster who raids you, using Twitch's native API. No username or user ID is needed. Twitch requires you to be live and enforces 2 minutes globally / 60 minutes per broadcaster.","trigger":{"type":"event","event":"channel.raid"},"steps":[{"actionId":"twitch.action.shoutout","params":{"target":"raider"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"raid-native-welcome","name":"Raid: native shoutout + welcome","group":"Raids","description":"Send Twitch's native shoutout and a welcome message together. The incoming raid supplies the raider and viewer count; no external bot is needed.","trigger":{"type":"event","event":"channel.raid"},"steps":[{"type":"parallel","steps":[{"actionId":"twitch.action.shoutout","params":{"target":"raider"},"delayMs":0},{"actionId":"twitch.action.chat","params":{"message":"Welcome ${raider} and ${viewers} raiders! Thank you for bringing your community over: ${link user}"},"delayMs":0}]}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"raid-welcome","name":"Raid: welcome message","group":"Raids","description":"Welcome each incoming raid in chat. The name, audience size and link come from the raid event.","trigger":{"type":"event","event":"channel.raid"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Welcome ${raider} and ${viewers} raiders! Make yourselves at home. Follow our raider: ${link user}"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"raid-external-bot","name":"Raid: external bot !so","group":"Raids","description":"Optional: send !so for the actual incoming raider. Requires a separate connected bot that handles !so. This is different from Twitch's native shoutout.","trigger":{"type":"event","event":"channel.raid"},"steps":[{"actionId":"twitch.action.bot-shoutout","params":{"target":"raider","command":"!so"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"subscriber-thanks","name":"Subscriber thank-you","group":"Audience events","description":"Thank a new subscriber in chat, using the subscriber from the event.","trigger":{"type":"event","event":"channel.subscribe"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you, ${user}, for subscribing! Welcome to the community."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"resub-thanks","name":"Resubscription thank-you","group":"Audience events","description":"Thank a returning subscriber and include their cumulative subscription months.","trigger":{"type":"event","event":"channel.subscription.message"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you, ${user}, for ${months} months of support!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"gift-thanks","name":"Gift-sub thank-you","group":"Audience events","description":"Thank gift subscriptions. The message also works when the sender is anonymous.","trigger":{"type":"event","event":"channel.subscription.gift"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you for gifting ${gifts} subscriptions! Enjoy your emotes, everyone."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"bits-thanks","name":"Bits thank-you","group":"Audience events","description":"Thank a cheer using its actual Bits amount. Also works for anonymous cheers.","trigger":{"type":"event","event":"channel.cheer"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thank you for the ${bits} Bits and for supporting the stream!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"follower-thanks","name":"Follower welcome","group":"Audience events","description":"Welcome the viewer from a new-follow event. Needs Followers & events access.","trigger":{"type":"event","event":"channel.follow"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Welcome, ${user}! Thanks for following."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"chat-reminder","name":"Chat reminder","group":"Timers","description":"While live, every 30 minutes after at least 5 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":1800000,"repeatLimit":0,"onlyLive":true,"minMessages":5},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Enjoying the stream? Follow the channel and join us again: ${link}"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"break-reminder","name":"Hydration & stretch reminder","group":"Timers","description":"While live, every 60 minutes. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":3600000,"repeatLimit":0,"onlyLive":true,"minMessages":0},"steps":[{"actionId":"twitch.action.chat","params":{"message":"A quick reminder to hydrate, rest your eyes and stretch. Take care of yourselves!"},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"rules-reminder","name":"Community rules reminder","group":"Timers","description":"While live, every 45 minutes after at least 10 new chat messages. Edit the message before enabling.","trigger":{"type":"timer","intervalMs":2700000,"repeatLimit":0,"onlyLive":true,"minMessages":10},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Keep it friendly, respect each other, and ask before posting spoilers or backseating."},"delayMs":0}],"role":"moderator","cooldownSeconds":0,"userCooldownSeconds":0},{"id":"lurk","name":"Lurk thank-you","group":"Chat commands","description":"!lurk thanks the person speaking. Everyone can use it; no extra service or URL is required.","trigger":{"type":"command","command":"!lurk"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Thanks for hanging out, ${sender}! Enjoy your lurk."},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":60},{"id":"uptime","name":"Stream uptime","group":"Chat commands","description":"!uptime shows Twitch's current live duration or Offline.","trigger":{"type":"command","command":"!uptime"},"steps":[{"actionId":"twitch.action.chat","params":{"message":"Stream status: ${uptime}"},"delayMs":0}],"role":"viewer","cooldownSeconds":5,"userCooldownSeconds":15}];
 /** Compact operator rows; keep the active editor DOM intact between status polls. */
+/* global GrobyBuiltinPresets */
 window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
   let key = "";
   const el = (tag, css, text) => {
@@ -5227,7 +5228,16 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         event: "Events",
       };
       const search = query.toLowerCase();
-      const visible = snapshot.rows
+      const rows =
+        snapshot.connected === false
+          ? [
+              ...snapshot.rows,
+              ...GrobyBuiltinPresets.filter(
+                (preset) => !snapshot.rows.some((row) => row.handler === preset.handler),
+              ).map((preset) => ({ ...preset, enabled: false, preview: true })),
+            ]
+          : snapshot.rows;
+      const visible = rows
         .filter(
           (row) =>
             (category(row) === type ||
@@ -5249,15 +5259,16 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
       for (const row of visible) {
         const preset = builtin(row),
           policy = snapshot.builtinPolicies?.[row.handler],
+          enabled = policy?.switchEnabled ?? row.enabled,
           item = el("div", "automationItem"),
           line = el("div", "automationColumns"),
           control = el("button", "automationEnable");
         control.type = "button";
-        control.disabled = snapshot.connected === false || policy?.available === false;
+        control.disabled = snapshot.connected === false;
         control.setAttribute("role", "switch");
-        control.setAttribute("aria-checked", String(row.enabled));
-        control.setAttribute("aria-label", row.enabled ? "Pause automation" : "Start automation");
-        control.title = row.enabled ? "Pause " + row.name : "Enable " + row.name;
+        control.setAttribute("aria-checked", String(enabled));
+        control.setAttribute("aria-label", enabled ? "Pause automation" : "Start automation");
+        control.title = enabled ? "Pause " + row.name : "Enable " + row.name;
         control.onclick = () => toggle(row);
         control.append(el("span"));
         const title = el("button", "automationRowTitle");
@@ -5284,8 +5295,9 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
           title.querySelector("small").remove();
         title.onclick = () => edit(row);
         if (preset)
-          title.querySelector("small").textContent =
-            policy?.available === false
+          title.querySelector("small").textContent = row.preview
+            ? preset.command + " · Connect Twitch to configure"
+            : policy?.available === false
               ? "Enable Song Request in Packages"
               : policy?.chatEnabled
                 ? "Chat · " +
@@ -5307,7 +5319,7 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         trash.setAttribute("aria-label", "Remove " + row.name);
         trash.onclick = () => remove(row);
         actions.append(expand);
-        if (!preset || !policy) actions.append(trash);
+        if ((!preset || !policy) && !row.preview) actions.append(trash);
         line.append(
           control,
           title,
@@ -5327,7 +5339,9 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
           el(
             "span",
             "automationRole",
-            row.trigger.type === "command" ? roles[row.role] : "Reward / event",
+            row.trigger.type === "command" || (preset && !row.trigger.rewardId)
+              ? roles[row.role]
+              : "Reward / event",
           ),
           actions,
         );
@@ -5370,6 +5384,61 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
     }
   };
 };
+
+/** Populate and read the Channel Points settings independently of the automation editor. */
+window.createAutomationRewardEditor = ($, cooldown) => ({
+  createValue: "new-builtin-reward",
+  options(value, rewards, feature, bound) {
+    const picker = $("rewardId");
+    picker.replaceChildren(
+      new Option(
+        feature ? "Chat command (" + feature.command + ")" : "Create a new Twitch reward",
+        "",
+      ),
+    );
+    if (feature && !bound) picker.add(new Option("Create a new Twitch reward", this.createValue));
+    const manageable = rewards.filter((row) => row.manageable);
+    for (const reward of manageable) picker.add(new Option(reward.title, reward.id));
+    if (value && !manageable.some((row) => row.id === value))
+      picker.add(new Option("Bound reward · refresh to check availability", value));
+    picker.value = value || "";
+  },
+  fill(row = {}, { name, livePaused, copyTitle }) {
+    for (const [id, key, fallback] of [
+      ["rewardTitle", "title", name],
+      ["cost", "cost", 100],
+      ["prompt", "prompt", ""],
+      ["color", "backgroundColor", "#9146ff"],
+      ["maxStream", "maxPerStream", 0],
+      ["maxUser", "maxPerUser", 0],
+    ])
+      $(id).value = row[key] ?? fallback;
+    cooldown.set(row.cooldownSeconds ?? 0);
+    for (const [id, key, fallback] of [
+      ["rewardEnabled", "enabled", true],
+      ["paused", "paused", false],
+      ["userInput", "userInputRequired", false],
+    ])
+      $(id).checked =
+        id === "paused" && livePaused?.includes(row.id) ? false : (row[key] ?? fallback);
+    $("rewardTitle").dataset.automatic = String(!row.title);
+    if (copyTitle && row.title) $("name").value = row.title;
+  },
+  read() {
+    return {
+      title: $("rewardTitle").value.trim() || $("name").value.trim(),
+      cost: Number($("cost").value),
+      prompt: $("prompt").value,
+      userInputRequired: $("userInput").checked,
+      enabled: $("rewardEnabled").checked,
+      paused: $("paused").checked,
+      backgroundColor: $("color").value,
+      maxPerStream: Number($("maxStream").value),
+      maxPerUser: Number($("maxUser").value),
+      cooldownSeconds: cooldown.read(),
+    };
+  },
+});
 
 (()=>{
 
@@ -6542,7 +6611,7 @@ function buildActionSteps(host, title, initial, catalog, sendKey, options = {}) 
 Object.assign(DeckFlow,{buildActionSteps});
 })();
 /** Operator UI. Capabilities cross the sandbox bridge; credentials never enter it. */
-/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
+/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, GrobyBuiltinPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
     CHANNEL = "ravelink-feature-ui-v1",
@@ -6604,8 +6673,9 @@ Object.assign(DeckFlow,{buildActionSteps});
       initial: 1800,
     }),
   };
+  const rewardEditor = window.createAutomationRewardEditor($, durations.rewardCooldown);
   let sequence = 0,
-    snapshot = { revision: 0, rows: [], running: [], history: [] },
+    snapshot = { revision: 0, connected: false, rows: [], running: [], history: [] },
     rewards = [],
     catalog = [],
     eventCatalog = [],
@@ -6614,6 +6684,7 @@ Object.assign(DeckFlow,{buildActionSteps});
     builder = null,
     busy = false,
     connected = false,
+    rewardBaseline = "",
     rewardResultUnknown = "",
     confirmAction = null;
   const notice = (text) => {
@@ -6678,6 +6749,7 @@ Object.assign(DeckFlow,{buildActionSteps});
       "The automation list changed. Reopen this automation before saving again.",
     twitch_automation_trigger_exists:
       "That reward or command already has an automation. Edit the existing one.",
+    twitch_builtin_preset_required: "Edit the feature from the Built-in features tab.",
     twitch_automation_command_reserved:
       "Choose a new command name. Built-in song and clip commands keep their shared moderation.",
     twitch_reward_not_manageable:
@@ -6717,6 +6789,19 @@ Object.assign(DeckFlow,{buildActionSteps});
       updateControls();
     }
   }
+  const newBuiltinReward = rewardEditor.createValue;
+  function builtin() {
+    return selected && (selected.preview || snapshot.builtinPolicies?.[selected.handler])
+      ? GrobyBuiltinPresets.find((preset) => preset.handler === selected.handler)
+      : null;
+  }
+  function builtinRewardFields() {
+    return Boolean(
+      $("rewardId").value &&
+      (rewards.some((row) => row.id === $("rewardId").value && row.manageable) ||
+        $("rewardId").value === newBuiltinReward),
+    );
+  }
   function updateControls() {
     for (const id of ["save", "newAutomation", "refresh"]) $(id).disabled = busy;
     $("remove").disabled =
@@ -6724,22 +6809,31 @@ Object.assign(DeckFlow,{buildActionSteps});
     const reward = selected && $("triggerType").value === "reward",
       saved = snapshot.rows.find((row) => row.id === selected?.id),
       bound = saved?.trigger.rewardId;
-    const policy = snapshot.builtinPolicies?.[$("handler").value];
-    $("remove").hidden = Boolean(policy);
-    $("save").disabled =
-      busy || !connected || policy?.available === false || rewardResultUnknown === selected?.id;
-    $("save").textContent = reward
-      ? $("rewardId").value
-        ? "Save automation & reward"
-        : "Save & create Twitch reward"
-      : "Save automation";
-    $("rewardPrerequisite").textContent = reward
-      ? $("rewardId").value
-        ? "Save updates this automation and its reward on Twitch together."
-        : "Save creates this reward on Twitch and connects it to the flow below."
-      : "";
+    const feature = builtin();
+    $("remove").hidden = Boolean(feature);
+    $("save").disabled = busy || !connected || rewardResultUnknown === selected?.id;
+    $("save").textContent = feature
+      ? $("rewardId").value === newBuiltinReward
+        ? "Save & create Twitch reward"
+        : "Save feature"
+      : reward
+        ? $("rewardId").value
+          ? "Save automation & reward"
+          : "Save & create Twitch reward"
+        : "Save automation";
+    $("rewardPrerequisite").textContent = feature
+      ? "Reward settings apply on Twitch when you edit them here."
+      : reward
+        ? $("rewardId").value
+          ? "Save updates this automation and its reward on Twitch together."
+          : "Save creates this reward on Twitch and connects it to the flow below."
+        : "";
     $("deleteReward").disabled = busy || !connected || !bound || !reward;
     $("deleteReward").hidden = !bound || !reward;
+    if (feature) {
+      $("rewardFields").hidden = !builtinRewardFields();
+      $("rewardFields").disabled = !builtinRewardFields();
+    }
     height();
   }
   $("automationList").before($("editorParking"));
@@ -6918,7 +7012,7 @@ Object.assign(DeckFlow,{buildActionSteps});
     } catch (error) {
       if (error.message !== "twitch_connection_required") throw error;
       connected = false;
-      snapshot = { revision: 0, rows: [], running: [], history: [] };
+      snapshot = { revision: 0, connected: false, rows: [], running: [], history: [] };
     }
     rewards = [];
     if (connected) {
@@ -6978,36 +7072,16 @@ Object.assign(DeckFlow,{buildActionSteps});
       "Example loaded as a disabled draft. Review its text and roles, save it, then activate it with the list switch.",
     );
   }
-  function fillReward(row = {}) {
-    for (const [id, key, fallback] of [
-      ["rewardTitle", "title", selected?.name || ""],
-      ["cost", "cost", 100],
-      ["prompt", "prompt", ""],
-      ["color", "backgroundColor", "#9146ff"],
-      ["maxStream", "maxPerStream", 0],
-      ["maxUser", "maxPerUser", 0],
-    ])
-      $(id).value = row[key] ?? fallback;
-    durations.rewardCooldown.set(row.cooldownSeconds ?? 0);
-    for (const [id, key, fallback] of [
-      ["rewardEnabled", "enabled", true],
-      ["paused", "paused", false],
-      ["userInput", "userInputRequired", false],
-    ])
-      $(id).checked =
-        id === "paused" && snapshot.livePausedRewardIds?.includes(row.id)
-          ? false
-          : (row[key] ?? fallback);
-    $("rewardTitle").dataset.automatic = String(!row.title);
-    if ($("triggerType").value === "reward" && row.title) $("name").value = row.title;
+  function fillReward(row) {
+    rewardEditor.fill(row, {
+      name: selected?.name || "",
+      livePaused: snapshot.livePausedRewardIds,
+      copyTitle: $("triggerType").value === "reward" && !builtin(),
+    });
+    rewardBaseline = JSON.stringify(rewardEditor.read());
   }
   function rewardOptions(value) {
-    $("rewardId").replaceChildren(new Option("Create a new Twitch reward", ""));
-    for (const reward of rewards.filter((row) => row.manageable))
-      $("rewardId").add(new Option(reward.title, reward.id));
-    if (value && !rewards.some((row) => row.manageable && row.id === value))
-      $("rewardId").add(new Option("Bound reward · refresh to check availability", value));
-    $("rewardId").value = value || "";
+    rewardEditor.options(value, rewards, builtin(), selected.trigger.rewardId);
   }
   function open(row) {
     if (row.handler !== "flow") categoryFilter.value = "builtin";
@@ -7061,21 +7135,31 @@ Object.assign(DeckFlow,{buildActionSteps});
   function switchTrigger() {
     const type = $("triggerType").value,
       chat = type === "command",
-      reward = type === "reward";
+      reward = type === "reward",
+      feature = builtin();
     for (const id of ["commandField", "roleField", "commandExtras", "commandOfflineField"])
       $(id).hidden = !chat;
     $("userCooldownField").hidden = !chat;
+    $("roleField").hidden = !chat && !feature;
+    $("roleField").firstChild.textContent = feature ? "Chat command access" : "Who can use it?";
     $("cooldownField").hidden = !chat && type !== "event";
     $("cooldownField").firstChild.textContent = chat ? "Command cooldown" : "Event cooldown";
-    $("nameLabel").textContent = reward ? "Reward name on Twitch" : "Name";
-    $("name").maxLength = reward ? 45 : 80;
+    $("nameLabel").textContent = feature
+      ? "Feature name"
+      : reward
+        ? "Reward name on Twitch"
+        : "Name";
+    $("name").maxLength = reward && !feature ? 45 : 80;
+    $("triggerType").closest("label").hidden = Boolean(feature);
     $("rewardChoice").hidden = !reward;
     $("rewardFields").hidden = !reward;
     $("rewardFields").disabled = !reward;
     $("eventField").hidden = type !== "event";
     $("timerFields").hidden = type !== "timer";
     if (!reward) $("handler").value = "flow";
-    $("handlerField").hidden = !reward;
+    $("handlerField").hidden = !reward || Boolean(feature);
+    for (const option of $("handler").options)
+      option.disabled = !feature && Boolean(snapshot.builtinPolicies?.[option.value]);
     $("flowArea").hidden = $("handler").value !== "flow";
     const label =
       type === "event"
@@ -7168,26 +7252,15 @@ Object.assign(DeckFlow,{buildActionSteps});
           ? readTimerTrigger()
           : type === "event"
             ? { type, event: $("eventType").value }
-            : { type: "reward", rewardId: $("rewardId").value },
-      handler: !reward ? "flow" : $("handler").value,
+            : {
+                type: "reward",
+                rewardId: $("rewardId").value === newBuiltinReward ? "" : $("rewardId").value,
+              },
+      handler: builtin() ? selected.handler : !reward ? "flow" : $("handler").value,
       steps: $("handler").value === "flow" || !reward ? builder.read() : [],
       role: $("role").value,
       cooldownSeconds: durations.cooldown.read(),
       userCooldownSeconds: durations.userCooldown.read(),
-    };
-  }
-  function rewardFields() {
-    return {
-      title: $("rewardTitle").value.trim() || $("name").value.trim(),
-      cost: Number($("cost").value),
-      prompt: $("prompt").value,
-      userInputRequired: $("userInput").checked,
-      enabled: $("rewardEnabled").checked,
-      paused: $("paused").checked,
-      backgroundColor: $("color").value,
-      maxPerStream: Number($("maxStream").value),
-      maxPerUser: Number($("maxUser").value),
-      cooldownSeconds: durations.rewardCooldown.read(),
     };
   }
   function confirm(title, text, action) {
@@ -7272,11 +7345,14 @@ Object.assign(DeckFlow,{buildActionSteps});
     updateControls();
   };
   $("name").oninput = () => {
-    if ($("triggerType").value === "reward" || $("rewardTitle").dataset.automatic === "true")
+    if (
+      (!builtin() && $("triggerType").value === "reward") ||
+      $("rewardTitle").dataset.automatic === "true"
+    )
       $("rewardTitle").value = $("name").value.slice(0, 45);
   };
   $("rewardTitle").oninput = () => {
-    if ($("triggerType").value === "reward") $("name").value = $("rewardTitle").value;
+    if ($("triggerType").value === "reward" && !builtin()) $("name").value = $("rewardTitle").value;
     $("rewardTitle").dataset.automatic = String(!$("rewardTitle").value.trim());
   };
   $("addAction").onclick = () => {
@@ -7299,8 +7375,16 @@ Object.assign(DeckFlow,{buildActionSteps});
       return;
     }
     void task(async () => {
-      const value = draft(),
-        fields = value.trigger.type === "reward" ? rewardFields() : null;
+      const feature = builtin(),
+        create = $("rewardId").value === newBuiltinReward,
+        value = draft(),
+        candidateFields = value.trigger.type === "reward" ? rewardEditor.read() : null,
+        fields =
+          !feature ||
+          create ||
+          (builtinRewardFields() && JSON.stringify(candidateFields) !== rewardBaseline)
+            ? candidateFields
+            : null;
       snapshot = await call("save", { revision: editRevision, automation: value });
       editRevision = snapshot.revision;
       selected = snapshot.rows.find((row) => row.id === value.id) || value;
@@ -7310,8 +7394,9 @@ Object.assign(DeckFlow,{buildActionSteps});
       $("editorTitle").textContent = "Edit automation";
       render();
       if (!fields) {
+        if (feature) open(selected);
         notice(
-          "Automation saved." +
+          (feature ? "Feature saved." : "Automation saved.") +
             (selected.enabled ? "" : " Paused; activate it with the list switch."),
         );
         return;
@@ -7411,6 +7496,7 @@ Object.assign(DeckFlow,{buildActionSteps});
     if (selected) removeAutomation(selected);
   };
   initializeExamples();
+  render();
   void task(refresh);
   const poll = setInterval(() => {
     if (busy) return;

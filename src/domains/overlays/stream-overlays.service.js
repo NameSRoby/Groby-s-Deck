@@ -1,5 +1,6 @@
 /** One lazy data cache for every OBS/editor client; reuses existing provider owners. */
 const model = require("../../../public/core/overlay-model");
+const rules = require("../../../public/core/overlay-game-rules");
 const { randomUUID } = require("node:crypto");
 const mediaStatus = require("../control-deck/deck-media-status");
 const EVENT_SCOPES = {
@@ -38,8 +39,15 @@ module.exports = function streamOverlays({
     redemptions = require("./overlay-redemptions")(now),
     games = require("./overlay-games")({
       runtimeDir,
-      documents: () => store.gameDocuments(),
+      documents: store.gameDocuments,
       now,
+    }),
+    gameChat = require("./overlay-game-chat")({
+      runtimeDir,
+      documents: store.gameDocuments,
+      games,
+      now,
+      changed: () => refreshSubscriptions(),
     }),
     credits = require("./overlay-credits")(runtimeDir, now),
     previews = require("./overlay-preview-sessions")({
@@ -88,7 +96,12 @@ module.exports = function streamOverlays({
       redemptions.reset(status.userId || "");
       records = {};
     }
-    return { provider, connected: status.connected === true, scopes: status.scopes || [] };
+    return {
+      provider,
+      connected: status.connected === true,
+      scopes: status.scopes || [],
+      owner: status.userId || "",
+    };
   }
   function types() {
     return new Set(
@@ -99,6 +112,7 @@ module.exports = function streamOverlays({
   }
   function events(owner = getProvider()?.status()?.userId || "") {
     const wanted = new Set(goals.events(owner));
+    if (gameChat.interested(owner)) wanted.add("channel.chat.message");
     for (const row of widgets().filter((w) => w.visible)) {
       if (row.type === "credits" && row.creditsSource !== "manual") {
         if (row.creditsSource === "followers") wanted.add("channel.follow");
@@ -134,6 +148,21 @@ module.exports = function streamOverlays({
     if (wanted === subscriptions) return;
     subscriptions = wanted;
     getProvider()?.refreshSubscriptions?.();
+  }
+  function presentationScope(id) {
+    const visible = store.widgets(id)?.filter(model.usesLiveData);
+    if (!visible?.length) return null;
+    if (visible.some((w) => w.type === "custom")) return {};
+    return {
+      types: new Set(visible.map((w) => w.type)),
+      eventTypes: new Set(
+        visible.filter((w) => ["alerts", "activity"].includes(w.type)).flatMap((w) => w.events),
+      ),
+      recordKeys: visible
+        .filter((w) => ["goal", "leaderboard", "player-card", "counter"].includes(w.type))
+        .map(model.recordKey),
+      documentId: id,
+    };
   }
   function catalog() {
     const status = auth(),
@@ -306,6 +335,26 @@ module.exports = function streamOverlays({
     store,
     goals,
     catalog,
+    gameChatStatus() {
+      const status = auth();
+      return gameChat.status(
+        status.connected && status.scopes.includes("user:read:chat")
+          ? status.provider.status().userId
+          : "",
+      );
+    },
+    gameChatConfigure(input) {
+      const status = auth();
+      return gameChat.configure(
+        input,
+        status.connected && status.scopes.includes("user:read:chat")
+          ? status.provider.status().userId
+          : "",
+      );
+    },
+    gameChatHandle(event, provider) {
+      return gameChat.handle(event, provider);
+    },
     goalControl(input) {
       const tx = goals.transaction(getProvider()?.status()?.userId);
       const message = input.operation === "reset" ? tx.reset(input.name) : tx.create(input);
@@ -320,19 +369,31 @@ module.exports = function streamOverlays({
         credits.receive(type, event);
         redemptions.receive(type, event);
         if (type === "channel.chat.message")
-          games.receive(event, metadata, getProvider().status().userId);
+          games.receive(
+            event,
+            metadata,
+            getProvider().status().userId,
+            gameChat.allowsParticipation,
+          );
       }
     },
     subscribeChat(client) {
       auth();
       return chatFeed.subscribe(client);
     },
-    async data({ fast = false } = {}) {
+    async presentation(id, knownRevision) {
+      const revision = store.revision(),
+        scope = presentationScope(id),
+        document = knownRevision === String(revision) ? undefined : store.get(id);
+      return { revision, document, data: scope ? await this.data({ fast: true, ...scope }) : null };
+    },
+    async data({ fast = false, types, eventTypes, recordKeys, documentId } = {}) {
       if (fast) void refresh().catch(() => {});
       else await refresh();
       const status = auth();
-      const activitySnapshot = activity.snapshot();
-      const chat = chatFeed.frame();
+      const uses = (...values) => !types || values.some((type) => types.has(type));
+      const activitySnapshot = activity.snapshot(eventTypes);
+      const chat = uses("chat") ? chatFeed.frame() : { rows: [], version: 0 };
       return {
         connected: status.connected,
         ...(fast
@@ -345,15 +406,37 @@ module.exports = function streamOverlays({
             }
           : {}),
         session,
-        music: song,
-        records: structuredClone(records),
-        goals: status.connected ? goals.snapshot(getProvider().status().userId) : {},
-        soundboard: structuredClone(soundboard),
+        music: uses("now-playing", "queue") ? song : undefined,
+        records: structuredClone(
+          recordKeys
+            ? Object.fromEntries(
+                recordKeys
+                  .filter((key) => Object.hasOwn(records, key))
+                  .map((key) => [key, records[key]]),
+              )
+            : records,
+        ),
+        goals: status.connected && uses("goal") ? goals.snapshot(status.owner) : {},
+        soundboard: uses("soundboard") ? structuredClone(soundboard) : undefined,
         gameStorageError: games.error(),
         goalStorageError: goals.error(),
-        games: games.snapshot(getProvider()?.status()?.userId || ""),
-        redemptions: status.connected ? redemptions.snapshot() : { entries: [] },
-        twitch: structuredClone(twitch),
+        games: games.snapshot(status.owner, documentId),
+        redemptions:
+          status.connected && uses("redemptions") ? redemptions.snapshot() : { entries: [] },
+        twitch: uses(
+          "title",
+          "category",
+          "viewers",
+          "uptime",
+          "followers",
+          "latest-follower",
+          "subscribers",
+          "sub-points",
+          "prediction",
+          "credits",
+        )
+          ? structuredClone(twitch)
+          : undefined,
         ...activitySnapshot,
         events: [...activitySnapshot.events, ...chat.rows].sort((a, b) => a.at - b.at),
         chatVersion: chat.version,
@@ -403,7 +486,7 @@ module.exports = function streamOverlays({
     },
     gameControl(input = {}) {
       if (input.revision !== undefined && input.revision !== store.revision())
-        throw Error("The overlay layout changed. Review the updated Bingo board and try again.");
+        throw Error("The overlay layout changed. Reload it before changing the game.");
       const w = store
         .gameDocuments()
         .find((doc) => doc.id === input.documentId)
@@ -425,14 +508,14 @@ module.exports = function streamOverlays({
         input,
         getProvider()?.status()?.userId || "",
       );
-      return input.returnBingo === true && w?.type === "bingo"
+      return input.returnBingo === true && rules.boardTypes.includes(w?.type)
         ? { ...result, ...this.bingoDeck(input) }
         : result;
     },
     bingoDeck({ documentId, widgetId } = {}) {
       const options = store.gameDocuments().flatMap((doc) =>
         doc.widgets
-          .filter((w) => w.visible && w.type === "bingo")
+          .filter((w) => w.visible && rules.boardTypes.includes(w.type))
           .map((w) => ({
             doc,
             widget: w,
@@ -449,7 +532,20 @@ module.exports = function streamOverlays({
         boards: options.map(({ documentId, widgetId, label }) => ({ documentId, widgetId, label })),
         board: chosen
           ? {
-              ...games.bingo(chosen.doc, chosen.widget),
+              ...games.board(chosen.doc, chosen.widget),
+              width: chosen.widget.width,
+              height: chosen.widget.height,
+              image: chosen.widget.boardImage,
+              imageFit: chosen.widget.boardImageFit,
+              cellImageFit: chosen.widget.cellImageFit,
+              markMode: chosen.widget.markMode,
+              markSymbol: chosen.widget.markSymbol,
+              markSymbolColor: chosen.widget.markSymbolColor,
+              markColor: chosen.widget.markColor,
+              markOpacity: chosen.widget.markOpacity,
+              matchBack: chosen.widget.matchBack,
+              matchBackColor: chosen.widget.matchBackColor,
+              showLabels: chosen.widget.showCellLabels,
               documentId: chosen.documentId,
               widgetId: chosen.widgetId,
             }

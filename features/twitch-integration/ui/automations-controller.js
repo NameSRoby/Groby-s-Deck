@@ -1,5 +1,5 @@
 /** Operator UI. Capabilities cross the sandbox bridge; credentials never enter it. */
-/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
+/* global DeckFlow, GrobyVariablePresets, GrobyAutomationPresets, GrobyBuiltinPresets, createDurationInput, createPillInput, createVisibleDialog, calendarDateAfter */
 (() => {
   const $ = (id) => document.getElementById(id),
     CHANNEL = "ravelink-feature-ui-v1",
@@ -61,8 +61,9 @@
       initial: 1800,
     }),
   };
+  const rewardEditor = window.createAutomationRewardEditor($, durations.rewardCooldown);
   let sequence = 0,
-    snapshot = { revision: 0, rows: [], running: [], history: [] },
+    snapshot = { revision: 0, connected: false, rows: [], running: [], history: [] },
     rewards = [],
     catalog = [],
     eventCatalog = [],
@@ -71,6 +72,7 @@
     builder = null,
     busy = false,
     connected = false,
+    rewardBaseline = "",
     rewardResultUnknown = "",
     confirmAction = null;
   const notice = (text) => {
@@ -135,6 +137,7 @@
       "The automation list changed. Reopen this automation before saving again.",
     twitch_automation_trigger_exists:
       "That reward or command already has an automation. Edit the existing one.",
+    twitch_builtin_preset_required: "Edit the feature from the Built-in features tab.",
     twitch_automation_command_reserved:
       "Choose a new command name. Built-in song and clip commands keep their shared moderation.",
     twitch_reward_not_manageable:
@@ -174,6 +177,19 @@
       updateControls();
     }
   }
+  const newBuiltinReward = rewardEditor.createValue;
+  function builtin() {
+    return selected && (selected.preview || snapshot.builtinPolicies?.[selected.handler])
+      ? GrobyBuiltinPresets.find((preset) => preset.handler === selected.handler)
+      : null;
+  }
+  function builtinRewardFields() {
+    return Boolean(
+      $("rewardId").value &&
+      (rewards.some((row) => row.id === $("rewardId").value && row.manageable) ||
+        $("rewardId").value === newBuiltinReward),
+    );
+  }
   function updateControls() {
     for (const id of ["save", "newAutomation", "refresh"]) $(id).disabled = busy;
     $("remove").disabled =
@@ -181,22 +197,31 @@
     const reward = selected && $("triggerType").value === "reward",
       saved = snapshot.rows.find((row) => row.id === selected?.id),
       bound = saved?.trigger.rewardId;
-    const policy = snapshot.builtinPolicies?.[$("handler").value];
-    $("remove").hidden = Boolean(policy);
-    $("save").disabled =
-      busy || !connected || policy?.available === false || rewardResultUnknown === selected?.id;
-    $("save").textContent = reward
-      ? $("rewardId").value
-        ? "Save automation & reward"
-        : "Save & create Twitch reward"
-      : "Save automation";
-    $("rewardPrerequisite").textContent = reward
-      ? $("rewardId").value
-        ? "Save updates this automation and its reward on Twitch together."
-        : "Save creates this reward on Twitch and connects it to the flow below."
-      : "";
+    const feature = builtin();
+    $("remove").hidden = Boolean(feature);
+    $("save").disabled = busy || !connected || rewardResultUnknown === selected?.id;
+    $("save").textContent = feature
+      ? $("rewardId").value === newBuiltinReward
+        ? "Save & create Twitch reward"
+        : "Save feature"
+      : reward
+        ? $("rewardId").value
+          ? "Save automation & reward"
+          : "Save & create Twitch reward"
+        : "Save automation";
+    $("rewardPrerequisite").textContent = feature
+      ? "Reward settings apply on Twitch when you edit them here."
+      : reward
+        ? $("rewardId").value
+          ? "Save updates this automation and its reward on Twitch together."
+          : "Save creates this reward on Twitch and connects it to the flow below."
+        : "";
     $("deleteReward").disabled = busy || !connected || !bound || !reward;
     $("deleteReward").hidden = !bound || !reward;
+    if (feature) {
+      $("rewardFields").hidden = !builtinRewardFields();
+      $("rewardFields").disabled = !builtinRewardFields();
+    }
     height();
   }
   $("automationList").before($("editorParking"));
@@ -375,7 +400,7 @@
     } catch (error) {
       if (error.message !== "twitch_connection_required") throw error;
       connected = false;
-      snapshot = { revision: 0, rows: [], running: [], history: [] };
+      snapshot = { revision: 0, connected: false, rows: [], running: [], history: [] };
     }
     rewards = [];
     if (connected) {
@@ -435,36 +460,16 @@
       "Example loaded as a disabled draft. Review its text and roles, save it, then activate it with the list switch.",
     );
   }
-  function fillReward(row = {}) {
-    for (const [id, key, fallback] of [
-      ["rewardTitle", "title", selected?.name || ""],
-      ["cost", "cost", 100],
-      ["prompt", "prompt", ""],
-      ["color", "backgroundColor", "#9146ff"],
-      ["maxStream", "maxPerStream", 0],
-      ["maxUser", "maxPerUser", 0],
-    ])
-      $(id).value = row[key] ?? fallback;
-    durations.rewardCooldown.set(row.cooldownSeconds ?? 0);
-    for (const [id, key, fallback] of [
-      ["rewardEnabled", "enabled", true],
-      ["paused", "paused", false],
-      ["userInput", "userInputRequired", false],
-    ])
-      $(id).checked =
-        id === "paused" && snapshot.livePausedRewardIds?.includes(row.id)
-          ? false
-          : (row[key] ?? fallback);
-    $("rewardTitle").dataset.automatic = String(!row.title);
-    if ($("triggerType").value === "reward" && row.title) $("name").value = row.title;
+  function fillReward(row) {
+    rewardEditor.fill(row, {
+      name: selected?.name || "",
+      livePaused: snapshot.livePausedRewardIds,
+      copyTitle: $("triggerType").value === "reward" && !builtin(),
+    });
+    rewardBaseline = JSON.stringify(rewardEditor.read());
   }
   function rewardOptions(value) {
-    $("rewardId").replaceChildren(new Option("Create a new Twitch reward", ""));
-    for (const reward of rewards.filter((row) => row.manageable))
-      $("rewardId").add(new Option(reward.title, reward.id));
-    if (value && !rewards.some((row) => row.manageable && row.id === value))
-      $("rewardId").add(new Option("Bound reward · refresh to check availability", value));
-    $("rewardId").value = value || "";
+    rewardEditor.options(value, rewards, builtin(), selected.trigger.rewardId);
   }
   function open(row) {
     if (row.handler !== "flow") categoryFilter.value = "builtin";
@@ -518,21 +523,31 @@
   function switchTrigger() {
     const type = $("triggerType").value,
       chat = type === "command",
-      reward = type === "reward";
+      reward = type === "reward",
+      feature = builtin();
     for (const id of ["commandField", "roleField", "commandExtras", "commandOfflineField"])
       $(id).hidden = !chat;
     $("userCooldownField").hidden = !chat;
+    $("roleField").hidden = !chat && !feature;
+    $("roleField").firstChild.textContent = feature ? "Chat command access" : "Who can use it?";
     $("cooldownField").hidden = !chat && type !== "event";
     $("cooldownField").firstChild.textContent = chat ? "Command cooldown" : "Event cooldown";
-    $("nameLabel").textContent = reward ? "Reward name on Twitch" : "Name";
-    $("name").maxLength = reward ? 45 : 80;
+    $("nameLabel").textContent = feature
+      ? "Feature name"
+      : reward
+        ? "Reward name on Twitch"
+        : "Name";
+    $("name").maxLength = reward && !feature ? 45 : 80;
+    $("triggerType").closest("label").hidden = Boolean(feature);
     $("rewardChoice").hidden = !reward;
     $("rewardFields").hidden = !reward;
     $("rewardFields").disabled = !reward;
     $("eventField").hidden = type !== "event";
     $("timerFields").hidden = type !== "timer";
     if (!reward) $("handler").value = "flow";
-    $("handlerField").hidden = !reward;
+    $("handlerField").hidden = !reward || Boolean(feature);
+    for (const option of $("handler").options)
+      option.disabled = !feature && Boolean(snapshot.builtinPolicies?.[option.value]);
     $("flowArea").hidden = $("handler").value !== "flow";
     const label =
       type === "event"
@@ -625,26 +640,15 @@
           ? readTimerTrigger()
           : type === "event"
             ? { type, event: $("eventType").value }
-            : { type: "reward", rewardId: $("rewardId").value },
-      handler: !reward ? "flow" : $("handler").value,
+            : {
+                type: "reward",
+                rewardId: $("rewardId").value === newBuiltinReward ? "" : $("rewardId").value,
+              },
+      handler: builtin() ? selected.handler : !reward ? "flow" : $("handler").value,
       steps: $("handler").value === "flow" || !reward ? builder.read() : [],
       role: $("role").value,
       cooldownSeconds: durations.cooldown.read(),
       userCooldownSeconds: durations.userCooldown.read(),
-    };
-  }
-  function rewardFields() {
-    return {
-      title: $("rewardTitle").value.trim() || $("name").value.trim(),
-      cost: Number($("cost").value),
-      prompt: $("prompt").value,
-      userInputRequired: $("userInput").checked,
-      enabled: $("rewardEnabled").checked,
-      paused: $("paused").checked,
-      backgroundColor: $("color").value,
-      maxPerStream: Number($("maxStream").value),
-      maxPerUser: Number($("maxUser").value),
-      cooldownSeconds: durations.rewardCooldown.read(),
     };
   }
   function confirm(title, text, action) {
@@ -729,11 +733,14 @@
     updateControls();
   };
   $("name").oninput = () => {
-    if ($("triggerType").value === "reward" || $("rewardTitle").dataset.automatic === "true")
+    if (
+      (!builtin() && $("triggerType").value === "reward") ||
+      $("rewardTitle").dataset.automatic === "true"
+    )
       $("rewardTitle").value = $("name").value.slice(0, 45);
   };
   $("rewardTitle").oninput = () => {
-    if ($("triggerType").value === "reward") $("name").value = $("rewardTitle").value;
+    if ($("triggerType").value === "reward" && !builtin()) $("name").value = $("rewardTitle").value;
     $("rewardTitle").dataset.automatic = String(!$("rewardTitle").value.trim());
   };
   $("addAction").onclick = () => {
@@ -756,8 +763,16 @@
       return;
     }
     void task(async () => {
-      const value = draft(),
-        fields = value.trigger.type === "reward" ? rewardFields() : null;
+      const feature = builtin(),
+        create = $("rewardId").value === newBuiltinReward,
+        value = draft(),
+        candidateFields = value.trigger.type === "reward" ? rewardEditor.read() : null,
+        fields =
+          !feature ||
+          create ||
+          (builtinRewardFields() && JSON.stringify(candidateFields) !== rewardBaseline)
+            ? candidateFields
+            : null;
       snapshot = await call("save", { revision: editRevision, automation: value });
       editRevision = snapshot.revision;
       selected = snapshot.rows.find((row) => row.id === value.id) || value;
@@ -767,8 +782,9 @@
       $("editorTitle").textContent = "Edit automation";
       render();
       if (!fields) {
+        if (feature) open(selected);
         notice(
-          "Automation saved." +
+          (feature ? "Feature saved." : "Automation saved.") +
             (selected.enabled ? "" : " Paused; activate it with the list switch."),
         );
         return;
@@ -868,6 +884,7 @@
     if (selected) removeAutomation(selected);
   };
   initializeExamples();
+  render();
   void task(refresh);
   const poll = setInterval(() => {
     if (busy) return;

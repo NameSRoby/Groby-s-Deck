@@ -3,6 +3,7 @@ const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const { readJsonFile, writeJsonFile } = require("../../shared/fs/json-file-store");
 const model = require("../../../public/core/overlay-model");
+const { types: gameTypes } = require("../../../public/core/overlay-game-rules");
 module.exports = function overlayStore(runtimeDir) {
   const file = path.join(runtimeDir, "system", "stream-overlays.json");
   let state = { revision: 0, documents: [] };
@@ -28,22 +29,26 @@ module.exports = function overlayStore(runtimeDir) {
   function snapshot() {
     return structuredClone(state);
   }
+  const stored = (id) => state.documents.find((row) => row.id === id);
   return {
     snapshot,
     revision: () => state.revision,
-    widgets: () => state.documents.flatMap((doc) => doc.widgets),
-    gameDocuments: () =>
-      state.documents.map((doc) => ({
-        id: doc.id,
-        name: doc.name,
-        widgets: doc.widgets.filter((w) => ["wheel", "bingo", "chat-vote"].includes(w.type)),
-      })),
-    get: (id) => structuredClone(state.documents.find((row) => row.id === id) || null),
+    widgets: (id) =>
+      id === undefined ? state.documents.flatMap((doc) => doc.widgets) : stored(id)?.widgets,
+    gameDocuments: (id) =>
+      (id === undefined ? state.documents : state.documents.filter((doc) => doc.id === id)).map(
+        (doc) => ({
+          id: doc.id,
+          name: doc.name,
+          widgets: doc.widgets.filter((w) => gameTypes.includes(w.type)),
+        }),
+      ),
+    get: (id) => structuredClone(stored(id) || null),
     save(input) {
       if (Buffer.byteLength(JSON.stringify(input.document), "utf8") > 240000)
-        throw Error("This overlay is too large. Keep custom code under 240 KB in total.");
+        throw Error("This overlay exceeds 240 KB. Shorten tile labels, image URLs or custom code.");
       const doc = model.document(input.document),
-        documents = structuredClone(state.documents);
+        documents = [...state.documents];
       const index = documents.findIndex((row) => row.id === doc.id);
       if (doc.id && index < 0)
         throw Error("That overlay no longer exists. Save it as a new overlay.");

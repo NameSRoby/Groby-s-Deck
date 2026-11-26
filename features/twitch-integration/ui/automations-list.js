@@ -1,4 +1,5 @@
 /** Compact operator rows; keep the active editor DOM intact between status polls. */
+/* global GrobyBuiltinPresets */
 window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
   let key = "";
   const el = (tag, css, text) => {
@@ -68,7 +69,16 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         event: "Events",
       };
       const search = query.toLowerCase();
-      const visible = snapshot.rows
+      const rows =
+        snapshot.connected === false
+          ? [
+              ...snapshot.rows,
+              ...GrobyBuiltinPresets.filter(
+                (preset) => !snapshot.rows.some((row) => row.handler === preset.handler),
+              ).map((preset) => ({ ...preset, enabled: false, preview: true })),
+            ]
+          : snapshot.rows;
+      const visible = rows
         .filter(
           (row) =>
             (category(row) === type ||
@@ -90,15 +100,16 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
       for (const row of visible) {
         const preset = builtin(row),
           policy = snapshot.builtinPolicies?.[row.handler],
+          enabled = policy?.switchEnabled ?? row.enabled,
           item = el("div", "automationItem"),
           line = el("div", "automationColumns"),
           control = el("button", "automationEnable");
         control.type = "button";
-        control.disabled = snapshot.connected === false || policy?.available === false;
+        control.disabled = snapshot.connected === false;
         control.setAttribute("role", "switch");
-        control.setAttribute("aria-checked", String(row.enabled));
-        control.setAttribute("aria-label", row.enabled ? "Pause automation" : "Start automation");
-        control.title = row.enabled ? "Pause " + row.name : "Enable " + row.name;
+        control.setAttribute("aria-checked", String(enabled));
+        control.setAttribute("aria-label", enabled ? "Pause automation" : "Start automation");
+        control.title = enabled ? "Pause " + row.name : "Enable " + row.name;
         control.onclick = () => toggle(row);
         control.append(el("span"));
         const title = el("button", "automationRowTitle");
@@ -125,8 +136,9 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
           title.querySelector("small").remove();
         title.onclick = () => edit(row);
         if (preset)
-          title.querySelector("small").textContent =
-            policy?.available === false
+          title.querySelector("small").textContent = row.preview
+            ? preset.command + " · Connect Twitch to configure"
+            : policy?.available === false
               ? "Enable Song Request in Packages"
               : policy?.chatEnabled
                 ? "Chat · " +
@@ -148,7 +160,7 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
         trash.setAttribute("aria-label", "Remove " + row.name);
         trash.onclick = () => remove(row);
         actions.append(expand);
-        if (!preset || !policy) actions.append(trash);
+        if ((!preset || !policy) && !row.preview) actions.append(trash);
         line.append(
           control,
           title,
@@ -168,7 +180,9 @@ window.createAutomationRows = ({ host, parking, edit, toggle, remove }) => {
           el(
             "span",
             "automationRole",
-            row.trigger.type === "command" ? roles[row.role] : "Reward / event",
+            row.trigger.type === "command" || (preset && !row.trigger.rewardId)
+              ? roles[row.role]
+              : "Reward / event",
           ),
           actions,
         );

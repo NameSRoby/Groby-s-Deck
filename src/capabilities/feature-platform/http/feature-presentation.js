@@ -8,10 +8,11 @@ const feedback = require("../../../../public/core/action-feedback");
 const choices = require("../../../../public/core/visible-choices");
 const colors = require("../../../../public/core/presentation-colors");
 const dismissibles = require("../../../../public/core/dismissible-surfaces");
-const surfaceCss = require("node:fs").readFileSync(
-  require("node:path").join(__dirname, "../../../../public/core/theme-surfaces.css"),
-  "utf8",
-);
+const fs = require("node:fs");
+const path = require("node:path");
+const surfaceCss = ["theme-surfaces.css", "workspace-density.css"]
+  .map((file) => fs.readFileSync(path.join(__dirname, "../../../../public/core", file), "utf8"))
+  .join("\n");
 function contributionPresentation() {
   const channel = "ravelink-feature-ui-v1";
   let observer,
@@ -22,8 +23,8 @@ function contributionPresentation() {
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
-      if (!document.body.getBoundingClientRect().width) return;
       const bounds = document.body.getBoundingClientRect();
+      if (!bounds.width) return;
       const style = getComputedStyle(document.body);
       const height = Math.ceil(
         Math.max(bounds.height, document.body.scrollHeight) +
@@ -39,11 +40,18 @@ function contributionPresentation() {
     });
   };
   window.addEventListener("message", (event) => {
-    if (
-      event.source === parent &&
-      event.data?.channel === channel &&
-      event.data.type === "setup-view"
-    ) {
+    if (event.source !== parent || event.data?.channel !== channel) return;
+    if (["presentation", "layout-profile"].includes(event.data.type)) {
+      const profile = event.data.profile;
+      if (
+        ["normal", "compact", "spacious", "sidebar"].includes(profile) &&
+        document.documentElement.dataset.workspaceProfile !== profile
+      ) {
+        document.documentElement.dataset.workspaceProfile = profile;
+        report();
+      }
+    }
+    if (event.data.type === "setup-view") {
       if (event.data.target === "song-setup")
         document.querySelector('.playerViewTabs [data-view="setup"]')?.click();
       if (event.data.target === "automation-presets") {
@@ -55,12 +63,7 @@ function contributionPresentation() {
       }
       return;
     }
-    if (
-      event.source !== parent ||
-      event.data?.channel !== channel ||
-      event.data.type !== "presentation"
-    )
-      return;
+    if (event.data.type !== "presentation") return;
     document.documentElement.classList.add("native-feature");
     const theme = window.GrobyPresentationColors(event.data.theme || {});
     for (const key of [

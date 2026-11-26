@@ -44,6 +44,13 @@ The sidecar uses Spotify's `--app-directory` flag and leaves the original instal
 
 The renderer only connects when a trusted caller supplies explicit connection options. Unpaired developer bundles expose read-only readiness status. Setup injects only this installation's local connection configuration into the runtime sidecar; the public bundle never includes pairing tokens.
 
+The renderer keeps a request open for the next command. Core can deliver work
+while Spotify is minimized, even when its renderer's interval is throttled.
+Playback snapshots are optional for the command channel. A bad snapshot does
+not stop later requests, and an unusable write receipt is held for review without
+replaying the write. After updating, prepare the companion again and reopen
+Spotify with Groby’s Deck to load the new renderer.
+
 Validate isolated behavior with `node --test "test/spotify*.test.js"` and bundle reproducibility with `node scripts/build-spotify-desktop.js --check`.
 
 See the [developer guide](../../docs/DEVELOPMENT.md) for provider ownership and recovery rules. The tests above establish isolated behavior; broader client/account compatibility and live Premium operation still require validation.

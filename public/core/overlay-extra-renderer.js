@@ -11,8 +11,11 @@
     "chat-vote",
     "wheel",
     "bingo",
+    "challenge-board",
+    "tile-match",
     "soundboard",
   ]);
+  const boardKeys = new WeakMap();
   const el = (tag, text) => {
     const n = document.createElement(tag);
     if (text !== undefined) n.textContent = text;
@@ -146,13 +149,16 @@
   }
   const state = (w, data) =>
     data.game ||
-    (data.sample
+    (data.sample && w.type !== "tile-match"
       ? {
           counts: w.items.map((_, i) => i * 3 + 2),
           open: true,
-          endsAt: Date.now() + 60000,
+          endsAt: (data.sampleAt || Date.now()) + 60000,
           entries: w.items,
-          marks: [0, 3],
+          marks:
+            w.type === "challenge-board"
+              ? [w.tiles[0]?.id, w.tiles[3]?.id].filter(Boolean)
+              : [0, 3],
           winner: "",
           spunAt: 0,
           turns: 0,
@@ -354,22 +360,120 @@
       });
     }
     if (w.type === "wheel") wheel(body, w, s, now);
-    if (w.type === "bingo") {
-      const board = OverlayGameRules.bingoBoard(w, s.marks),
-        grid = el("div");
-      grid.className = "bingoGrid";
+    if (OverlayGameRules.boardTypes.includes(w.type)) renderBoard(body, w, s, now);
+    return body;
+  }
+  function announcementActive(w, state, now) {
+    return (
+      w.bingoAnnouncement === "always" ||
+      (w.bingoAnnouncement === "timed" && now < (state?.bingoAt || 0) + w.bingoSeconds * 1000)
+    );
+  }
+  function boardUnchanged(node, w, data, now) {
+    if (!OverlayGameRules.boardTypes.includes(w.type)) {
+      boardKeys.delete(node);
+      return false;
+    }
+    const game = state(w, data);
+    const key = JSON.stringify([
+      w,
+      game.marks,
+      announcementActive(w, game, now),
+      w.type === "tile-match"
+        ? [
+            game.matchFaces || OverlayGameRules.matchFaces(game, now),
+            game.matchUntil > now,
+            game.turns,
+          ]
+        : undefined,
+    ]);
+    if (boardKeys.get(node) === key && node.firstElementChild.classList.contains("extra-" + w.type))
+      return true;
+    boardKeys.set(node, key);
+    return false;
+  }
+  function renderBoard(body, w, s, now) {
+    const board = OverlayGameRules.board(w, s, now),
+      grid = el("div");
+    const alpha = (color, opacity) =>
+      color +
+      Math.round((opacity / 100) * 255)
+        .toString(16)
+        .padStart(2, "0");
+    const image = (url, fit, className) => {
+      const img = el("img");
+      img.className = className;
+      img.alt = "";
+      img.src = url;
+      img.style.objectFit = fit;
+      return img;
+    };
+    grid.className = board.freeform ? "bingoGrid freeform" : "bingoGrid";
+    if (!board.freeform) {
       grid.style.gridTemplateColumns = `repeat(${board.columns},minmax(0,1fr))`;
       grid.style.gridTemplateRows = `repeat(${board.rows},minmax(0,1fr))`;
-      for (const item of board.cells) {
-        const cell = el("div", item.text);
-        cell.className = "bingoCell" + (item.marked ? " marked" : "");
-        cell.style.setProperty("--cell-accent", w.palette[0]);
-        grid.append(cell);
-      }
-      body.append(grid);
-      if (board.won) body.append(el("strong", "BINGO!"));
+      grid.style.columnGap = Math.min(w.cellGap, w.width / board.columns / 4) + "px";
+      grid.style.rowGap = Math.min(w.cellGap, w.height / board.rows / 4) + "px";
     }
-    return body;
+    for (const [name, value] of Object.entries({
+      "--cell-fill": alpha(w.cellBackground, w.cellOpacity),
+      "--cell-mark": alpha(w.markColor, w.markOpacity),
+      "--cell-symbol": w.markSymbolColor,
+      "--cell-line": w.cellBorderColor,
+      "--cell-border": w.cellBorder + "px",
+      "--cell-radius": w.cellRadius + "px",
+      "--cell-gap": w.cellGap + "px",
+      "--tile-back": w.matchBackColor || "",
+    }))
+      grid.style.setProperty(name, value);
+    grid.dataset.markMode = w.markMode;
+    if (w.boardImage) grid.append(image(w.boardImage, w.boardImageFit, "bingoImage"));
+    for (const item of board.cells) {
+      const cell = el("div");
+      cell.className =
+        "bingoCell" + (item.marked ? " marked" : "") + (item.covered ? " covered" : "");
+      if (board.freeform)
+        Object.assign(cell.style, {
+          left: item.x + "%",
+          top: item.y + "%",
+          width: item.width + "%",
+          height: item.height + "%",
+          transform: `rotate(${item.rotation}deg)`,
+        });
+      if (item.image) cell.append(image(item.image, w.cellImageFit, "bingoImage"));
+      if (item.covered) cell.append(el("span", w.matchBack));
+      else if (w.showCellLabels || (!item.image && board.operation === "flip"))
+        cell.append(el("span", item.text));
+      if (item.marked && w.markMode !== "color") {
+        const symbol = el("span", w.markSymbol);
+        symbol.className = "bingoSymbol";
+        symbol.setAttribute("aria-hidden", "true");
+        cell.append(symbol);
+      }
+      grid.append(cell);
+    }
+    body.append(grid);
+    if (board.operation === "flip") {
+      if (w.matchProgress)
+        body.append(
+          el(
+            "small",
+            board.won
+              ? "All pairs matched in " + board.attempts + " attempts"
+              : board.matched + " / " + w.matchPairs.length + " pairs matched",
+          ),
+        );
+      return;
+    }
+    if (!board.won || !w.bingoMessage || !announcementActive(w, s, now)) return;
+    const banner = el("strong", w.bingoMessage);
+    banner.className = "bingoAnnouncement";
+    banner.style.color = w.bingoColor;
+    banner.style.backgroundColor = alpha(w.bingoBackground, w.bingoBackgroundOpacity);
+    banner.style.fontSize = w.bingoFontSize + "px";
+    if (w.bingoPlacement === "overlay") grid.append(banner);
+    else if (w.bingoPlacement === "top") body.insertBefore(banner, grid);
+    else body.append(banner);
   }
   function motion(node, w, data, now) {
     if (w.type !== "wheel") return;
@@ -396,5 +500,5 @@
         },
       );
   }
-  globalThis.OverlayExtraRenderer = { render, motion };
+  globalThis.OverlayExtraRenderer = { render, motion, boardUnchanged };
 })();

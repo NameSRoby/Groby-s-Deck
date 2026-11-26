@@ -9,6 +9,9 @@ const A = "spotify:track:AAAAAAAAAAAAAAAAAAAAAA";
 async function setup(t, options = {}) {
   const host = createHost({ timeoutMs: 1000, ...options }),
     app = express();
+  require("../src/app/runtime/request-security.middleware").installRequestSecurityMiddleware(app, {
+    express,
+  });
   app.use("/api/spotify/bridge", host.router());
   const server = await new Promise((resolve) => {
     const listener = app.listen(0, "127.0.0.1", () => resolve(listener));
@@ -91,6 +94,34 @@ test("paired Spotify connection delivers normalized lookup and mutation results 
   worker.close();
 });
 
+test("definitive one-shot commands cannot fill the bridge history or evict reusable receipts", async (t) => {
+  const { host, coreUrl } = await setup(t, { historyLimit: 3 });
+  let writes = 0;
+  const worker = createWorker(
+    {
+      append: async (uri) => ({
+        ok: true,
+        delivery: "confirmed",
+        uri,
+        uid: "entry-" + ++writes,
+      }),
+    },
+    { coreUrl, token: host.pairing().token, historyLimit: 3, clientId: "history-rotation" },
+  );
+  await worker.step();
+  const retained = host.invoke("append", { uri: A }, "reusable");
+  await worker.step();
+  const first = await retained;
+  for (let i = 0; i < 8; i++) {
+    const job = host.invoke("append", { uri: A }, "single-" + i, { oneShot: true });
+    await worker.step();
+    assert.equal((await job).ok, true);
+  }
+  assert.deepEqual(await host.invoke("append", { uri: A }, "reusable"), first);
+  assert.equal(writes, 9);
+  assert.equal(worker.status().executed, 1);
+});
+
 test("lost result acknowledgement retries the receipt without replaying the Spotify queue operation", async (t) => {
   const { host, coreUrl } = await setup(t);
   let writes = 0,
@@ -129,6 +160,14 @@ test("lost result acknowledgement retries the receipt without replaying the Spot
 
 test("Spotify keeps its authenticated heartbeat alive while a result acknowledgement waits", async (t) => {
   const { host, coreUrl } = await setup(t);
+  const origin = "https://xpui.app.spotify.com";
+  const preflight = await fetch(coreUrl + "/api/spotify/bridge/heartbeat", {
+    method: "OPTIONS",
+    headers: { origin, "access-control-request-private-network": "true" },
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
+  assert.equal(preflight.headers.get("access-control-allow-private-network"), "true");
   let releaseReceipt, receiptStarted, heartbeatSeen;
   const waiting = new Promise((resolve) => {
     receiptStarted = resolve;
@@ -157,8 +196,9 @@ test("Spotify keeps its authenticated heartbeat alive while a result acknowledge
           receiptStarted();
           await gate;
         }
-        const response = await fetch(url, options);
+        const response = await fetch(url, { ...options, headers: { ...options.headers, origin } });
         if (url.pathname.endsWith("/heartbeat")) {
+          assert.equal(response.status, 200);
           heartbeats++;
           heartbeatSeen();
         }
@@ -183,6 +223,67 @@ test("Spotify keeps its authenticated heartbeat alive while a result acknowledge
   await operation;
   assert.equal((await result).delivery, "confirmed");
   assert.equal(writes, 1);
+});
+
+test("a waiting Spotify renderer receives commands as soon as Core admits them", async (t) => {
+  const { host, post } = await setup(t);
+  await post("hello", { clientId: "desktop" });
+  const session = { clientId: "desktop", sessionId: host.pairing().sessionId };
+  const next = post("next", { ...session, wait: true }).then((response) => response.json());
+  const quiet = await Promise.race([
+    next,
+    new Promise((resolve) => setTimeout(resolve, 50, "waiting")),
+  ]);
+  assert.equal(quiet, "waiting");
+  const delivery = host.invoke("append", { uri: A }, "pending-command");
+  const { command } = await next;
+  assert.equal(command.id, "pending-command");
+  await post("result", {
+    ...session,
+    id: command.id,
+    lease: command.lease,
+    result: { ok: true, delivery: "confirmed", uri: A, uid: "one" },
+  });
+  assert.equal((await delivery).ok, true);
+});
+
+test("broken snapshots and malformed write receipts do not strand later requests", async (t) => {
+  const { host, coreUrl } = await setup(t);
+  let snapshots = 0,
+    writes = 0;
+  const worker = createWorker(
+    {
+      snapshot() {
+        snapshots++;
+        if (snapshots === 1) throw Error("native renderer is changing device");
+        if (snapshots === 2) return { ok: true, queue: [{ uid: "missing-uri" }] };
+        return { ok: true, queue: [{ uri: A, uid: "oversized".repeat(20000) }] };
+      },
+      append: async () => {
+        writes++;
+        return writes === 1 ? { ok: true } : { ok: true, extra: "oversized".repeat(20000) };
+      },
+      search: async () => ({ ok: true, candidates: [{ uri: A, title: "Song" }] }),
+    },
+    { coreUrl, token: host.pairing().token, clientId: "desktop" },
+  );
+  t.after(() => worker.close());
+  await worker.step();
+  for (const id of ["bad-receipt", "large-receipt"]) {
+    const result = host.invoke("append", { uri: A }, id);
+    await worker.step();
+    assert.equal((await result).error, "spotify_delivery_unconfirmed");
+    assert.equal(worker.status().awaitingReceipt, false);
+    assert.equal(
+      (await host.invoke("append", { uri: A }, id)).error,
+      "spotify_delivery_unconfirmed",
+    );
+  }
+  assert.equal(writes, 2);
+  const search = host.invoke("search", { query: "Song" }, "after-failure");
+  await worker.step();
+  assert.equal((await search).ok, true);
+  assert.equal(host.status().connected, true);
 });
 
 test("Spotify reconnects after a host session change without resending an old native write", async () => {
@@ -228,6 +329,7 @@ test("Spotify reconnects after a host session change without resending an old na
     session = "new-session";
     await worker.step();
     assert.equal(worker.status().paired, false);
+    assert.equal(worker.status().lastError, "", "a stale session can rejoin without a timed retry");
     queued = { id: "same-write", lease: "2".repeat(32), kind: "append", payload: { uri: A } };
     await worker.step();
     assert.equal(worker.status().paired, true);

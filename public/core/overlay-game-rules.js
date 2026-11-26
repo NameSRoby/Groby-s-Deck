@@ -3,6 +3,11 @@
   if (typeof module === "object" && module.exports) module.exports = factory();
   else root.OverlayGameRules = factory();
 })(globalThis, function () {
+  const markTypes = ["bingo", "challenge-board"];
+  const boardTypes = [...markTypes, "tile-match"];
+  const types = ["wheel", "chat-vote", ...boardTypes];
+  const responsive = (w) =>
+    w.visible && (["alerts", "credits"].includes(w.type) || types.includes(w.type));
   function bingoLayout(w) {
     const columns = Number(w.gridSize),
       rows = Number(w.gridRows) || columns,
@@ -12,40 +17,122 @@
     return { rows, columns, count, center };
   }
   const signature = (w) => {
+    if (w.type === "challenge-board") return w.type;
+    if (w.type === "tile-match")
+      return JSON.stringify([w.type, w.matchPairs.map((pair) => pair.id)]);
     if (w.type !== "bingo") return JSON.stringify([w.type, w.items, w.entrySource]);
     const { rows, columns } = bingoLayout(w);
     return JSON.stringify(rows === columns ? [w.type, columns] : [w.type, columns, rows]);
   };
-  function bingoBoard(w, marks = []) {
-    const { rows, columns, count, center } = bingoLayout(w),
-      marked = new Set(marks);
+  function bingoWins(w, layout, marked) {
+    const { rows, columns, count, center } = layout;
     if (center >= 0) marked.add(center);
-    const complete = (length, at) =>
-      Array.from({ length }, (_, i) => at(i)).every((i) => marked.has(i));
-    const won =
-      (columns > 1 &&
-        Array.from({ length: rows }, (_, r) => complete(columns, (c) => r * columns + c)).some(
-          Boolean,
-        )) ||
-      (rows > 1 &&
-        Array.from({ length: columns }, (_, c) => complete(rows, (r) => r * columns + c)).some(
-          Boolean,
-        )) ||
-      (rows === columns &&
-        rows > 1 &&
-        (complete(rows, (i) => i * columns + i) ||
-          complete(rows, (i) => i * columns + columns - 1 - i))) ||
-      (count === 1 && marked.has(0));
+    const patterns = w.bingoPatterns;
+    const wins = [];
+    function line(id, length, start, stride) {
+      for (let i = 0; i < length; i++) if (!marked.has(start + i * stride)) return;
+      wins.push(id);
+    }
+    if (patterns.includes("rows") && (columns > 1 || count === 1))
+      for (let row = 0; row < rows; row++) line("row" + row, columns, row * columns, 1);
+    if (patterns.includes("columns") && (rows > 1 || count === 1))
+      for (let column = 0; column < columns; column++)
+        line("column" + column, rows, column, columns);
+    if (patterns.includes("diagonals") && rows === columns && rows > 1) {
+      line("diagonal", rows, 0, columns + 1);
+      line("reverse", rows, columns - 1, columns - 1);
+    }
+    if (patterns.includes("all")) line("all", count, 0, 1);
+    return wins;
+  }
+  function bingoBoard(w, marks = []) {
+    const layout = bingoLayout(w),
+      { rows, columns, count, center } = layout,
+      marked = new Set(marks),
+      wins = bingoWins(w, layout, marked);
     return {
       rows,
       columns,
-      won,
+      won: wins.length > 0,
       cells: Array.from({ length: count }, (_, index) => ({
         text: index === center ? "FREE" : w.items[index] || "Square " + (index + 1),
+        image: w.boardImages[index] || "",
         marked: marked.has(index),
         free: index === center,
       })),
     };
+  }
+  function matchFaces(s, at) {
+    const flipped = s.matchUntil && at >= s.matchUntil ? [] : s.matchOpen || [];
+    return Object.fromEntries(
+      [...(s.marks || []), ...flipped].map((index) => [index, s.matchOrder?.[index]]),
+    );
+  }
+  function matchBoard(w, s, at) {
+    const faces = s.matchFaces || matchFaces(s, at),
+      marked = new Set(s.marks),
+      count = w.matchPairs.length * 2,
+      columns = Math.min(count, w.matchColumns),
+      waiting = Boolean(s.matchUntil && at < s.matchUntil);
+    return {
+      operation: "flip",
+      columns,
+      rows: Math.ceil(count / columns),
+      matched: marked.size / 2,
+      attempts: s.turns || 0,
+      waiting,
+      won: marked.size === count,
+      cells: Array.from({ length: count }, (_, index) => {
+        const revealed = marked.has(index) || waiting || !s.matchUntil;
+        const pair = revealed ? w.matchPairs[faces[index]] : null;
+        return {
+          text: pair ? pair.text || "Pair " + (faces[index] + 1) : "Tile " + (index + 1),
+          image: pair?.image || "",
+          marked: marked.has(index),
+          covered: !pair,
+          free: Boolean(pair),
+        };
+      }),
+    };
+  }
+  function board(w, s = {}, at = Date.now()) {
+    if (w.type === "bingo") return bingoBoard(w, s.marks);
+    if (w.type === "tile-match") return matchBoard(w, s, at);
+    const marked = new Set(s.marks);
+    return {
+      freeform: true,
+      cells: w.tiles.map((tile, index) => ({
+        ...tile,
+        text: tile.text || "Tile " + (index + 1),
+        marked: marked.has(tile.id),
+      })),
+    };
+  }
+  function flip(s, w, cell, at, random) {
+    const index = Number(cell) - 1,
+      count = w.matchPairs.length * 2;
+    if (!Number.isInteger(index) || index < 0 || index >= count)
+      throw Error("Choose a tile on this board.");
+    if (s.matchUntil > at) throw Error("Wait for the mismatched tiles to flip back.");
+    if (!s.matchOrder) {
+      s.matchOrder = Array.from({ length: count }, (_, i) => i % w.matchPairs.length);
+      for (let i = count - 1; i > 0; i--) {
+        const j = random(i + 1);
+        [s.matchOrder[i], s.matchOrder[j]] = [s.matchOrder[j], s.matchOrder[i]];
+      }
+    }
+    s.matchOpen = s.matchUntil ? [] : s.matchOpen || [];
+    s.matchUntil = 0;
+    if (s.marks.includes(index) || s.matchOpen.includes(index))
+      throw Error("That tile is already face up.");
+    s.matchOpen.push(index);
+    if (s.matchOpen.length === 1) return;
+    s.turns++;
+    const [first, second] = s.matchOpen;
+    if (s.matchOrder[first] === s.matchOrder[second]) {
+      s.marks.push(first, second);
+      s.matchOpen = [];
+    } else s.matchUntil = at + w.matchRevealSeconds * 1000;
   }
   function initial(w) {
     return {
@@ -53,11 +140,11 @@
       version: 0,
       votes: {},
       voterCount: 0,
-      counts: w.items.map(() => 0),
+      counts: w.type === "chat-vote" ? w.items.map(() => 0) : [],
       open: false,
       endsAt: 0,
       marks: [],
-      entries: w.entrySource === "chat" ? [] : [...w.items],
+      entries: w.type === "wheel" && w.entrySource !== "chat" ? [...w.items] : [],
       collecting: false,
       entrants: {},
       winner: "",
@@ -96,18 +183,52 @@
       s.open = true;
       s.endsAt = at + w.duration * 1000;
     } else if (w.type === "chat-vote" && operation === "close") s.open = false;
-    else if (w.type === "bingo" && operation === "mark") {
+    else if (w.type === "tile-match" && operation === "flip") flip(s, w, input.cell, at, random);
+    else if (markTypes.includes(w.type) && ["mark", "complete", "uncomplete"].includes(operation)) {
       const index = Number(input.cell) - 1;
-      const { count, center } = bingoLayout(w);
+      const layout = w.type === "bingo" ? bingoLayout(w) : { count: w.tiles.length, center: -1 };
+      const { count, center } = layout;
       if (!Number.isInteger(index) || index < 0 || index >= count)
         throw Error("Choose a square number on this board.");
       if (index === center)
         throw Error("The free center is always marked. Turn off Free center to mark it manually.");
-      s.marks = s.marks.includes(index) ? s.marks.filter((n) => n !== index) : [...s.marks, index];
+      const tile = w.type === "challenge-board" ? w.tiles[index] : null;
+      const key = tile?.id ?? index;
+      if (tile) {
+        const ids = new Set(w.tiles.map((row) => row.id));
+        s.marks = s.marks.filter((id) => ids.has(id));
+      } else {
+        s.entries = [];
+        s.counts = [];
+      }
+      const before = new Set(s.marks);
+      const wasMarked = before.has(key);
+      const marked = operation === "mark" ? !wasMarked : operation === "complete";
+      if (marked === wasMarked) return current;
+      if (!marked) before.delete(key);
+      else before.add(key);
+      s.marks = [...before];
+      if (!tile) {
+        const previous = new Set(bingoWins(w, layout, new Set(current.marks)));
+        const completed = bingoWins(w, layout, new Set(s.marks)).some((win) => !previous.has(win));
+        if (completed) s.bingoAt = at;
+      }
     } else throw Error("That control is not available for this widget.");
 
     s.version = current.version + 1;
     return s;
   }
-  return { initial, signature, control, bingoLayout, bingoBoard };
+  return {
+    initial,
+    signature,
+    control,
+    bingoLayout,
+    bingoBoard,
+    board,
+    boardTypes,
+    markTypes,
+    matchFaces,
+    types,
+    responsive,
+  };
 });

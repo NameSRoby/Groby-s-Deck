@@ -47,6 +47,8 @@
     ["chat-vote", "Chat voting", "Games", 560, 320],
     ["wheel", "Wheel of names", "Games", 500, 560],
     ["bingo", "Bingo board", "Games", 600, 600],
+    ["challenge-board", "Challenge board", "Games", 720, 480],
+    ["tile-match", "Tile Match", "Games", 600, 500],
     ["soundboard", "Soundboard indicator", "Tools", 480, 100],
     ["hype-train", "Hype Train", "Twitch", 480, 140],
   ].map(([type, name, group, width, height]) => ({ type, name, group, width, height }));
@@ -67,6 +69,109 @@
     } catch {
       return "";
     }
+  }
+  const boardLimit = 10000;
+  const imageUrl = (value) =>
+    typeof value === "string" && !/\.(mp4|webm)(?:[?#]|$)/i.test(value) ? mediaUrl(value) : "";
+  const matchPairLimit = 24;
+  function matchOptions(raw) {
+    const initial = ["Moon", "Star", "Cloud", "Lightning", "Sun", "Comet"].map((text, index) => ({
+      id: "pair-" + index,
+      text,
+    }));
+    const pairs = (
+      Array.isArray(raw.matchPairs) && raw.matchPairs.length >= 2 ? raw.matchPairs : initial
+    )
+      .slice(0, matchPairLimit)
+      .map((pair, index) => ({
+        id: /^[a-zA-Z0-9-]{1,80}$/.test(pair?.id || "") ? pair.id : "pair-" + index,
+        text: text(pair?.text, 80),
+        image: imageUrl(pair?.image),
+      }));
+    if (new Set(pairs.map((pair) => pair.id)).size !== pairs.length)
+      throw Error("Each matching pair needs a unique ID.");
+    return {
+      matchPairs: pairs,
+      matchColumns: Math.round(number(raw.matchColumns, 2, 12, 4)),
+      matchRevealSeconds: number(raw.matchRevealSeconds, 0.5, 10, 2),
+      matchBack: typeof raw.matchBack === "string" ? text(raw.matchBack, 16) : "◇",
+      matchBackColor: color(raw.matchBackColor, "#203354"),
+      matchProgress: raw.matchProgress !== false,
+    };
+  }
+  function boardOptions(raw) {
+    const columns = Math.round(number(raw.gridSize, 1, boardLimit, 5));
+    const rows = Math.round(number(raw.gridRows, 0, Math.floor(boardLimit / columns), 0));
+    const images = {};
+    for (const [index, value] of Object.entries(raw.boardImages || {})) {
+      if (!/^(0|[1-9]\d*)$/.test(index) || Number(index) >= boardLimit) continue;
+      const url = imageUrl(value);
+      if (url) images[index] = url;
+    }
+    const tiles = [];
+    const seen = new Set();
+    for (const [index, tile] of (Array.isArray(raw.tiles) ? raw.tiles : [])
+      .slice(0, boardLimit)
+      .entries()) {
+      const id = /^[a-zA-Z0-9-]{1,80}$/.test(tile?.id || "") ? tile.id : "tile-" + (index + 1);
+      if (seen.has(id)) throw Error("Each challenge tile needs a unique ID.");
+      seen.add(id);
+      tiles.push({
+        id,
+        text: text(tile?.text, 200),
+        image: imageUrl(tile?.image),
+        x: number(tile?.x, 0, 100, 0),
+        y: number(tile?.y, 0, 100, 0),
+        width: number(tile?.width, 0.1, 100, 25),
+        height: number(tile?.height, 0.1, 100, 25),
+        rotation: number(tile?.rotation, -360, 360, 0),
+      });
+    }
+    return {
+      gridSize: columns,
+      gridRows: rows || (columns * columns > boardLimit ? Math.floor(boardLimit / columns) : 0),
+      freeCenter: raw.freeCenter !== false,
+      boardImage: imageUrl(raw.boardImage),
+      boardImageFit: raw.boardImageFit === "contain" ? "contain" : "cover",
+      boardImages: images,
+      tiles,
+      cellImageFit: raw.cellImageFit === "contain" ? "contain" : "cover",
+      showCellLabels: raw.showCellLabels !== false,
+      cellBackground: color(raw.cellBackground, "#111827"),
+      cellOpacity: number(raw.cellOpacity, 0, 100, 0),
+      cellBorderColor: color(raw.cellBorderColor, "#ffffff"),
+      cellBorder: number(raw.cellBorder, 0, 12, 1),
+      cellRadius: number(raw.cellRadius, 0, 120, 0),
+      cellGap: number(raw.cellGap, 0, 60, 4),
+      markMode: ["color", "symbol", "both"].includes(raw.markMode)
+        ? raw.markMode
+        : raw.type === "challenge-board"
+          ? "symbol"
+          : "color",
+      markColor: color(raw.markColor, color(raw.palette?.[0], "#8b5cf6")),
+      markOpacity: number(raw.markOpacity, 0, 100, 100),
+      markSymbol: typeof raw.markSymbol === "string" ? text(raw.markSymbol, 16) : "✓",
+      markSymbolColor: color(raw.markSymbolColor, "#ffffff"),
+      bingoPatterns: Array.isArray(raw.bingoPatterns)
+        ? [
+            ...new Set(
+              raw.bingoPatterns.filter((v) => ["rows", "columns", "diagonals", "all"].includes(v)),
+            ),
+          ]
+        : ["rows", "columns", "diagonals"],
+      bingoAnnouncement: ["off", "timed", "always"].includes(raw.bingoAnnouncement)
+        ? raw.bingoAnnouncement
+        : "always",
+      bingoMessage: typeof raw.bingoMessage === "string" ? text(raw.bingoMessage, 200) : "BINGO!",
+      bingoPlacement: ["top", "overlay"].includes(raw.bingoPlacement)
+        ? raw.bingoPlacement
+        : "bottom",
+      bingoSeconds: number(raw.bingoSeconds, 1, 120, 5),
+      bingoColor: color(raw.bingoColor, color(raw.color, "#ffffff")),
+      bingoBackground: color(raw.bingoBackground, "#111827"),
+      bingoBackgroundOpacity: number(raw.bingoBackgroundOpacity, 0, 100, 0),
+      bingoFontSize: number(raw.bingoFontSize, 8, 240, number(raw.fontSize, 8, 240, 32)),
+    };
   }
   function widget(raw = {}) {
     const definition = definitions.find((row) => row.type === raw.type);
@@ -207,7 +312,7 @@
             : raw.type === "wheel"
               ? 100
               : raw.type === "bingo"
-                ? 100
+                ? boardLimit
                 : 20,
         )
         .map((value) => (raw.type === "slideshow" ? mediaUrl(value) : text(value, 500)))
@@ -249,9 +354,8 @@
         : "!join",
       spinSeconds: number(raw.spinSeconds, 1, 20, 5),
       removeWinner: raw.removeWinner === true,
-      freeCenter: raw.freeCenter !== false,
-      gridSize: Math.round(number(raw.gridSize, 1, 10, 5)),
-      gridRows: Math.round(number(raw.gridRows, 0, 10, 0)),
+      ...(["bingo", "challenge-board", "tile-match"].includes(raw.type) ? boardOptions(raw) : {}),
+      ...(raw.type === "tile-match" ? matchOptions(raw) : {}),
       timezone: (() => {
         try {
           const zone = text(raw.timezone, 80) || "UTC";
@@ -277,10 +381,27 @@
         .sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),
       url: mediaUrl(raw.url),
       fit: raw.fit === "cover" ? "cover" : "contain",
+      ...(["image", "video", "slideshow"].includes(raw.type)
+        ? {
+            mediaFocusX: number(raw.mediaFocusX, 0, 100, 50),
+            mediaFocusY: number(raw.mediaFocusY, 0, 100, 50),
+          }
+        : {}),
       loop: raw.loop !== false,
       duration: number(raw.duration, 1, 86400, 300),
       endsAt: number(raw.endsAt, 0, 9999999999999, 0),
       countdownPaused: raw.countdownPaused === true,
+      ...(raw.type === "countdown"
+        ? {
+            countdownFinish: ["message", "hide"].includes(raw.countdownFinish)
+              ? raw.countdownFinish
+              : "zero",
+            countdownMessage:
+              typeof raw.countdownMessage === "string"
+                ? text(raw.countdownMessage, 200)
+                : "Time’s up!",
+          }
+        : {}),
       pausedSeconds: number(raw.pausedSeconds, 0, 86400, 0),
       current: number(raw.current, 0, 1000000000, 0),
       target: number(raw.target, 0.01, 1000000000, 100),
@@ -361,6 +482,18 @@
           w.maxItems,
           w.items,
         ]);
+  const localTypes = new Set([
+    "text",
+    "shape",
+    "image",
+    "video",
+    "slideshow",
+    "rotating-text",
+    "clock",
+    "countdown",
+    "schedule",
+  ]);
+  const usesLiveData = (w) => w.visible && !localTypes.has(w.type);
   const interest = (w) => ({
     id: w.id,
     type: w.type,
@@ -393,5 +526,17 @@
         }
       : {}),
   });
-  return { presets, definitions, widget, document, mediaUrl, recordKey, interest };
+  return {
+    presets,
+    definitions,
+    widget,
+    document,
+    mediaUrl,
+    imageUrl,
+    boardLimit,
+    matchPairLimit,
+    recordKey,
+    usesLiveData,
+    interest,
+  };
 });

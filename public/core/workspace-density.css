@@ -1,0 +1,130 @@
+/* Shared by the HUD and sandboxed feature panels. Normal uses the page defaults. */
+:root[data-workspace-profile="compact"] {
+  --workspace-font: 13px;
+  --workspace-label: 11px;
+  --workspace-table-font: 11px;
+  --workspace-heading: 18px;
+  --workspace-control: 32px;
+  --workspace-control-pad: 5px 9px;
+  --workspace-row-pad: 6px 8px;
+  --workspace-padding: 12px;
+  --workspace-card-padding: 13px;
+  --workspace-gap: 8px;
+}
+:root[data-workspace-profile="spacious"] {
+  --workspace-font: 17px;
+  --workspace-label: 13px;
+  --workspace-table-font: 14px;
+  --workspace-heading: 24px;
+  --workspace-control: 44px;
+  --workspace-control-pad: 10px 13px;
+  --workspace-row-pad: 12px;
+  --workspace-padding: clamp(16px, 2vw, 28px);
+  --workspace-card-padding: clamp(16px, 2vw, 26px);
+  --workspace-gap: 16px;
+}
+:root[data-workspace-profile="sidebar"] {
+  --workspace-font: 15px;
+  --workspace-label: 12px;
+  --workspace-table-font: 12px;
+  --workspace-heading: 21px;
+  --workspace-control: 38px;
+  --workspace-control-pad: 8px 11px;
+  --workspace-row-pad: 8px 10px;
+  --workspace-padding: clamp(13px, 1.4vw, 20px);
+  --workspace-card-padding: 17px;
+  --workspace-gap: 11px;
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile]) body {
+  font-size: var(--workspace-font);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(body > main, .studioHeader, .canvasToolbar, .layersPanel, dialog)
+  :is(
+    button:not(.iconButton),
+    select,
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]),
+    textarea
+  ) {
+  min-height: var(--workspace-control);
+  padding: var(--workspace-control-pad);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(body > main, .layersPanel, dialog)
+  label {
+  font-size: var(--workspace-label);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  body
+  > main
+  :is(th, td) {
+  padding: var(--workspace-row-pad);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile]) body > main table {
+  font-size: var(--workspace-table-font);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  body
+  > main
+  :is(.panelTitle > h2, .featureWorkspace > h2, .dashboardCard > h3) {
+  font-size: var(--workspace-heading);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(.dashboardHero, .dashboardCard, .dashboardReward, .dashboardPackage, .permissionCard) {
+  padding: var(--workspace-card-padding);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(
+    .dashboardGrid,
+    .dashboardRewardList,
+    .formGrid,
+    .fixtureForm,
+    .settingsGrid,
+    .permissionList,
+    .playerViewTabs
+  ) {
+  gap: var(--workspace-gap);
+}
+:root.flow-feature:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(
+    #songSetupPage,
+    #songChatResponses,
+    #songModerationPage,
+    .queueSide,
+    body > main > section[data-task-panel]
+  ) {
+  padding: var(--workspace-padding);
+}
+:root.flow-feature:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  .playerSide {
+  padding-block: var(--workspace-padding);
+}
+:root.flow-feature:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  body
+  > main
+  :is(.sectionHelp, .permissionCard strong) {
+  font-size: var(--workspace-font);
+}
+:root.flow-feature:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  body
+  > main
+  .permissionCard
+  small {
+  font-size: var(--workspace-label);
+}
+:root.flow-feature:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(body > main > .head, body > main > h1, .playerViewTabs) {
+  padding-block: var(--workspace-gap);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile])
+  :is(.studioHeader, .canvasToolbar, .layersPanel) {
+  gap: var(--workspace-gap);
+}
+:root:not([data-workspace-profile="normal"]):where([data-workspace-profile]) .layerRow {
+  padding: var(--workspace-row-pad);
+}
+@media (pointer: coarse) {
+  :root[data-workspace-profile="compact"] {
+    --workspace-control: 40px;
+  }
+}

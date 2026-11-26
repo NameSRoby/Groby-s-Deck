@@ -18,6 +18,7 @@ import { placeDeckSliders } from "./control-deck-slider-layout.js";
 import { createDeckSettings } from "./control-deck-settings.js";
 import { createDeckPanels } from "./control-deck-panels.js";
 import { deckIndicator } from "./control-deck-feedback.js";
+import { findDeckAction } from "./control-deck-action-index.js";
 import { createDeckDisplay } from "./control-deck-display.js";
 import { sequenceStatus, sequenceAvailable } from "./control-deck-sequence-options.js";
 import { paintButtonBackground, installBackgroundControls } from "./control-deck-backgrounds.js";
@@ -431,7 +432,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     );
     if (indicator.color) tile.style.setProperty("--deck-led-color", indicator.color);
     else tile.style.removeProperty("--deck-led-color");
-    const action = catalog.find((a) => a.id === button.steps?.[0]?.actionId),
+    const action = findDeckAction(catalog, button.steps?.[0]?.actionId),
       feedback =
         button.steps?.length === 1 && !button.alternateSteps?.length ? action?.state : null;
     const toggleFace =

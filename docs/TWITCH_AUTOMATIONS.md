@@ -45,12 +45,11 @@ access until a new authorization is successfully validated.
 | Timer          | Repeat every interval, a fixed number of times or indefinitely; optionally count only live time and require chat activity.      |
 | Twitch event   | Follow, subscribe, resub message, gift subscriptions, Bits, incoming raid, stream online/offline, ad break, Hype Train or poll. |
 
-The four built-in handlers remain choices: lighting, teach colour, Song Request
-and add to playlist. Their existing rewards appear as editable automations. You
-can replace a handler with a custom flow or remove its automation. Removing an
-automation keeps its actual Twitch reward and refunds later redemptions without
-running the removed handler. **Delete reward on Twitch** is a separate confirmed
-action; the automation remains a disabled draft.
+The **Built-in features** tab has switches for Change lights, Teach color, Song
+Request, and Add to playlist. Open a feature to edit its name, chat access, or
+Channel Points reward. The switch pauses the feature's chat and reward intake.
+**Delete reward on Twitch** is a separate confirmed action. An enabled feature
+returns to chat intake when its reward is removed.
 
 Reward details include title, cost, prompt, viewer text input, colour, visibility,
 pause, per-stream/per-viewer limits and a global cooldown. Twitch permits editing

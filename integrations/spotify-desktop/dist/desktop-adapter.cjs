@@ -48,6 +48,17 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
     }
     return { ok: true, entries };
   }
+  function snapshot() {
+    try {
+      return api.snapshot();
+    } catch {
+      return {
+        ok: false,
+        localDevice: false,
+        error: "spotify_queue_shape_unavailable",
+      };
+    }
+  }
   async function local() {
     try {
       return typeof verifyLocalDevice === "function" && (await verifyLocalDevice()) === true;
@@ -58,17 +69,7 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
   return {
     capabilities,
     queue,
-    snapshot() {
-      try {
-        return api.snapshot();
-      } catch {
-        return {
-          ok: false,
-          localDevice: false,
-          error: "spotify_queue_shape_unavailable",
-        };
-      }
-    },
+    snapshot,
     control(input) {
       return ordered(async () => {
         if (!(await local())) return { ok: false, error: "spotify_local_device_unverified" };
@@ -76,7 +77,7 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
           return { ok: false, error: "spotify_command_invalid" };
         if (
           input.action === "skip" &&
-          (!input.currentUid || api.snapshot()?.current?.uid !== input.currentUid)
+          (!input.currentUid || snapshot()?.current?.uid !== input.currentUid)
         )
           return { ok: false, error: "spotify_current_changed" };
         try {
@@ -137,17 +138,25 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
         if (!uri) return { ok: false, error: "spotify_track_invalid" };
         if (!capabilities.queueAppend)
           return { ok: false, error: "spotify_queue_append_unavailable" };
-        if (!(await local())) return { ok: false, error: "spotify_local_device_unverified" };
+        if (!(await local()))
+          return { ok: false, error: "spotify_local_device_unverified", safeToRetry: true };
         const before = queue();
-        if (!before.ok) return before;
+        if (!before.ok) return { ...before, safeToRetry: true };
+        const uid =
+          typeof appendOptions.uid === "string" && appendOptions.uid.length <= 200
+            ? appendOptions.uid
+            : "";
+        const exact = (row) => row?.uid === uid && row.uri === uri;
+        const observed = (entries) =>
+          entries.some((row) => row.origin === "manual" && exact(row)) ||
+          exact(snapshot()?.current);
+        if (uid && observed(before.entries)) return { ok: true, delivery: "confirmed", uri, uid };
         const ids = new Set(before.entries.map((row) => row.uid).filter(Boolean));
         try {
           await api.addToQueue([
             {
               uri,
-              ...(typeof appendOptions.uid === "string" && appendOptions.uid.length <= 200
-                ? { uid: appendOptions.uid }
-                : {}),
+              ...(uid ? { uid } : {}),
             },
           ]);
         } catch (error) {
@@ -170,11 +179,13 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
                 (row) => row.uri === uri && row.uid && !ids.has(row.uid) && row.origin === "manual",
               )
             : [];
-          if (added.length || Date.now() >= deadline) break;
+          if (uid && observed(after.ok ? after.entries : []))
+            return { ok: true, delivery: "confirmed", uri, uid };
+          if ((!uid && added.length) || Date.now() >= deadline) break;
           await new Promise((resolve) => setTimeout(resolve, 100));
           after = queue();
         } while (true);
-        return added.length === 1
+        return !uid && added.length === 1
           ? { ok: true, delivery: "confirmed", uri, uid: added[0].uid }
           : {
               ok: false,

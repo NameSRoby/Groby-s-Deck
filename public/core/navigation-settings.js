@@ -18,12 +18,50 @@
     "feature:twitch-integration": "Twitch Integration",
   };
   let saved = {},
+    profile = "normal",
     loaded = false;
+  const profiles = [
+    ["normal", "Normal", "Standard spacing and top tabs"],
+    ["compact", "Compact", "Smaller controls and tighter rows"],
+    ["spacious", "Spacious", "Larger controls and more room"],
+    ["sidebar", "Side navigation", "Keep workspaces on the left"],
+  ];
   const dialog = document.createElement("dialog");
   dialog.id = "navigationSettings";
-  dialog.innerHTML =
-    '<h2>Choose your tabs</h2><p>Keep everyday controls in Main, occasional tools in More, or hide tabs you don’t use. Hiding a tab does not stop or uninstall its feature.</p><div id="navigationChoices"></div><p id="navigationNotice" role="status"></p><div class="actions"><button id="saveNavigation" class="primary">Save tab layout</button><button id="resetNavigation">Use default layout</button><button id="closeNavigation">Cancel</button></div>';
+  dialog.setAttribute("aria-labelledby", "workspaceLayoutTitle");
+  dialog.innerHTML = `
+    <h2 id="workspaceLayoutTitle">Workspace layout</h2>
+    <div class="workspaceLayoutBody">
+      <fieldset class="workspaceProfiles"><legend>Layout profile</legend>
+        ${profiles
+          .map(
+            ([id, name, explanation]) => `
+          <label class="workspaceProfile" data-profile="${id}">
+            <input type="radio" name="workspaceProfile" value="${id}" aria-label="${name}">
+            <span class="workspaceProfilePreview" aria-hidden="true"><i></i><b></b><b></b><b></b></span>
+            <strong>${name}${id === "normal" ? " <small>Default</small>" : ""}</strong>
+            <span>${explanation}</span>
+          </label>`,
+          )
+          .join("")}
+      </fieldset>
+      <fieldset class="workspaceTabPlacement"><legend>Tab placement</legend>
+        <div id="navigationChoices"></div>
+      </fieldset>
+    </div>
+    <footer class="workspaceLayoutFooter">
+      <p id="navigationNotice" role="status"></p>
+      <div class="actions"><button id="saveNavigation" class="primary">Save layout</button><button id="resetNavigation">Use default layout</button><button id="closeNavigation">Cancel</button></div>
+    </footer>`;
   document.body.append(dialog);
+  const profileInputs = [...dialog.querySelectorAll('input[name="workspaceProfile"]')];
+  const chosenProfile = () => profileInputs.find((input) => input.checked)?.value || profile;
+  const applyProfile = (value) => {
+    if (document.documentElement.dataset.workspaceProfile !== value)
+      document.documentElement.dataset.workspaceProfile = value;
+  };
+  dialog.querySelector(".workspaceProfiles").onchange = () => applyProfile(chosenProfile());
+  dialog.addEventListener("close", () => applyProfile(profile));
   const open = document.createElement("button");
   open.id = "customizeTabs";
   open.type = "button";
@@ -54,6 +92,7 @@
       : "more";
   function apply() {
     if (!loaded) return;
+    applyProfile(dialog.open ? chosenProfile() : profile);
     for (const button of [...nav.querySelectorAll("[data-tab]")]) {
       const id = button.dataset.tab,
         mode = saved[id] || (id === "features" ? saved.updates : null) || defaultMode(id),
@@ -73,6 +112,10 @@
     }
   }
   function draw() {
+    for (const input of profileInputs) {
+      input.checked = input.value === profile;
+      input.disabled = !loaded;
+    }
     const choices = document.getElementById("navigationChoices");
     choices.replaceChildren();
     for (const [id, name] of Object.entries(known)) {
@@ -90,11 +133,11 @@
       choices.append(label);
     }
     document.getElementById("navigationNotice").textContent = loaded
-      ? "You can change this layout any time from the settings gear."
+      ? ""
       : "Could not load your layout. Close this window and try again.";
     document.getElementById("saveNavigation").disabled = !loaded;
   }
-  async function save(tabs) {
+  async function save(tabs, nextProfile) {
     const notice = document.getElementById("navigationNotice"),
       button = document.getElementById("saveNavigation");
     button.disabled = true;
@@ -103,7 +146,7 @@
       const response = await fetch("/api/presentation/navigation", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tabs }),
+        body: JSON.stringify({ tabs, profile: nextProfile }),
       });
       const result = await response.json();
       if (response.status === 429)
@@ -114,6 +157,8 @@
         );
       if (!response.ok || !result.ok) throw new Error("Could not save your tab layout.");
       saved = result.tabs;
+      profile = result.profile || "normal";
+      profileInputs.find((input) => input.value === profile).checked = true;
       apply();
       notice.textContent = "Tab layout saved.";
     } catch (error) {
@@ -123,21 +168,29 @@
     }
   }
   document.getElementById("saveNavigation").onclick = () =>
-    save({
-      ...saved,
-      ...Object.fromEntries(
-        [...dialog.querySelectorAll("select")].map((select) => [
-          select.dataset.tabId,
-          select.value,
-        ]),
-      ),
-    });
+    save(
+      {
+        ...saved,
+        ...Object.fromEntries(
+          [...dialog.querySelectorAll("select[data-tab-id]")].map((select) => [
+            select.dataset.tabId,
+            select.value,
+          ]),
+        ),
+      },
+      chosenProfile(),
+    );
   document.getElementById("resetNavigation").onclick = async () => {
-    await save({});
+    await save({}, "normal");
     draw();
   };
   document.getElementById("closeNavigation").onclick = () => dialog.close();
-  new MutationObserver(apply).observe(nav, { childList: true, subtree: true });
+  new MutationObserver((changes) => {
+    if (
+      changes.some((change) => [...change.addedNodes].some((node) => node.matches?.("[data-tab]")))
+    )
+      apply();
+  }).observe(nav, { childList: true, subtree: true });
   fetch("/api/presentation/navigation")
     .then((response) => {
       if (!response.ok) throw new Error();
@@ -146,7 +199,9 @@
     .then((result) => {
       if (!result.ok) throw new Error();
       saved = result.tabs;
+      profile = result.profile || "normal";
       loaded = true;
+      if (dialog.open) draw();
       apply();
     })
     .catch(() => {});

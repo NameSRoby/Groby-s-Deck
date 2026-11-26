@@ -17,11 +17,20 @@ module.exports = function createSpotifyHostBridge(options = {}) {
     sessionId = crypto.randomUUID();
   if (!/^[a-f0-9]{64}$/.test(token)) throw Error("spotify_pairing_invalid");
   const timeoutMs = Math.max(50, Math.min(30000, options.timeoutMs || 10000));
+  const historyLimit = options.historyLimit ?? 2048;
   const jobs = new Map();
   let clientId = "",
     lastSeen = 0,
     closed = false,
-    lastError = "";
+    lastError = "",
+    waitingNext;
+  const readOnly = (kind, payload) =>
+    ["search", "lookup"].includes(kind) ||
+    (kind === "playlist" && ["list", "read"].includes(payload.action));
+  const canDiscard = (job) =>
+    job.done &&
+    (readOnly(job.kind, job.payload) ||
+      (job.oneShot && (job.result.ok || job.result.safeToRetry === true)));
   const authorized = (input) => {
     const bytes = Buffer.from(String(input || ""));
     return bytes.length === token.length && crypto.timingSafeEqual(bytes, Buffer.from(token));
@@ -88,8 +97,26 @@ module.exports = function createSpotifyHostBridge(options = {}) {
     job.done = true;
     job.result = result;
     job.resolve(result);
+    wakeNext();
   }
-  function invoke(kind, payload, requestId) {
+  function takeCommand() {
+    const job = [...jobs.values()].find((row) => !row.done);
+    if (!job || job.issued || closed) return null;
+    job.issued = true;
+    return {
+      id: job.id,
+      lease: job.lease,
+      kind: job.kind,
+      payload: job.payload,
+      ...(job.oneShot ? { oneShot: true } : {}),
+    };
+  }
+  function wakeNext() {
+    if (!waitingNext) return;
+    const command = takeCommand();
+    if (command) waitingNext.reply(command);
+  }
+  function invoke(kind, payload, requestId, { oneShot = false } = {}) {
     const normalized = normalize(kind, payload);
     if (typeof requestId !== "string" || !ID.test(requestId) || !normalized)
       return Promise.resolve({ ok: false, error: "spotify_command_invalid" });
@@ -110,14 +137,8 @@ module.exports = function createSpotifyHostBridge(options = {}) {
         error: "spotify_companion_unavailable",
         safeToRetry: true,
       });
-    for (const [id, item] of jobs)
-      if (
-        item.done &&
-        (item.kind === "search" ||
-          (item.kind === "playlist" && ["list", "read"].includes(item.payload.action)))
-      )
-        jobs.delete(id);
-    if (jobs.size >= 2048 || status().pending >= 8)
+    for (const [id, item] of jobs) if (canDiscard(item)) jobs.delete(id);
+    if (jobs.size >= historyLimit || status().pending >= 8)
       return Promise.resolve({
         ok: false,
         error: "spotify_bridge_busy",
@@ -131,6 +152,7 @@ module.exports = function createSpotifyHostBridge(options = {}) {
       lease: crypto.randomBytes(16).toString("hex"),
       issued: false,
       done: false,
+      oneShot,
     };
     job.promise = new Promise((resolve) => {
       job.resolve = resolve;
@@ -141,14 +163,15 @@ module.exports = function createSpotifyHostBridge(options = {}) {
         finish(job, {
           ok: false,
           error:
-            job.issued && kind !== "search"
+            job.issued && !readOnly(kind, normalized)
               ? "spotify_delivery_unconfirmed"
               : "spotify_command_expired",
-          retrySafe: kind === "search" || !job.issued,
+          retrySafe: readOnly(kind, normalized) || !job.issued,
           safeToRetry: !job.issued,
         }),
       timeoutMs,
     );
+    wakeNext();
     return job.promise;
   }
   function acceptResult(job, raw) {
@@ -193,6 +216,11 @@ module.exports = function createSpotifyHostBridge(options = {}) {
         ok: false,
         error: known.has(raw.error) ? raw.error : "spotify_companion_action_failed",
         retrySafe: false,
+        ...(job.kind === "append" &&
+        raw.safeToRetry === true &&
+        ["spotify_local_device_unverified", "spotify_queue_shape_unavailable"].includes(raw.error)
+          ? { safeToRetry: true }
+          : {}),
       };
     }
     if (raw?.ok !== true) return null;
@@ -281,9 +309,10 @@ module.exports = function createSpotifyHostBridge(options = {}) {
         (clientId && clientId !== id && Date.now() - lastSeen < 10000)
       )
         return res.status(409).json({ ok: false, error: "spotify_companion_conflict" });
+      if (clientId !== id) waitingNext?.reply(null);
       clientId = id;
       lastSeen = Date.now();
-      res.json({ ok: true, sessionId });
+      res.json({ ok: true, sessionId, waitForCommand: true });
     });
     router.use((req, res, next) => {
       if (!clientId || req.body?.clientId !== clientId || req.body?.sessionId !== sessionId)
@@ -291,32 +320,38 @@ module.exports = function createSpotifyHostBridge(options = {}) {
       lastSeen = Date.now();
       if (req.body?.snapshot) {
         const snapshot = liveState(req.body.snapshot);
-        if (!snapshot) {
-          lastError = "spotify_snapshot_invalid";
-          return res.status(400).json({ ok: false, error: lastError });
+        lastError = snapshot ? "" : "spotify_snapshot_invalid";
+        if (snapshot) {
+          try {
+            options.onSnapshot?.(snapshot);
+          } catch {
+            lastError = "spotify_snapshot_observation_failed";
+          }
         }
-        lastError = "";
-        options.onSnapshot?.(snapshot);
       }
-      lastSeen = Date.now();
       next();
     });
     // Authenticated liveness must not depend on a native command or receipt
     // finishing. This route never issues commands or settles pending writes.
     router.post("/heartbeat", (_req, res) => res.json({ ok: true }));
     router.post("/next", (req, res) => {
-      const job = [...jobs.values()].find((row) => !row.done);
-      if (!job || job.issued) return res.json({ ok: true, command: null });
-      job.issued = true;
-      res.json({
-        ok: true,
-        command: {
-          id: job.id,
-          lease: job.lease,
-          kind: job.kind,
-          payload: job.payload,
+      const command = takeCommand();
+      if (command || req.body.wait !== true) return res.json({ ok: true, command });
+      waitingNext?.reply(null);
+      const wait = {
+        reply(value) {
+          release();
+          if (!res.destroyed) res.json({ ok: true, command: value });
         },
-      });
+      };
+      const timer = setTimeout(() => wait.reply(null), 1000);
+      function release() {
+        clearTimeout(timer);
+        res.off("close", release);
+        if (waitingNext === wait) waitingNext = undefined;
+      }
+      waitingNext = wait;
+      res.once("close", release);
     });
     router.post("/result", (req, res) => {
       const job = jobs.get(req.body.id);
@@ -329,7 +364,16 @@ module.exports = function createSpotifyHostBridge(options = {}) {
           reviewRequired: !job.result.ok,
         });
       const result = acceptResult(job, req.body.result);
-      if (!result) return res.status(400).json({ ok: false, error: "spotify_result_invalid" });
+      if (!result) {
+        finish(job, {
+          ok: false,
+          error: readOnly(job.kind, job.payload)
+            ? "spotify_companion_action_failed"
+            : "spotify_delivery_unconfirmed",
+          retrySafe: false,
+        });
+        return res.status(400).json({ ok: false, error: "spotify_result_invalid" });
+      }
       finish(job, result);
       res.json({ ok: true });
     });
@@ -341,15 +385,17 @@ module.exports = function createSpotifyHostBridge(options = {}) {
   }
   function close() {
     closed = true;
+    waitingNext?.reply(null);
     for (const job of jobs.values())
       if (!job.done)
         finish(job, {
           ok: false,
           error:
-            job.issued && job.kind !== "search"
+            job.issued && !readOnly(job.kind, job.payload)
               ? "spotify_delivery_unconfirmed"
               : "spotify_companion_unavailable",
           retrySafe: !job.issued,
+          safeToRetry: !job.issued,
         });
   }
   return {

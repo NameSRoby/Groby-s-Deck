@@ -110,6 +110,7 @@ async function setup(t) {
   const token = JSON.parse(fs.readFileSync(path.join(root, "spotify-desktop/pairing.json"))).token;
   const queue = [];
   let localDevice = true,
+    retryable = false,
     current = {
       uri: "spotify:track:BBBBBBBBBBBBBBBBBBBBBB",
       uid: "personal-current",
@@ -138,6 +139,8 @@ async function setup(t) {
     }),
     lookup: async () => client.search(),
     append: async (uri) => {
+      if (retryable)
+        return { ok: false, error: "spotify_local_device_unverified", safeToRetry: true };
       const uid = "native-" + ++count;
       queue.push({ uri, uid, origin: "manual" });
       return { ok: true, delivery: "confirmed", uri, uid };
@@ -179,6 +182,9 @@ async function setup(t) {
     complete,
     remote: () => {
       localDevice = false;
+    },
+    toggleRetry: () => {
+      retryable = !retryable;
     },
     advance: () => {
       current = {
@@ -276,6 +282,22 @@ test("Spotify host admits ten native requests, keeps ownership, refills after ad
   );
 });
 
+test("a preflight rejection leaves a request retryable and a remote snapshot cannot retire it", async (t) => {
+  const f = await setup(t),
+    payload = { entryId: "recover", candidate: { providerItemId: URI } };
+  f.toggleRetry();
+  const result = await f.complete(f.provider.handle("enqueue", payload));
+  assert.equal(result.safeToRetry, true);
+  assert.deepEqual(f.provider.status().handoffs, []);
+  f.toggleRetry();
+  assert.equal((await f.complete(f.provider.handle("enqueue", payload))).appended, true);
+  f.remote();
+  f.queue.splice(0);
+  await f.worker.step();
+  assert.equal(f.provider.status().handoffs[0].phase, "appended");
+  assert.equal(f.provider.status().capacity.queued, 1);
+});
+
 test("Spotify request journal holds interrupted deliveries across host restart without issuing another append", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-restart-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -345,6 +367,42 @@ test("Spotify feature drains requests in FIFO order, retains overflow locally an
   });
   assert.equal(result.ok, true);
   assert.equal(queue.status().counts.queued, 0);
+  player.stop();
+});
+
+test("Spotify recovers a confirmed handoff while the companion queue is full", async () => {
+  const queue = createSongQueue({ requestProviders: ["spotify"] });
+  const { entry } = queue.submit({
+    requestId: "interrupted",
+    requesterId: "viewer",
+    query: "Song",
+    candidate: {
+      provider: "spotify",
+      providerItemId: URI,
+      title: "Song",
+      durationMs: 1000,
+    },
+  });
+  let writes = 0;
+  const player = createPlayer({
+    queue,
+    changed: () => {},
+    context: {
+      callCapability: async (_cap, method) => {
+        if (method === "enqueue") writes++;
+        return {
+          ready: false,
+          capacity: { available: 0 },
+          handoffs: [{ entryId: entry.id, phase: "appended" }],
+        };
+      },
+    },
+  });
+  await player("flush");
+  for (let i = 0; i < 20 && (await player("status")).delivery.processing; i++)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(queue.status().counts.queued, 0);
+  assert.equal(writes, 0);
   player.stop();
 });
 

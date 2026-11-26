@@ -23,7 +23,25 @@ module.exports = function installFeatureRelay(config) {
     "song.tidal.experimental.v1": 30000,
   };
   let preview = null;
+  let standaloneProfile = null;
+  const sendStandaloneProfile = () => {
+    if (standaloneProfile)
+      frame.contentWindow.postMessage(
+        { channel, type: "layout-profile", profile: standaloneProfile },
+        "*",
+      );
+  };
+  if (config.surface === "panel" && window.parent === window)
+    fetch("/api/presentation/navigation", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (!result.ok) return;
+        standaloneProfile = result.profile;
+        sendStandaloneProfile();
+      })
+      .catch(() => {});
   frame.addEventListener("load", () => {
+    sendStandaloneProfile();
     if (preview) frame.contentWindow.postMessage(preview, "*");
     const launch = new URL(location.href);
     if (
@@ -133,6 +151,7 @@ module.exports = function installFeatureRelay(config) {
         message.height > 0
       ) {
         const height = Math.max(240, Math.min(200000, Math.ceil(message.height)));
+        if (frame.style.height === height + "px") return;
         frame.style.height = height + "px";
         if (window.parent !== window)
           window.parent.postMessage({ channel, type: "feature-height", height }, location.origin);
