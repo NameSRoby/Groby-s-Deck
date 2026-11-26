@@ -315,11 +315,40 @@ main {
   grid-column: 1/-1;
 }
 #songSetupPage,
+#songChatResponses,
 #songModerationPage {
+  box-sizing: border-box;
   padding: 18px;
   max-width: 1000px;
   margin: auto;
   width: 100%;
+}
+#songSetupPage > :is(#spotifySetup, #tidalPlayer, #soundcloudSetup) {
+  margin-top: 16px;
+}
+#songSetupPage .playerSetupCard label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#spotifySetup {
+  width: 100%;
+  box-sizing: border-box;
+}
+#spotifySetupStatus {
+  line-height: 1.5;
+  margin: 10px 0;
+}
+#spotifySetupFeedback:empty {
+  display: none;
+}
+#spotifyPlayback {
+  flex-wrap: wrap;
+}
+#songChatResponses #responseToggles {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+  margin: 14px 0;
 }
 .song-settings-view main {
   display: block;
@@ -369,6 +398,7 @@ main {
     grid-template-columns: 1fr;
   }
   #songSetupPage,
+  #songChatResponses,
   #songModerationPage {
     padding: 12px;
   }
@@ -378,6 +408,7 @@ main {
 .playerViewTabs {
   grid-column: 1/-1;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--edge);

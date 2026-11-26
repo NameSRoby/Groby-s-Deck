@@ -30,10 +30,16 @@
   tabs.className = "playerViewTabs";
   tabs.setAttribute("role", "tablist");
   tabs.setAttribute("aria-label", "Selected player controls");
-  tabs.innerHTML = ["player", "setup", "moderation"]
+  const views = [
+    ["player", "songPlaybackPage", "Playback"],
+    ["setup", "songSetupPage", "Setup"],
+    ["chat", "songChatResponses", "Chat Responses"],
+    ["moderation", "songModerationPage", "Moderation"],
+  ];
+  tabs.innerHTML = views
     .map(
-      (id) =>
-        `<button id="playerTab-${id}" type="button" role="tab" data-view="${id}" aria-controls="${id === "player" ? "songPlaybackPage" : id === "setup" ? "songSetupPage" : "songModerationPage"}" aria-selected="${id === "player"}" tabindex="${id === "player" ? 0 : -1}">${id === "player" ? "Playback" : id === "setup" ? "Setup" : "Moderation"}</button>`,
+      ([id, panelId, label]) =>
+        `<button id="playerTab-${id}" type="button" role="tab" data-view="${id}" aria-controls="${panelId}" aria-selected="${id === "player"}" tabindex="${id === "player" ? 0 : -1}">${label}</button>`,
     )
     .join("");
   picker.after(tabs);
@@ -53,7 +59,11 @@
     const buttons = [...tabs.querySelectorAll("button")],
       current = buttons.indexOf(document.activeElement);
     const next =
-      event.key === "Home" ? 0 : event.key === "End" ? 2 : (current + keys[event.key] + 3) % 3;
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : (current + keys[event.key] + buttons.length) % buttons.length;
     showView(buttons[next].dataset.view);
     buttons[next].focus();
   };
@@ -129,9 +139,10 @@
   setupPage.id = "songSetupPage";
   const moderationPage = document.createElement("section");
   moderationPage.id = "songModerationPage";
+  const chatPage = $("songChatResponses");
   const commandPermissions = installChatCommandPermissions(moderationPage);
   document.querySelector("main").append(workspace);
-  workspace.append(setupPage, moderationPage);
+  workspace.append(setupPage, chatPage, moderationPage);
   setupPage.append(panel, $("catalogSettings"));
   const intakePanel = document.createElement("section");
   intakePanel.className = "playerSetupCard";
@@ -199,7 +210,7 @@
     $("derivativeFilters"),
     $("saveCatalogPolicy").parentElement,
   );
-  moderationPage.append(policy, searchFilters, $("responseToggles").closest("details"));
+  moderationPage.append(policy, searchFilters);
   const restrictions = document.createElement("section");
   restrictions.id = "requesterRestrictions";
   restrictions.innerHTML =
@@ -226,13 +237,9 @@
   notice.classList.add("workspaceNotice");
   document.querySelector("main").append(notice);
   workspace.hidden = true;
-  setupPage.hidden = true;
-  moderationPage.hidden = true;
-  for (const [id, node] of [
-    ["player", playbackPage],
-    ["setup", setupPage],
-    ["moderation", moderationPage],
-  ]) {
+  for (const [id, panelId] of views) {
+    const node = $(panelId);
+    node.hidden = id !== "player";
     node.setAttribute("role", "tabpanel");
     node.setAttribute("aria-labelledby", `playerTab-${id}`);
   }
@@ -271,6 +278,7 @@
     playbackPage.hidden = view !== "player";
     workspace.hidden = view === "player";
     setupPage.hidden = view !== "setup";
+    chatPage.hidden = view !== "chat";
     moderationPage.hidden = view !== "moderation";
     if (view === "moderation") void commandPermissions.refresh();
     document.body.classList.toggle("song-settings-view", view !== "player");
@@ -681,7 +689,6 @@
     $("skip").hidden = tidal;
     document.querySelector(".volumeControl").hidden = false;
     $("catalogSettings").hidden = tidal;
-    $("responseToggles").closest("details").hidden = false;
     $("titleInput").closest("label").hidden = tidal;
     $("volumeFloor").closest("label").hidden = tidal;
     $("volumeCeiling").closest("label").hidden = tidal;

@@ -42,20 +42,27 @@ module.exports = function createSpotifyPlayer({
   async function run() {
     try {
       for (let index = 0; index < 10 && !stopped && !moderating && !admission.busy(); index++) {
-        if (!(await isSelected())) return;
+        if (!(await isSelected()) || stopped || moderating || admission.busy()) return;
         const status = await provider("status", null);
-        if (!status.ready || status.capacity.available < 1) return;
-        const waiting = entries(),
-          row = waiting.find(
-            (item) =>
-              !status.handoffs?.some(
-                (receipt) =>
-                  receipt.entryId === item.id &&
-                  ["unknown", "pending", "failed"].includes(receipt.phase),
-              ),
-          );
+        if (stopped || moderating || admission.busy()) return;
+        const receipts = new Map(
+          (status.handoffs || []).map((receipt) => [receipt.entryId, receipt]),
+        );
+        const waiting = entries().filter((row) => {
+          if (!["appended", "playing", "finished"].includes(receipts.get(row.id)?.phase))
+            return true;
+          const settled = queue.settle({ entryId: row.id, outcome: "handed_off" });
+          if (settled.ok) changed(settled);
+          return false;
+        });
+        if (!waiting.length) lastError = "";
+        if (!status.ready || !status.capacity?.available) return;
+        const row = waiting.find(
+          (item) =>
+            !["unknown", "pending", "failed", "removed"].includes(receipts.get(item.id)?.phase),
+        );
         if (!row) return;
-        if (!(await isSelected())) return;
+        if (!(await isSelected()) || stopped || moderating || admission.busy()) return;
         const result = await provider("enqueue", {
           entryId: row.id,
           candidate: row.candidate,
@@ -67,6 +74,7 @@ module.exports = function createSpotifyPlayer({
           lastError = result.error || `${providerName}_delivery_unconfirmed`;
           return;
         }
+        lastError = "";
         const settled = queue.settle({
           entryId: row.id,
           outcome: "handed_off",
@@ -79,7 +87,6 @@ module.exports = function createSpotifyPlayer({
   }
   function trigger() {
     if (!work && !stopped && !moderating && !admission.busy() && entries().length) {
-      lastError = "";
       work = Promise.resolve()
         .then(run)
         .finally(() => {

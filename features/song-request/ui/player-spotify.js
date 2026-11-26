@@ -24,6 +24,12 @@ function installSpotifyPlayer({ showView, volumeControls }) {
         "Delivery is unconfirmed. Check Spotify before sending this request again.",
       spotify_native_queue_full: "Spotify has 10 upcoming requests. This request will wait here.",
       spotify_source_changed: "Spotify was updated. Choose Prepare companion again.",
+      spotify_state_invalid:
+        "Groby’s Deck could not read the saved Spotify settings or request history. Your saved files were kept.",
+      spotify_pairing_invalid:
+        "Groby’s Deck could not read the saved Spotify pairing. Your saved files were kept.",
+      spotify_playback_snapshot_changed:
+        "Spotify playback changed while checking the queue. Waiting for a fresh status.",
       spotify_connection_timeout:
         "Spotify opened but the companion did not connect. If its window is blank, quit Spotify completely and open it normally to recover playback, then Prepare companion again. Your Spotify installation and playlists are unchanged.",
       spotify_platform_patch_invalid:
@@ -65,6 +71,25 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   setup.innerHTML =
     '<h2>Spotify Desktop</h2><p>Connect the Spotify app on this PC. Your personal playlist stays intact; requests join the queue in order.</p><ol><li>Choose Prepare companion below.</li><li>Quit Spotify completely, including its tray icon.</li><li>Choose Open Spotify with Groby’s Deck, then sign in. Requests can queue while Spotify is paused.</li></ol><div class="actions"><button id="spotifyPrepare">Prepare companion</button><button id="spotifyLaunch" class="primary">Open Spotify with Groby’s Deck</button><button id="spotifyCheck">Check connection</button></div><p id="spotifySetupStatus" role="status"></p><p class="tidalFinePrint">Use Open Spotify with Groby’s Deck each time you want song requests. A normal Spotify launch does not load the companion. Free account playback and skip restrictions still apply. Spotify updates may require Prepare companion again.</p>';
   setup.querySelector("#spotifyLaunch").disabled = true;
+  const setupFeedback = document.createElement("p");
+  setupFeedback.id = "spotifySetupFeedback";
+  setupFeedback.setAttribute("role", "status");
+  setup.querySelector("#spotifySetupStatus").after(setupFeedback);
+  const regionHelp = document.createElement("p");
+  regionHelp.className = "tidalFinePrint";
+  regionHelp.append("Spotify uses the country saved on your Spotify account. ");
+  const regionLink = document.createElement("a");
+  regionLink.href = "https://www.spotify.com/account/profile/";
+  regionLink.target = "_blank";
+  regionLink.rel = "noopener noreferrer";
+  regionLink.textContent = "Open Spotify country settings";
+  const regionInstructions = document.createElement("a");
+  regionInstructions.href = "https://support.spotify.com/article/country-region-settings/";
+  regionInstructions.target = "_blank";
+  regionInstructions.rel = "noopener noreferrer";
+  regionInstructions.textContent = "Free and Premium instructions";
+  regionHelp.append(regionLink, " · ", regionInstructions);
+  setup.append(regionHelp);
   $("songSetupPage").append(setup);
   const playback = document.createElement("section");
   playback.id = "spotifyPlayback";
@@ -84,16 +109,24 @@ function installSpotifyPlayer({ showView, volumeControls }) {
   document.querySelector(".now").append(current);
   const style = document.createElement("style");
   style.textContent =
-    "#spotifyPlayback{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}#spotifyPlayback h2{font-size:15px;margin:0}#spotifyPlayback p{font-size:12px;color:var(--muted);margin:5px 0}#spotifyCurrentActions{grid-column:1/-1}#spotifySetup{max-width:900px;margin:auto}";
+    "#spotifyPlayback{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}#spotifyPlayback h2{font-size:15px;margin:0}#spotifyPlayback p{font-size:12px;color:var(--muted);margin:5px 0}#spotifyCurrentActions{grid-column:1/-1}";
   document.head.append(style);
   $("spotifyOpenSetup").onclick = () => showView("setup");
+  const desktopStatus = () => state?.desktop || state || {};
   async function action(button, method, payload, message) {
     if (button.disabled) return;
     button.disabled = true;
+    const companionAction = method === "setup" && ["prepare", "launch"].includes(payload.action);
+    if (companionAction) {
+      setupFeedback.textContent =
+        payload.action === "prepare" ? "Preparing companion…" : "Opening Spotify…";
+      setupFeedback.className = "";
+    }
     setNotice("Working…");
     try {
       const result = await api(method, payload);
       if (!result.ok) throw new Error(result.error || result.reason || "Spotify action failed.");
+      if (companionAction) setupFeedback.textContent = result.launching ? "" : message;
       setNotice(
         result.launching
           ? "Spotify is opening. Connection status will update automatically."
@@ -103,11 +136,16 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       await refreshState();
     } catch (error) {
       launchError = method === "setup" && payload.action === "launch";
+      if (companionAction) {
+        setupFeedback.textContent = explain(error.message);
+        setupFeedback.className = "status bad";
+      }
       setNotice(explain(error.message), true);
     } finally {
+      const desktop = desktopStatus();
       button.disabled =
         ["spotifyLaunch", "spotifyPlaybackLaunch"].includes(button.id) &&
-        Boolean(state?.connected || state?.launching || !state?.installation?.prepared);
+        Boolean(desktop.connected || desktop.launching || !state?.installation?.prepared);
     }
   }
   const accountUI = installSpotifyAccount({
@@ -134,7 +172,15 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       { action: "launch" },
       "Spotify is opening. Sign in there to finish connecting.",
     );
-  $("spotifyCheck").onclick = () => refresh();
+  $("spotifyCheck").onclick = async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await refresh();
+    } finally {
+      button.disabled = false;
+    }
+  };
   for (const name of ["Pause", "Resume", "Skip"])
     $("spotify" + name).onclick = (event) =>
       action(
@@ -152,52 +198,60 @@ function installSpotifyPlayer({ showView, volumeControls }) {
     refreshing = (async () => {
       try {
         state = await api("status", null);
+        if (!state.ok) throw new Error(state.error || "spotify_companion_unavailable");
+        const desktop = desktopStatus();
         accountUI.render(state);
         volumeControls?.spotifyStatus(state);
-        const message = state.sameDevice
-          ? "Connected - companion queue and official Premium controls"
-          : state.mode === "official"
-            ? state.lastError
-              ? explain(state.lastError)
-              : state.ready
-                ? "Premium connected - requests queue on your selected device"
-                : state.account?.connected
-                  ? "Choose an active Spotify device in Setup"
-                  : "Connect your Premium account in Setup"
-            : state.launching
-              ? "Spotify is opening - waiting for the companion"
-              : state.launchError
-                ? explain(state.launchError)
-                : state.installation?.error
-                  ? explain(state.installation.error)
-                  : state.ready
-                    ? "Connected · requests queue automatically"
-                    : state.connected && !state.localDevice
-                      ? "Connected · start playback on this computer in Spotify"
-                      : state.connected
-                        ? "Connected · waiting for Spotify queue information"
-                        : state.account?.connected
-                          ? "Premium connected - choose a playback device in Setup"
-                          : "Companion not connected · open Setup";
-        $("spotifyConnection").textContent = $("spotifySetupStatus").textContent = message;
+        const desktopMessage = desktop.launching
+          ? "Opening Spotify Desktop. Waiting for the companion…"
+          : desktop.launchError
+            ? explain(desktop.launchError)
+            : state.installation?.error
+              ? explain(state.installation.error)
+              : desktop.ready
+                ? "Connected. Requests queue automatically."
+                : desktop.connected
+                  ? desktop.localDevice
+                    ? "Connected. Waiting for Spotify queue information."
+                    : "Connected. Select this computer as the playback device in Spotify."
+                  : state.installation?.prepared
+                    ? "Desktop companion disconnected. Open Spotify with Groby’s Deck."
+                    : "Desktop companion disconnected. Prepare the companion to enable Open Spotify.";
+        const message =
+          state.sameDevice && desktop.ready
+            ? "Connected - companion queue and official Premium controls"
+            : state.mode === "official"
+              ? state.lastError
+                ? explain(state.lastError)
+                : state.ready
+                  ? "Premium connected - requests queue on your selected device"
+                  : state.account?.connected
+                    ? "Choose an active Spotify device in Setup"
+                    : "Connect your Premium account in Setup"
+              : desktopMessage;
+        $("spotifyConnection").textContent = message;
+        $("spotifySetupStatus").textContent = desktopMessage;
         $("spotifyLaunch").disabled =
-          !state.installation?.prepared || state.connected || state.launching;
-        playbackLaunch.hidden = Boolean(state.connected || !state.installation?.prepared);
-        playbackLaunch.disabled = Boolean(state.launching);
-        playbackLaunch.textContent = state.launching
+          !state.installation?.prepared || desktop.connected || desktop.launching;
+        $("spotifyLaunch").textContent = playbackLaunch.textContent = desktop.launching
           ? "Opening Spotify..."
           : "Open Spotify with Groby’s Deck";
-        if (state.connected && launchError) {
+        playbackLaunch.hidden = Boolean(desktop.connected || !state.installation?.prepared);
+        playbackLaunch.disabled = Boolean(desktop.launching);
+        if (desktop.connected && launchError) {
           launchError = false;
+          setupFeedback.textContent = "";
           setNotice("Spotify connected. The previous launch warning is cleared.");
         }
         for (const name of ["Pause", "Resume", "Skip"])
           $("spotify" + name).disabled =
             !state.controlsAvailable || (name === "Skip" && !state.current?.uid);
         renderQueue();
-        if (state.ready) await api("flush");
+        if (state.queue?.length) await api("flush");
       } catch (error) {
-        $("spotifyConnection").textContent = error.message;
+        $("spotifyConnection").textContent = $("spotifySetupStatus").textContent = explain(
+          error.message,
+        );
       } finally {
         refreshing = null;
       }
