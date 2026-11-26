@@ -216,15 +216,12 @@
     const source = root.OverlayModel.mediaUrl(url);
     if (source) node.src = source;
     fitMedia(node, w);
-    if (video)
-      Object.assign(node, {
-        autoplay: true,
-        loop,
-        muted: true,
-        playsInline: true,
-        preload: "metadata",
-      });
-    else node.alt = w.name;
+    Object.assign(
+      node,
+      video
+        ? { autoplay: true, loop, muted: true, playsInline: true, preload: "metadata" }
+        : { alt: w.name },
+    );
     return node;
   }
   function custom(w) {
