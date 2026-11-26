@@ -323,6 +323,78 @@ test("alignment guides snap a dragged edge with editor-only safe margins", async
   await page.locator("#preview").click();
   assert.equal(await page.locator(".overlaySafeMargins").isHidden(), true);
 });
+test("challenge grid sizes tiles together or individually and restores tiles when expanded", async (t) => {
+  const { page, add, service, base, browser } = await setup(t);
+  await add("Challenge board");
+  const preview = page.locator(".challengeEditor button");
+  assert.equal(await preview.count(), 9);
+  const sizeGrid = async (columns, rows) => {
+    await page.getByLabel("Tiles per row").fill(String(columns));
+    await page.getByLabel("Rows", { exact: true }).fill(String(rows));
+    await page.getByRole("button", { name: "Apply grid size" }).click();
+    assert.equal(await preview.count(), columns * rows);
+  };
+  await sizeGrid(2, 3);
+  const width = page.getByLabel("Width (% of slot)", { exact: true });
+  await width.fill("70");
+  await page.getByRole("button", { name: "Apply this size to all tiles" }).click();
+  assert.deepEqual(
+    await preview.evaluateAll((nodes) => nodes.map((node) => node.style.width)),
+    Array(6).fill("35%"),
+  );
+  await preview.nth(1).click();
+  const grip = await page.locator(".challengeResize").boundingBox();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2 - 10, grip.y + grip.height / 2 - 8, { steps: 4 });
+  await page.mouse.up();
+  assert.ok(Number(await width.inputValue()) < 70);
+  await width.fill("40");
+  await width.press("Tab");
+  const image = "https://example.invalid/hero.png";
+  await page.getByText("Use an image URL", { exact: true }).filter({ visible: true }).click();
+  await page.getByLabel("Tile image URL").fill(image);
+  await page.getByLabel("Tile image URL").press("Tab");
+  assert.deepEqual(await preview.evaluateAll((nodes) => nodes.map((node) => node.style.width)), [
+    "35%",
+    "20%",
+    "35%",
+    "35%",
+    "35%",
+    "35%",
+  ]);
+
+  await sizeGrid(1, 1);
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const [doc] = service.store.snapshot().documents;
+  const [widget] = doc.widgets;
+  assert.equal(
+    service.bingoDeck({ documentId: doc.id, widgetId: widget.id }).board.cells.length,
+    1,
+  );
+  await page.reload();
+  await page.locator("#layers .layerRow").first().click();
+  await sizeGrid(2, 3);
+  await preview.nth(1).click();
+  assert.equal(await width.inputValue(), "40");
+  assert.equal(await preview.nth(1).locator("img").getAttribute("src"), image);
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  const cells = output.locator(".extra-challenge-board .bingoCell");
+  await cells.nth(5).waitFor();
+  assert.deepEqual(await cells.evaluateAll((nodes) => nodes.map((node) => node.style.width)), [
+    "35%",
+    "20%",
+    "35%",
+    "35%",
+    "35%",
+    "35%",
+  ]);
+  assert.equal(await cells.nth(1).locator("img").getAttribute("src"), image);
+});
 test("board designer saves images, custom marks, announcements and freeform geometry to OBS", async (t) => {
   const { page, add, service, base, browser } = await setup(t);
   const png = Buffer.from(
@@ -357,9 +429,10 @@ test("board designer saves images, custom marks, announcements and freeform geom
   await page.getByLabel("Announcement placement").selectOption("overlay");
   await add("Challenge board");
   await page.locator('[data-inspector="content"]').click();
-  await page.getByRole("button", { name: "Add tile", exact: true }).click();
+  await page.getByLabel("Tile layout").selectOption("freeform");
   await page.getByLabel("Tile label", { exact: true }).fill("First hero");
   await page.getByLabel("Tile label", { exact: true }).press("Tab");
+  await page.getByText("Tile placement", { exact: true }).click();
   for (const [label, value] of [
     ["Left (%)", "34"],
     ["Width (%)", "45"],

@@ -178,7 +178,7 @@ export function createDeckPager({
   next.onclick = () => move(1);
   const observer = new MutationObserver(schedule);
   observer.observe(grid, { childList: true });
-  observer.observe(host, { attributes: true, attributeFilter: ["data-focus"] });
+  observer.observe(host, { attributes: true, attributeFilter: ["data-focus", "data-bingo-page"] });
   const resize = new ResizeObserver(schedule);
   resize.observe(host);
   resize.observe(grid);

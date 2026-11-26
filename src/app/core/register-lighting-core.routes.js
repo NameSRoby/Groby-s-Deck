@@ -201,20 +201,20 @@ module.exports = function registerLightingCoreRoutes(app, options = {}) {
       return next(error);
     }
   });
-  app.post("/system/update/apply", (req, res, next) => {
+  app.post("/system/update/apply", async (req, res, next) => {
     if (!isLocalOrSameHostRequest(req))
       return res.status(403).json({ ok: false, error: "local_request_required" });
     try {
-      return res.status(202).json(coreUpdates.apply());
+      return res.status(202).json(await coreUpdates.apply());
     } catch (error) {
       return next(error);
     }
   });
-  app.post("/system/update/rollback", (req, res, next) => {
+  app.post("/system/update/rollback", async (req, res, next) => {
     if (!isLocalOrSameHostRequest(req))
       return res.status(403).json({ ok: false, error: "local_request_required" });
     try {
-      return res.status(202).json(coreUpdates.rollback());
+      return res.status(202).json(await coreUpdates.rollback());
     } catch (error) {
       return next(error);
     }

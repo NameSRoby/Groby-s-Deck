@@ -1,11 +1,32 @@
 /** One tile per saved overlay square. All edits go through the overlay game owner. */
-export function createDeckBingo({ host, workspace, request, visible, onOpen, openDesigner }) {
+export function createDeckBingo({
+  host,
+  workspace,
+  request,
+  visible,
+  onOpen,
+  openDesigner,
+  onClose,
+}) {
   const tab = document.createElement("button"),
     panel = document.createElement("section");
   tab.type = "button";
   tab.textContent = "Game boards";
   tab.setAttribute("aria-controls", "deckBingo");
   tab.setAttribute("aria-pressed", "false");
+  const fullscreenTabs = document.createElement("nav");
+  fullscreenTabs.className = "deckFullscreenTabs";
+  fullscreenTabs.setAttribute("aria-label", "Fullscreen views");
+  fullscreenTabs.hidden = true;
+  const buttonView = document.createElement("button");
+  const gameView = document.createElement("button");
+  buttonView.type = gameView.type = "button";
+  buttonView.textContent = "Button pages";
+  gameView.textContent = tab.textContent;
+  gameView.setAttribute("aria-controls", "deckBingo");
+  buttonView.onclick = onClose;
+  gameView.onclick = onOpen;
+  fullscreenTabs.append(buttonView, gameView);
   panel.id = "deckBingo";
   panel.hidden = true;
   panel.setAttribute("aria-label", "Game board controls");
@@ -30,6 +51,7 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     retry = panel.querySelector("[data-retry]"),
     dialog = panel.querySelector("dialog");
   let active = false,
+    available = false,
     pending = false,
     sending = false,
     timer,
@@ -40,6 +62,16 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     error = "";
   const key = (row) => JSON.stringify([row.documentId, row.widgetId]);
   const browsing = () => active && visible();
+  const watching = () => visible() && (active || host.dataset.focus === "true");
+  function syncTabs() {
+    fullscreenTabs.hidden = !available && !active;
+    buttonView.setAttribute("aria-pressed", String(!active));
+    gameView.setAttribute("aria-pressed", String(active));
+  }
+  function setAvailability(value) {
+    available = value;
+    syncTabs();
+  }
   const notice = (message) => {
     if (status.textContent !== message) status.textContent = message;
   };
@@ -76,6 +108,7 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     grid.classList.toggle("freeform", board?.freeform === true);
     grid.style.setProperty("--bingo-columns", String(board?.columns || 1));
     grid.style.aspectRatio = board?.freeform ? board.width + " / " + board.height : "";
+    grid.style.setProperty("--board-aspect", board?.freeform ? board.width / board.height : "");
     grid.style.backgroundImage = board?.image ? `url(${JSON.stringify(board.image)})` : "";
     grid.style.backgroundSize = board?.imageFit || "";
     grid.style.setProperty("--board-mark-color", board?.markColor || "");
@@ -143,14 +176,26 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
   }
   function schedule(delay = 1000) {
     clearTimeout(timer);
-    if (browsing()) timer = setTimeout(() => void refresh(), delay);
+    if (watching()) timer = setTimeout(() => void refresh(), delay);
   }
   async function refresh() {
-    if (!browsing() || pending || sending) {
+    if (!watching() || pending || sending) {
       schedule();
       return;
     }
     pending = true;
+    if (!active) {
+      try {
+        const result = await request("/api/stream-overlays/bingo-deck?availableOnly=1");
+        if (!active) setAvailability(result.available === true);
+      } catch {
+        // Keep the last known availability during a connection interruption.
+      } finally {
+        pending = false;
+        schedule(active ? 0 : 3000);
+      }
+      return;
+    }
     const selected = target,
       priorWrites = writeCount;
     const [documentId, widgetId] = selected ? JSON.parse(selected) : ["", ""];
@@ -160,6 +205,7 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
       );
       if (selected === target && !sending && priorWrites === writeCount) {
         value = next;
+        setAvailability(next.boards.length > 0);
         target = next.board ? key(next.board) : "";
         retry.hidden = true;
         paint();
@@ -241,8 +287,14 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
     clearTimeout(timer);
     if (dialog.open) dialog.close();
   });
+  new MutationObserver(() => schedule(0)).observe(host, {
+    attributes: true,
+    attributeFilter: ["data-focus"],
+  });
   return {
     tab,
+    fullscreenTabs,
+    focusTab: () => (host.dataset.focus === "true" ? gameView : tab).focus(),
     sync: () => schedule(0),
     set(open) {
       if (active === open) return;
@@ -250,13 +302,10 @@ export function createDeckBingo({ host, workspace, request, visible, onOpen, ope
       panel.hidden = !open;
       host.dataset.bingoPage = String(open);
       tab.setAttribute("aria-pressed", String(open));
-      if (open) {
-        paint();
-        schedule(0);
-      } else {
-        clearTimeout(timer);
-        if (dialog.open) dialog.close();
-      }
+      syncTabs();
+      if (open) paint();
+      else if (dialog.open) dialog.close();
+      schedule(0);
     },
   };
 }

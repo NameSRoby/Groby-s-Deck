@@ -103,7 +103,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     input.type = "number";
     input.min = 1;
     input.max = count;
-    input.value = selected.get(w) || 1;
+    input.value = Math.min(selected.get(w) || 1, count);
     button("Toggle square", () => {
       if (input.reportValidity()) return run("mark", { cell: Number(input.value) });
     });
@@ -266,167 +266,214 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       "Changing Bingo dimensions starts a fresh round. Open saved boards from Game boards in the Button Deck.",
     );
   }
-  const tileGeometry = [
-    ["x", "Left (%)", 0, 100],
-    ["y", "Top (%)", 0, 100],
-    ["width", "Width (%)", 0.1, 100],
-    ["height", "Height (%)", 0.1, 100],
-    ["rotation", "Rotation (°)", -360, 360],
-  ];
+  function numberInput(parent, name, value, min, max, step = 1) {
+    const input = labeled(name, el("input"), parent);
+    Object.assign(input, { type: "number", min, max, step, required: true, value });
+    return input;
+  }
   function challenge(w, run) {
+    const grid = w.challengeLayout === "grid";
+    const count = OverlayGameRules.challengeCount(w);
+    const active = Math.min(selected.get(w) || 1, count);
+    const tile = w.tiles[active - 1];
+    const layout = labeled("Tile layout", el("select"));
+    layout.add(new Option("Grid", "grid"));
+    layout.add(new Option("Freeform", "freeform"));
+    layout.value = w.challengeLayout;
+    function setGrid(columns, rows) {
+      w.challengeLayout = "grid";
+      w.gridSize = columns;
+      w.gridRows = rows;
+      OverlayModel.fillChallengeGrid(w, GrobyRandomId);
+    }
+    layout.onchange = () => {
+      a.change(() => {
+        if (layout.value === "grid") setGrid(w.gridSize, w.gridRows);
+        else w.challengeLayout = "freeform";
+      });
+      host.querySelector('[aria-label="Tile layout"]').focus();
+    };
+    if (grid) {
+      const fields = el("div");
+      fields.className = "tileGeometry";
+      host.append(fields);
+      const columns = numberInput(fields, "Tiles per row", w.gridSize, 1, OverlayModel.boardLimit);
+      const rows = numberInput(fields, "Rows", w.gridRows, 1, OverlayModel.boardLimit);
+      button("Apply grid size", () => {
+        if (!columns.reportValidity() || !rows.reportValidity()) return;
+        if (columns.valueAsNumber * rows.valueAsNumber > OverlayModel.boardLimit)
+          throw Error("Use up to " + OverlayModel.boardLimit.toLocaleString() + " tiles.");
+        if (columns.valueAsNumber === w.gridSize && rows.valueAsNumber === w.gridRows) return;
+        selected.set(w, Math.min(active, columns.valueAsNumber * rows.valueAsNumber));
+        a.change(() => setGrid(columns.valueAsNumber, rows.valueAsNumber));
+        host.querySelector('[aria-label="Tiles per row"]').focus();
+      });
+      if (w.tiles.length > count) {
+        const extra = w.tiles.length - count;
+        note(
+          extra + (extra === 1 ? " tile is" : " tiles are") + " kept for when you expand the grid.",
+        );
+      }
+    } else {
+      const add = button("Add tile", () => {
+        const index = w.tiles.length;
+        const columns = Math.max(4, Math.ceil(Math.sqrt(index + 1)));
+        selected.set(w, index + 1);
+        a.change(() => {
+          w.tiles.push({
+            id: GrobyRandomId(),
+            text: "",
+            image: "",
+            width: percent(90 / columns, 0.1),
+            height: percent(90 / columns, 0.1),
+            rotation: 0,
+            x: percent((((index % columns) + 0.05) * 100) / columns),
+            y: percent(((Math.floor(index / columns) + 0.05) * 100) / columns),
+          });
+        });
+      });
+      add.disabled = w.tiles.length >= OverlayModel.boardLimit;
+    }
+
     const visual = el("div");
     visual.className = "challengeEditor";
     visual.style.aspectRatio = w.width + " / " + w.height;
-    const tile = w.tiles[Math.min(selected.get(w) || 1, w.tiles.length) - 1];
     const background = el("img");
     background.alt = "";
     background.style.objectFit = w.boardImageFit;
     setImage(background, w.boardImage);
     visual.append(background);
-    const tools = el("div");
-    tools.className = "boardEditorTools";
-    host.append(tools, visual);
-    tools.append(
-      button("Add tile", () => {
-        if (w.tiles.length >= OverlayModel.boardLimit) throw Error("This board is full.");
-        const i = w.tiles.length;
-        selected.set(w, i + 1);
-        a.change(() =>
-          w.tiles.push({
-            id: GrobyRandomId(),
-            text: "",
-            image: "",
-            width: 22,
-            height: 22,
-            rotation: 0,
-            x: (i % 4) * 25 + 2,
-            y: (Math.floor(i / 4) % 4) * 25 + 2,
-          }),
-        );
-      }),
-    );
-    for (const [index, item] of w.tiles.entries()) {
-      const node = el("button"),
-        image = el("img");
-      const caption = el("span", item.text || "Tile " + (index + 1));
+    host.append(visual);
+    const shown = w.tiles.slice(0, count);
+    const title = (item, index) => item.text || "Tile " + (index + 1);
+    function position(node, item, index) {
+      const { x, y, width, height, rotation } = OverlayGameRules.challengeGeometry(w, item, index);
+      Object.assign(node.style, {
+        left: x + "%",
+        top: y + "%",
+        width: width + "%",
+        height: height + "%",
+        transform: "rotate(" + rotation + "deg)",
+      });
+    }
+    function choose(index, focusTile) {
+      selected.set(w, index + 1);
+      a.draw();
+      host
+        .querySelector(
+          focusTile ? '.challengeEditor [aria-pressed="true"]' : '[aria-label="Selected tile"]',
+        )
+        .focus();
+    }
+    const nodes = shown.map((item, index) => {
+      const node = el("button");
+      const image = el("img");
+      const caption = el("span", title(item, index));
       caption.className = "challengeCaption";
       image.alt = "";
       image.style.objectFit = w.cellImageFit;
       setImage(image, item.image);
       node.append(image, caption);
+      node.type = "button";
+      node.title = caption.textContent;
+      node.setAttribute("aria-pressed", String(item === tile));
       if (item === tile) {
         const grip = el("span");
         grip.className = "challengeResize";
         grip.setAttribute("aria-hidden", "true");
         node.append(grip);
       }
-      node.type = "button";
-      node.setAttribute("aria-pressed", String(item === tile));
-      const position = (x, y, width, height) =>
-        Object.assign(node.style, {
-          left: x + "%",
-          top: y + "%",
-          width: width + "%",
-          height: height + "%",
-          transform: `rotate(${item.rotation}deg)`,
-        });
-      position(item.x, item.y, item.width, item.height);
+      position(node, item, index);
+      visual.append(node);
       node.onclick = () => {
-        if (item !== tile) {
-          selected.set(w, index + 1);
-          a.draw();
-        }
+        if (item !== tile) choose(index, true);
       };
       node.onpointerdown = (event) => {
-        if (event.button !== 0) return;
+        const resizing = event.target.classList.contains("challengeResize");
+        if (event.button !== 0 || (grid && !resizing)) return;
         const bounds = visual.getBoundingClientRect();
-        const start = [event.clientX, event.clientY];
-        const resizing = event.target.classList.contains("challengeResize"),
-          angle = (item.rotation * Math.PI) / 180;
+        const angle = (item.rotation * Math.PI) / 180;
         let change;
         node.setPointerCapture(event.pointerId);
         node.onpointermove = (move) => {
           if (move.pointerId !== event.pointerId) return;
-          const dx = move.clientX - start[0],
-            dy = move.clientY - start[1];
+          const dx = move.clientX - event.clientX;
+          const dy = move.clientY - event.clientY;
           if (!change && Math.hypot(dx, dy) < 3) return;
-          change = resizing
-            ? {
-                width: percent(
-                  item.width + (100 * (dx * Math.cos(angle) + dy * Math.sin(angle))) / bounds.width,
-                  0.1,
-                ),
-                height: percent(
-                  item.height +
-                    (100 * (dy * Math.cos(angle) - dx * Math.sin(angle))) / bounds.height,
-                  0.1,
-                ),
-              }
-            : {
-                x: percent(item.x + (100 * dx) / bounds.width),
-                y: percent(item.y + (100 * dy) / bounds.height),
-              };
-          const moved = { ...item, ...change };
-          position(moved.x, moved.y, moved.width, moved.height);
+          if (grid) {
+            change = {
+              gridWidth: percent(
+                (item.gridWidth ?? w.challengeTileWidth) + (200 * dx * w.gridSize) / bounds.width,
+                1,
+              ),
+              gridHeight: percent(
+                (item.gridHeight ?? w.challengeTileHeight) +
+                  (200 * dy * w.gridRows) / bounds.height,
+                1,
+              ),
+            };
+          } else if (resizing) {
+            change = {
+              width: percent(
+                item.width + (100 * (dx * Math.cos(angle) + dy * Math.sin(angle))) / bounds.width,
+                0.1,
+              ),
+              height: percent(
+                item.height + (100 * (dy * Math.cos(angle) - dx * Math.sin(angle))) / bounds.height,
+                0.1,
+              ),
+            };
+          } else {
+            change = {
+              x: percent(item.x + (100 * dx) / bounds.width),
+              y: percent(item.y + (100 * dy) / bounds.height),
+            };
+          }
+          position(node, { ...item, ...change }, index);
         };
-        node.onpointerup = () => {
+        node.onpointerup = (up) => {
+          if (up.pointerId !== event.pointerId) return;
           node.onpointermove = null;
           if (!change) return;
-          selected.set(w, index + 1);
-          a.change(() => Object.assign(item, change));
+          if (item === tile) {
+            a.change(() => Object.assign(item, change), false);
+            updateSizeFields();
+          } else {
+            selected.set(w, index + 1);
+            a.change(() => Object.assign(item, change));
+          }
         };
         node.onpointercancel = () => {
           node.onpointermove = null;
-          position(item.x, item.y, item.width, item.height);
+          position(node, item, index);
         };
       };
-      visual.append(node);
-    }
+      return node;
+    });
+    visual.classList.toggle("gridLayout", grid);
     if (!tile) {
       note("Add a tile to start building your board.");
       return background;
     }
+
+    const node = nodes[active - 1];
     const tiles = labeled("Selected tile", el("select"));
-    w.tiles.forEach((item, i) => tiles.add(new Option(item.text || "Tile " + (i + 1), i + 1)));
-    tiles.value = w.tiles.indexOf(tile) + 1;
-    tiles.onchange = () => {
-      selected.set(w, Number(tiles.value));
-      a.draw();
-    };
+    shown.forEach((item, index) => tiles.add(new Option(title(item, index), index + 1)));
+    tiles.value = active;
+    tiles.onchange = () => choose(tiles.selectedIndex, false);
     const name = labeled("Tile label", el("input"));
     name.maxLength = 200;
     name.value = tile.text;
     name.onchange = () => {
-      const index = w.tiles.indexOf(tile);
       a.change(() => {
         tile.text = name.value;
       }, false);
-      tiles.options[index].text = tile.text || "Tile " + (index + 1);
-      visual.querySelector('[aria-pressed="true"] .challengeCaption').textContent =
-        tiles.options[index].text;
+      const label = title(tile, active - 1);
+      tiles.options[active - 1].text =
+        node.title =
+        node.querySelector(".challengeCaption").textContent =
+          label;
     };
-    const geometry = el("div");
-    geometry.className = "tileGeometry";
-    host.append(geometry);
-    for (const [key, title, min, max] of tileGeometry) {
-      const input = labeled(title, el("input"), geometry);
-      input.type = "number";
-      input.min = min;
-      input.max = max;
-      input.step = 0.1;
-      input.required = true;
-      input.value = tile[key];
-      input.onchange = () => {
-        if (input.reportValidity()) {
-          a.change(() => {
-            tile[key] = Number(input.value);
-          }, false);
-          const node = visual.querySelector('[aria-pressed="true"]');
-          if (key === "rotation") node.style.transform = `rotate(${tile.rotation}deg)`;
-          else node.style[{ x: "left", y: "top" }[key] || key] = tile[key] + "%";
-        }
-      };
-    }
     imageControl(
       host,
       w,
@@ -434,12 +481,83 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       () => tile.image,
       (url) => {
         tile.image = url;
-        setImage(visual.querySelector('[aria-pressed="true"] img'), url);
+        setImage(node.querySelector("img"), url);
       },
     );
-    button("Remove selected tile", () => a.change(() => w.tiles.splice(w.tiles.indexOf(tile), 1)));
-    play(w, run, w.tiles.length);
-    note("Drag a tile to move it. Drag its corner to resize it.");
+
+    const sizes = el("div");
+    sizes.className = "tileGeometry";
+    host.append(sizes);
+    const widthKey = grid ? "gridWidth" : "width";
+    const heightKey = grid ? "gridHeight" : "height";
+    const width = () => tile[widthKey] ?? w.challengeTileWidth;
+    const height = () => tile[heightKey] ?? w.challengeTileHeight;
+    const suffix = grid ? " (% of slot)" : " (%)";
+    const min = grid ? 1 : 0.1;
+    const tileWidth = numberInput(sizes, "Width" + suffix, width(), min, 100, 0.1);
+    const tileHeight = numberInput(sizes, "Height" + suffix, height(), min, 100, 0.1);
+    function updateSizeFields() {
+      tileWidth.value = width();
+      tileHeight.value = height();
+      for (const [key, input] of placement) input.value = tile[key];
+    }
+    const placement = [];
+    function edit(input, key) {
+      input.onchange = () => {
+        if (!input.reportValidity()) return;
+        a.change(() => {
+          tile[key] = input.valueAsNumber;
+        }, false);
+        position(node, tile, active - 1);
+      };
+    }
+    edit(tileWidth, widthKey);
+    edit(tileHeight, heightKey);
+    button("Apply this size to all tiles", () => {
+      if (!tileWidth.reportValidity() || !tileHeight.reportValidity()) return;
+      const nextWidth = tileWidth.valueAsNumber;
+      const nextHeight = tileHeight.valueAsNumber;
+      a.change(() => {
+        if (grid) {
+          w.challengeTileWidth = nextWidth;
+          w.challengeTileHeight = nextHeight;
+          for (const item of w.tiles) {
+            delete item.gridWidth;
+            delete item.gridHeight;
+          }
+        } else {
+          for (const item of shown) {
+            item.width = nextWidth;
+            item.height = nextHeight;
+          }
+        }
+      }, false);
+      shown.forEach((item, index) => position(nodes[index], item, index));
+      a.notice("Tile size applied to all tiles.");
+    });
+    if (!grid) {
+      const options = details("Tile placement");
+      options.className = "boardSettings";
+      const geometry = el("div");
+      geometry.className = "tileGeometry";
+      options.append(geometry);
+      for (const [key, label, min, max] of [
+        ["x", "Left (%)", 0, 100],
+        ["y", "Top (%)", 0, 100],
+        ["rotation", "Rotation (\u00b0)", -360, 360],
+      ]) {
+        const input = numberInput(geometry, label, tile[key], min, max, 0.1);
+        placement.push([key, input]);
+        edit(input, key);
+      }
+      button("Remove selected tile", () => a.change(() => w.tiles.splice(active - 1, 1)));
+    }
+    note(
+      grid
+        ? "Drag the selected tile’s corner to resize it."
+        : "Drag tiles to move them. Drag the selected tile’s corner to resize it.",
+    );
+    play(w, run, count);
     return background;
   }
   function setImage(image, url) {
@@ -508,8 +626,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     );
   }
   function content(w, run) {
+    const thumbnail = w.type === "challenge-board" ? challenge(w, run) : null;
     const background = details("Board background image");
-    let thumbnail;
     imageControl(
       background,
       w,
@@ -524,7 +642,6 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     check("Show tile labels", "showCellLabels");
     if (w.type === "bingo") bingo(w, run);
     else if (w.type === "tile-match") match(w, run);
-    else thumbnail = challenge(w, run);
   }
   function style(w, looks) {
     const boardLooks = [

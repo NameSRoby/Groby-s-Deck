@@ -73,6 +73,29 @@
   const boardLimit = 10000;
   const imageUrl = (value) =>
     typeof value === "string" && !/\.(mp4|webm)(?:[?#]|$)/i.test(value) ? mediaUrl(value) : "";
+  function fillChallengeGrid(w, makeId) {
+    const count = w.gridSize * w.gridRows;
+    if (w.tiles.length >= count) return;
+    const ids = new Set(w.tiles.map((tile) => tile.id));
+    let nextId = w.tiles.length + 1;
+    while (w.tiles.length < count) {
+      let id;
+      do id = makeId ? makeId() : "grid-tile-" + nextId++;
+      while (ids.has(id));
+      ids.add(id);
+      const index = w.tiles.length;
+      w.tiles.push({
+        id,
+        text: "",
+        image: "",
+        x: ((index % w.gridSize) * 100) / w.gridSize,
+        y: (Math.floor(index / w.gridSize) * 100) / w.gridRows,
+        width: Math.max(0.1, 90 / w.gridSize),
+        height: Math.max(0.1, 90 / w.gridRows),
+        rotation: 0,
+      });
+    }
+  }
   const matchPairLimit = 24;
   function matchOptions(raw) {
     const initial = ["Moon", "Star", "Cloud", "Lightning", "Sun", "Comet"].map((text, index) => ({
@@ -100,7 +123,8 @@
     };
   }
   function boardOptions(raw) {
-    const columns = Math.round(number(raw.gridSize, 1, boardLimit, 5));
+    const challenge = raw.type === "challenge-board";
+    const columns = Math.round(number(raw.gridSize, 1, boardLimit, challenge ? 4 : 5));
     const rows = Math.round(number(raw.gridRows, 0, Math.floor(boardLimit / columns), 0));
     const images = {};
     for (const [index, value] of Object.entries(raw.boardImages || {})) {
@@ -125,11 +149,27 @@
         width: number(tile?.width, 0.1, 100, 25),
         height: number(tile?.height, 0.1, 100, 25),
         rotation: number(tile?.rotation, -360, 360, 0),
+        ...(tile?.gridWidth != null ? { gridWidth: number(tile.gridWidth, 1, 100, 90) } : {}),
+        ...(tile?.gridHeight != null ? { gridHeight: number(tile.gridHeight, 1, 100, 90) } : {}),
       });
     }
+    const challengeLayout = raw.challengeLayout === "grid" ? "grid" : "freeform";
+    const gridRows = challenge
+      ? rows ||
+        Math.max(1, Math.min(Math.floor(boardLimit / columns), Math.ceil(tiles.length / columns)))
+      : rows || (columns * columns > boardLimit ? Math.floor(boardLimit / columns) : 0);
+    if (challenge && challengeLayout === "grid")
+      fillChallengeGrid({ tiles, gridSize: columns, gridRows });
     return {
       gridSize: columns,
-      gridRows: rows || (columns * columns > boardLimit ? Math.floor(boardLimit / columns) : 0),
+      gridRows,
+      ...(challenge
+        ? {
+            challengeLayout,
+            challengeTileWidth: number(raw.challengeTileWidth, 1, 100, 90),
+            challengeTileHeight: number(raw.challengeTileHeight, 1, 100, 90),
+          }
+        : {}),
       freeCenter: raw.freeCenter !== false,
       boardImage: imageUrl(raw.boardImage),
       boardImageFit: raw.boardImageFit === "contain" ? "contain" : "cover",
@@ -534,6 +574,7 @@
     mediaUrl,
     imageUrl,
     boardLimit,
+    fillChallengeGrid,
     matchPairLimit,
     recordKey,
     usesLiveData,

@@ -512,7 +512,13 @@ module.exports = function streamOverlays({
         ? { ...result, ...this.bingoDeck(input) }
         : result;
     },
-    bingoDeck({ documentId, widgetId } = {}) {
+    bingoDeck({ documentId, widgetId, availableOnly } = {}) {
+      if (availableOnly === "1")
+        return {
+          available: store.gameDocuments().some((doc) =>
+            doc.widgets.some((w) => w.visible && rules.boardTypes.includes(w.type)),
+          ),
+        };
       const options = store.gameDocuments().flatMap((doc) =>
         doc.widgets
           .filter((w) => w.visible && rules.boardTypes.includes(w.type))

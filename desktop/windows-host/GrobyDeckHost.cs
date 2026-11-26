@@ -2,6 +2,7 @@
 // single-instance boundary, server child, tray UI, and update health handshake.
 // See docs/DEVELOPMENT.md, "Windows host and updates", before changing ownership.
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -11,15 +12,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Web.Script.Serialization;
 using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("Groby’s Deck")]
 [assembly: System.Reflection.AssemblyDescription("Groby’s Deck Windows runtime host")]
 [assembly: System.Reflection.AssemblyCompany("NameSRoby")]
 [assembly: System.Reflection.AssemblyProduct("Groby’s Deck")]
-[assembly: System.Reflection.AssemblyVersion("0.8.2.3")]
-[assembly: System.Reflection.AssemblyFileVersion("0.8.2.3")]
-[assembly: System.Reflection.AssemblyInformationalVersion("0.8.2c")]
+[assembly: System.Reflection.AssemblyVersion("0.8.21.0")]
+[assembly: System.Reflection.AssemblyFileVersion("0.8.21.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("0.8.21")]
 
 namespace Groby.Deck.WindowsHost
 {
@@ -32,12 +34,18 @@ namespace Groby.Deck.WindowsHost
         internal const string ExitEventName = "Local\\RaveLink-Core-Exit-v0.6";
         internal const string RestartEventName = "Local\\RaveLink-Core-Restart-v0.6";
         internal const string OpenEventName = "Local\\RaveLink-Core-Open-v0.6";
+        internal const string UpdateEventName = "Local\\Groby-Deck-Update";
         internal static string Scoped(string name) { return ServerControl.Port() == 5050 ? name : name + "-" + ServerControl.Port(); }
 
         [STAThread]
         private static void Main(string[] args)
         {
             AppDomain.CurrentDomain.AssemblyResolve += DesktopPolicy.ResolveDependency;
+            if (HasArgument(args, "--update"))
+            {
+                Environment.ExitCode = SignalHostEvent(UpdateEventName) ? 0 : 1;
+                return;
+            }
             if (HasArgument(args, "--stop"))
             {
                 SignalHostEvent(ExitEventName);
@@ -108,9 +116,14 @@ namespace Groby.Deck.WindowsHost
         private readonly DashboardWindow launcher;
         private readonly EventWaitHandle openSignal;
         private readonly RegisteredWaitHandle openWait;
+        private readonly EventWaitHandle updateSignal;
+        private readonly RegisteredWaitHandle updateWait;
+        private bool preparingUpdate;
 
         private string PendingUpdatePath { get { return Path.Combine(root, "runtime", "updates", "pending-health.json"); } }
         private string AvailableRollbackPath { get { return Path.Combine(root, "runtime", "updates", "available-rollback.json"); } }
+        private string UpdateOperationPath { get { return Path.Combine(root, "runtime", "updates", "operation.json"); } }
+        private string UpdateRunnerPath { get { return Path.Combine(root, "runtime", "updates", "groby-update-runner.ps1"); } }
 
         internal CoreApplicationContext(string rootDirectory, bool backgroundStartup = false)
         {
@@ -152,6 +165,8 @@ namespace Groby.Deck.WindowsHost
             restartWait = ThreadPool.RegisterWaitForSingleObject(restartSignal, delegate { uiContext.Post(async delegate { await RestartAsync(); }, null); }, null, Timeout.Infinite, false);
             openSignal = new EventWaitHandle(false, EventResetMode.AutoReset, Program.Scoped(Program.OpenEventName));
             openWait = ThreadPool.RegisterWaitForSingleObject(openSignal, delegate { uiContext.Post(async delegate { await OpenOrExplainAsync(); }, null); }, null, Timeout.Infinite, false);
+            updateSignal = new EventWaitHandle(false, EventResetMode.AutoReset, Program.Scoped(Program.UpdateEventName));
+            updateWait = ThreadPool.RegisterWaitForSingleObject(updateSignal, delegate { uiContext.Post(async delegate { await PrepareUpdateAsync(); }, null); }, null, Timeout.Infinite, false);
             tray.DoubleClick += async delegate { await OpenOrExplainAsync(); };
             SystemEvents.SessionEnding += OnSessionEnding;
             StartOrAttachAsync();
@@ -172,6 +187,7 @@ namespace Groby.Deck.WindowsHost
                 if (await ServerControl.IsHealthyVersionAsync(port, expectedUpdateVersion))
                 {
                     ConfirmPendingUpdate();
+                    RememberInstallation();
                     SetStatus("Server online", ToolTipIcon.Info);
                     OpenDashboardOnce(port);
                     return;
@@ -179,6 +195,7 @@ namespace Groby.Deck.WindowsHost
 
                 if (await ServerControl.PortOccupiedAsync(port)) {
                     SetStatus("Port " + port + " is already in use. Close the older Groby’s Deck / Bridge instance or choose another port.", ToolTipIcon.Error);
+                    if (!String.IsNullOrEmpty(expectedUpdateVersion)) await RollbackPendingUpdateAsync();
                     return;
                 }
                 string entryName = File.Exists(Path.Combine(root, "config", "mod-platform.enabled"))
@@ -187,8 +204,7 @@ namespace Groby.Deck.WindowsHost
                 string entry = Path.Combine(root, "src", "app", "optional", entryName);
                 if (!File.Exists(entry))
                 {
-                    SetStatus("Server files missing", ToolTipIcon.Error);
-                    return;
+                    throw new FileNotFoundException("Server files missing", entry);
                 }
 
                 string bundledRuntime = Path.Combine(root, "runtime", "Grobys-Deck-Node.exe");
@@ -216,8 +232,7 @@ namespace Groby.Deck.WindowsHost
                 server.Exited += delegate { if (Object.ReferenceEquals(server, ownedServer)) OnServerExited(); };
                 if (!server.Start())
                 {
-                    SetStatus("Server failed to start", ToolTipIcon.Error);
-                    return;
+                    throw new InvalidOperationException("Server failed to start");
                 }
                 server.BeginOutputReadLine();
                 server.BeginErrorReadLine();
@@ -228,6 +243,7 @@ namespace Groby.Deck.WindowsHost
                     if (await ServerControl.IsHealthyVersionAsync(port, expectedUpdateVersion))
                     {
                         ConfirmPendingUpdate();
+                        RememberInstallation();
                         SetStatus("Server online", ToolTipIcon.Info);
                         OpenDashboardOnce(port);
                         return;
@@ -357,39 +373,109 @@ namespace Groby.Deck.WindowsHost
             {
                 if (!File.Exists(PendingUpdatePath)) return;
                 Directory.CreateDirectory(Path.GetDirectoryName(AvailableRollbackPath));
-                if (File.Exists(AvailableRollbackPath)) File.Delete(AvailableRollbackPath);
-                File.Move(PendingUpdatePath, AvailableRollbackPath);
+                if (File.Exists(AvailableRollbackPath)) File.Replace(PendingUpdatePath, AvailableRollbackPath, null);
+                else File.Move(PendingUpdatePath, AvailableRollbackPath);
                 string staged = Path.Combine(root, "runtime", "updates", "staged.json");
                 if (File.Exists(staged)) File.Delete(staged);
+                WriteUpdatePhase("installed");
                 HostLog.Write(root, "Update health check passed; rollback snapshot retained.");
             }
             catch (Exception error) { HostLog.Write(root, "Could not confirm update: " + error.GetType().Name); }
         }
 
+        private Dictionary<string, object> ReadUpdateOperation()
+        {
+            return new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(UpdateOperationPath));
+        }
+
+        private void RememberInstallation()
+        {
+            if (ServerControl.Port() != 5050 || !File.Exists(Path.Combine(root, "RELEASE_BUILD.json"))) return;
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey("Software\\GrobyDeck"))
+                    if (key != null) key.SetValue("LastInstallDirectory", root, RegistryValueKind.String);
+            }
+            catch (Exception error) { HostLog.Write(root, "Could not record the install location: " + error.GetType().Name); }
+        }
+
+        private void WriteUpdatePhase(string phase)
+        {
+            if (!File.Exists(UpdateOperationPath)) return;
+            var operation = ReadUpdateOperation();
+            operation["phase"] = phase;
+            string temporary = UpdateOperationPath + ".host.tmp";
+            File.WriteAllText(temporary, new JavaScriptSerializer().Serialize(operation), new UTF8Encoding(false));
+            File.Replace(temporary, UpdateOperationPath, null);
+        }
+
+        private Process StartUpdateRunner(string action, bool stopHost)
+        {
+            if (!File.Exists(UpdateRunnerPath)) throw new FileNotFoundException("Update helper is missing.", UpdateRunnerPath);
+            return Process.Start(new ProcessStartInfo
+            {
+                FileName = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
+                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File " + Quote(UpdateRunnerPath) + " -Action " + action +
+                    " -Root " + Quote(root) + " -HostPid " + Process.GetCurrentProcess().Id + (stopHost ? " -StopHost" : "") +
+                    (background && !launcher.Visible ? " -Background" : ""),
+                WorkingDirectory = root,
+                UseShellExecute = false,
+                RedirectStandardError = stopHost,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+        }
+
+        private async Task PrepareUpdateAsync()
+        {
+            if (exiting || preparingUpdate) return;
+            preparingUpdate = true;
+            try
+            {
+                var operation = ReadUpdateOperation();
+                string action = Convert.ToString(operation["action"]);
+                if (Convert.ToString(operation["phase"]) != "preparing" || (action != "Apply" && action != "Rollback"))
+                    return;
+                // The updater must survive the shutdown of Node's Windows job.
+                using (Process updater = StartUpdateRunner(action, true))
+                {
+                    if (updater == null) throw new InvalidOperationException("Could not start the update helper.");
+                    string error = await updater.StandardError.ReadToEndAsync();
+                    await Task.Run(() => updater.WaitForExit());
+                    if (!exiting && updater.ExitCode != 0)
+                        throw new InvalidOperationException(String.IsNullOrWhiteSpace(error) ? "See the update log." : error.Trim());
+                }
+            }
+            catch (Exception error)
+            {
+                HostLog.Write(root, "Update preparation failed: " + error.Message);
+                try { WriteUpdatePhase("failed"); } catch { }
+            }
+            finally { preparingUpdate = false; }
+        }
+
         private async Task RollbackPendingUpdateAsync()
         {
             if (exiting) return;
-            exiting = true;
             SetStatus("Update failed; restoring previous version", ToolTipIcon.Error);
-            await StopServerAsync();
             try
             {
-                string runner = Path.Combine(root, "runtime", "updates", "ravelink-update-runner.ps1");
-                if (!File.Exists(runner)) throw new FileNotFoundException("Update rollback helper is missing.", runner);
-                var rollback = new ProcessStartInfo
+                if (server != null) await StopServerAsync();
+                if (!File.Exists(UpdateRunnerPath))
                 {
-                    FileName = "powershell.exe",
-                    Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(runner) + " -Action Rollback -Root " + Quote(root) + " -HostPid " + Process.GetCurrentProcess().Id,
-                    WorkingDirectory = root,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                };
-                Process.Start(rollback);
+                    File.Copy(Path.Combine(root, "scripts", "groby-update.ps1"), UpdateRunnerPath);
+                }
+                using (Process updater = StartUpdateRunner("Rollback", false))
+                    if (updater == null) throw new InvalidOperationException("Could not start the rollback helper.");
+                exiting = true;
                 HostLog.Write(root, "Automatic rollback started.");
+                FinishExit();
             }
-            catch (Exception error) { HostLog.Write(root, "Automatic rollback could not start: " + error.GetType().Name); }
-            FinishExit();
+            catch (Exception error)
+            {
+                HostLog.Write(root, "Automatic rollback could not start: " + error.Message);
+                SetStatus("Recovery could not start. Open the startup log for details.", ToolTipIcon.Error);
+            }
         }
 
         private void OnSessionEnding(object sender, SessionEndingEventArgs args)
@@ -409,6 +495,8 @@ namespace Groby.Deck.WindowsHost
             restartWait.Unregister(null); restartSignal.Dispose();
             openWait.Unregister(null);
             openSignal.Dispose();
+            updateWait.Unregister(null);
+            updateSignal.Dispose();
             startupCancellation.Cancel();
             launcher.Dispose();
             exitWait.Unregister(null);
@@ -441,7 +529,11 @@ namespace Groby.Deck.WindowsHost
             tray.ShowBalloonTip(1200);
         }
 
-        private static string Quote(string value) { return "\"" + value.Replace("\"", "\\\"") + "\""; }
+        private static string Quote(string value)
+        {
+            // Windows doubles backslashes immediately before a closing quote.
+            return "\"" + value + new String('\\', value.Length - value.TrimEnd('\\').Length) + "\"";
+        }
     }
 
     // Loopback HTTP operations use finite deadlines. Keep launch/stop behavior

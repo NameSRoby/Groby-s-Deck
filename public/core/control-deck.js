@@ -97,8 +97,9 @@ export function initControlDeck(panel, onOverview = () => {}) {
       editing = false;
       bingoOpen = true;
       render();
-      bingo.tab.focus();
+      bingo.focusTab();
     },
+    onClose: () => selectPage(pageId),
     openDesigner: () => {
       fullscreen.leave();
       document.querySelector('[data-tab="overlays"]')?.click();
@@ -241,6 +242,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
     widgetToggle: widgets.fullscreenToggle,
     host,
     button: focus,
+    pageTabs: bingo.fullscreenTabs,
     onEnter: () => {
       editing = false;
       render();
@@ -829,6 +831,7 @@ export function initControlDeck(panel, onOverview = () => {}) {
       display.resume();
       widgets.resume();
       observer.observe(panel);
+      bingo.sync();
       if (isVisible()) void refresh();
     }
   });

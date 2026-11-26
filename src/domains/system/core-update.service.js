@@ -99,7 +99,7 @@ async function readLimited(response, maximum) {
   return Buffer.concat(chunks, received);
 }
 
-async function downloadFile(fetchImpl, url, destination, maximum) {
+async function downloadFile(fetchImpl, url, destination, maximum, progress) {
   const response = await fetchImpl(url, {
     redirect: "follow",
     signal: AbortSignal.timeout(120000),
@@ -111,6 +111,7 @@ async function downloadFile(fetchImpl, url, destination, maximum) {
   if (!response.ok) throw new Error(`release_http_${response.status}`);
   const length = Number(response.headers.get("content-length") || 0);
   if (length > maximum) throw new Error("release_archive_too_large");
+  progress.total = length || progress.total;
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.${process.pid}.tmp`;
   fs.rmSync(temporary, { force: true });
@@ -123,6 +124,7 @@ async function downloadFile(fetchImpl, url, destination, maximum) {
       transform(chunk, encoding, callback) {
         received += chunk.length;
         if (received > maximum) return callback(new Error("release_archive_too_large"));
+        progress.received = received;
         hash.update(chunk);
         callback(null, chunk);
       },
@@ -144,10 +146,11 @@ function createCoreUpdateService(options = {}) {
   const settingsPath = path.join(updateDir, "settings.json");
   const stagedPath = path.join(updateDir, "staged.json");
   const availableRollbackPath = path.join(updateDir, "available-rollback.json");
+  const operationPath = path.join(updateDir, "operation.json");
   const fetchImpl = options.fetch || globalThis.fetch;
   let latest = null;
-  let checking = false;
-  let downloading = false;
+  let checking = null;
+  let progress = null;
   let lastError = "";
 
   function settings() {
@@ -159,12 +162,18 @@ function createCoreUpdateService(options = {}) {
     const currentVersion = localVersion(rootDir);
     const staged = readJson(stagedPath);
     const rollback = readJson(availableRollbackPath);
+    const operation = readJson(operationPath);
+    const phase =
+      activeOperation(operation) && Date.now() - Date.parse(operation.startedAt) > 600000
+        ? "failed"
+        : operation?.phase;
     return {
       ok: true,
       currentVersion,
       checkOnLaunch: settings().checkOnLaunch,
-      checking,
-      downloading,
+      checking: Boolean(checking),
+      downloading: Boolean(progress),
+      progress: progress ? { ...progress } : null,
       latest: latest
         ? {
             version: latest.version,
@@ -173,11 +182,25 @@ function createCoreUpdateService(options = {}) {
             available: compareVersions(currentVersion, latest.version) < 0,
           }
         : null,
-      staged: staged ? { version: staged.version, verified: staged.verified === true } : null,
+      staged: usableStage(staged, currentVersion)
+        ? { version: staged.version, verified: true }
+        : null,
       rollback: rollback ? { version: String(rollback.previousVersion || "") } : null,
       hosted: process.env.RAVELINK_WINDOWS_HOST === "1",
+      operation: phase ? { phase, action: operation.action, version: operation.version } : null,
       lastError,
     };
+  }
+
+  const activeOperation = (value) => ["preparing", "restarting"].includes(value?.phase);
+  function usableStage(staged, currentVersion) {
+    return (
+      staged?.verified === true &&
+      parseVersion(staged.version) &&
+      compareVersions(currentVersion, staged.version) < 0 &&
+      typeof staged.archivePath === "string" &&
+      fs.existsSync(staged.archivePath)
+    );
   }
 
   function configure(value = {}) {
@@ -187,9 +210,12 @@ function createCoreUpdateService(options = {}) {
     return status();
   }
 
-  async function check() {
-    if (checking) throw new Error("update_check_in_progress");
-    checking = true;
+  function check() {
+    if (!checking) checking = loadRelease().then(status);
+    return checking;
+  }
+
+  async function loadRelease() {
     lastError = "";
     try {
       const response = await fetchImpl(RELEASE_API, {
@@ -204,7 +230,11 @@ function createCoreUpdateService(options = {}) {
       if (body?.draft || body?.prerelease) throw new Error("release_is_not_stable");
       const version = String(body?.tag_name || "").replace(/^v/, "");
       if (!parseVersion(version)) throw new Error("invalid_release_version");
-      const archiveName = `Grobys-Deck-Windows-v${version}-self-contained.zip`;
+      const archiveBase = `Grobys-Deck-Windows-v${version}`;
+      const legacyName = archiveBase + "-self-contained.zip";
+      const archiveName = body.assets?.some?.((asset) => asset?.name === legacyName)
+        ? legacyName
+        : archiveBase + ".zip";
       latest = {
         version,
         name: String(body.name || `Groby’s Deck v${version}`).slice(0, 160),
@@ -216,19 +246,27 @@ function createCoreUpdateService(options = {}) {
       lastError = String(error?.message || "update_check_failed").slice(0, 160);
       throw error;
     } finally {
-      checking = false;
+      checking = null;
     }
-    return status();
   }
 
   async function download() {
-    if (downloading) throw new Error("update_download_in_progress");
-    downloading = true;
+    if (progress) throw new Error("update_download_in_progress");
+    if (activeOperation(status().operation)) throw new Error("update_in_progress");
+    progress = { received: 0, total: 0 };
     try {
-      if (!latest) await check();
-      if (compareVersions(localVersion(rootDir), latest.version) >= 0)
+      if (checking || !latest) await check();
+      const release = latest;
+      const currentVersion = localVersion(rootDir);
+      const currentStage = readJson(stagedPath);
+      if (compareVersions(currentVersion, release.version) >= 0)
         throw new Error("no_newer_release");
-      const checksumResponse = await fetchImpl(latest.checksums.url, {
+      if (currentStage?.version === release.version && usableStage(currentStage, currentVersion)) {
+        progress = null;
+        return status();
+      }
+      progress.total = release.archive.size;
+      const checksumResponse = await fetchImpl(release.checksums.url, {
         signal: AbortSignal.timeout(10000),
         headers: {
           "User-Agent": "RaveLink-Core-Updater",
@@ -238,82 +276,84 @@ function createCoreUpdateService(options = {}) {
       const checksumText = (await readLimited(checksumResponse, MAX_CHECKSUM_BYTES)).toString(
         "ascii",
       );
-      const escapedName = latest.archive.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedName = release.archive.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const match = new RegExp(`^([a-fA-F0-9]{64})[ \\t]+\\*?${escapedName}$`, "m").exec(
         checksumText,
       );
       if (!match) throw new Error("release_checksum_missing");
       const downloadsDir = path.join(updateDir, "downloads");
-      fs.rmSync(downloadsDir, { recursive: true, force: true });
-      const archivePath = path.join(downloadsDir, latest.archive.name);
+      const archivePath = path.join(downloadsDir, release.archive.name);
       const downloaded = await downloadFile(
         fetchImpl,
-        latest.archive.url,
+        release.archive.url,
         archivePath,
         MAX_ARCHIVE_BYTES,
+        progress,
       );
       if (downloaded.sha256 !== match[1].toLowerCase()) {
         fs.rmSync(archivePath, { force: true });
         throw new Error("release_checksum_mismatch");
       }
       writeJsonAtomic(stagedPath, {
-        version: latest.version,
+        version: release.version,
         archivePath,
         sha256: downloaded.sha256,
         bytes: downloaded.bytes,
         verified: true,
         stagedAt: new Date().toISOString(),
       });
+      const previous = currentStage?.archivePath;
+      if (
+        typeof previous === "string" &&
+        previous !== archivePath &&
+        path.dirname(previous) === downloadsDir
+      )
+        fs.rmSync(previous, { force: true });
     } finally {
-      downloading = false;
+      progress = null;
     }
     return status();
   }
 
-  function launchHelper(action) {
+  async function launchHelper(action) {
     if (process.platform !== "win32" || process.env.RAVELINK_WINDOWS_HOST !== "1")
       throw new Error("windows_host_required");
+    if (progress || activeOperation(status().operation)) throw new Error("update_in_progress");
     const staged = readJson(stagedPath);
-    if (action === "Apply" && (!staged?.verified || !fs.existsSync(staged.archivePath)))
+    const rollback = readJson(availableRollbackPath);
+    if (action === "Apply" && !usableStage(staged, localVersion(rootDir)))
       throw new Error("verified_update_required");
-    if (action === "Rollback" && !fs.existsSync(availableRollbackPath))
-      throw new Error("rollback_unavailable");
+    if (action === "Rollback" && !rollback) throw new Error("rollback_unavailable");
     const source = path.join(rootDir, "scripts", "groby-update.ps1");
     if (!fs.existsSync(source)) throw new Error("update_helper_missing");
     fs.mkdirSync(updateDir, { recursive: true });
     const runner = path.join(updateDir, "groby-update-runner.ps1");
     fs.copyFileSync(source, runner);
-    const hostPid = Number(process.env.RAVELINK_HOST_PID || 0);
-    const child = spawn(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        runner,
-        "-Action",
-        action,
-        "-Root",
-        rootDir,
-        "-HostPid",
-        String(hostPid),
-      ],
-      { detached: true, windowsHide: true, stdio: "ignore" },
-    );
-    child.unref();
-    setTimeout(() => {
-      try {
-        spawn(path.join(rootDir, "Groby's Deck.exe"), ["--stop"], {
-          detached: true,
+    const operation = {
+      phase: "preparing",
+      action,
+      version: action === "Apply" ? staged.version : rollback.previousVersion,
+      startedAt: new Date().toISOString(),
+    };
+    writeJsonAtomic(operationPath, operation);
+    try {
+      await new Promise((resolve, reject) => {
+        const child = spawn(path.join(rootDir, "Groby's Deck.exe"), ["--update"], {
           windowsHide: true,
           stdio: "ignore",
-        }).unref();
-      } catch {
-        options.requestShutdown?.("update");
-      }
-    }, 250).unref();
-    return { ok: true, action: action.toLowerCase(), stopping: true };
+          signal: AbortSignal.timeout(5000),
+        });
+        child.once("error", reject);
+        child.once("exit", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error("update_host_unavailable"));
+        });
+      });
+    } catch {
+      writeJsonAtomic(operationPath, { ...operation, phase: "failed" });
+      throw new Error("update_host_unavailable");
+    }
+    return status();
   }
 
   function startLaunchCheck() {
