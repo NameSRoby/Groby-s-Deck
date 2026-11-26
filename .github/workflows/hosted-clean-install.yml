@@ -1,0 +1,42 @@
+name: Verify 0.8.2c downloads on fresh Windows runners
+
+on:
+  push:
+    branches: ['release-qa/0.8.2c']
+
+permissions:
+  contents: write
+
+jobs:
+  clean-windows:
+    name: Fresh Windows - ${{ matrix.path }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        path: [installer, portable, source, upgrade]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        if: matrix.path == 'source'
+        with:
+          ref: 51348588f9968519a403917cc1e98792a48fda10
+          path: qa-source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      - name: Install the browser test harness
+        run: |
+          npm.cmd ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npx.cmd --no-install playwright install chromium
+      - name: Verify the draft downloads and launch the app
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_PATH: ${{ matrix.path }}
+        run: .github/release-qa/check-download.ps1
