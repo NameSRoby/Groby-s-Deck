@@ -11,6 +11,8 @@ param(
   [ValidateSet("Apply", "Rollback")][string]$Action,
   [Parameter(Mandatory = $true)][string]$Root,
   [int]$HostPid = 0,
+  [switch]$StopHost,
+  [switch]$Background,
   [switch]$NoLaunch
 )
 
@@ -24,6 +26,7 @@ $stagedStatePath = Join-Path $updateRoot "staged.json"
 $pendingPath = Join-Path $updateRoot "pending-health.json"
 $availablePath = Join-Path $updateRoot "available-rollback.json"
 $logPath = Join-Path $updateRoot "update.log"
+$operationPath = Join-Path $updateRoot "operation.json"
 $managedDirectories = @("src", "public", "assets", "packages", "integrations", "node_modules", "scripts", "feature-packages", "optional-components")
 $managedFiles = @("package.json", "package-lock.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "RELEASE_BUILD.json", "Groby's Deck.exe")
 $managedRuntimeFiles = @("Grobys-Deck-Node.exe", "NODE-LICENSE.txt", "music-to-light\cargo\release\groby-audio-probe.exe", "desktop\Microsoft.Web.WebView2.Core.dll", "desktop\Microsoft.Web.WebView2.WinForms.dll", "desktop\WebView2Loader.dll", "desktop\LICENSE.WebView2.txt")
@@ -52,10 +55,27 @@ function Assert-ChildPath([string]$Candidate, [string]$Parent) {
   return $resolvedCandidate
 }
 
+function Set-UpdatePhase([string]$Phase) {
+  if (!(Test-Path -LiteralPath $operationPath -PathType Leaf)) { return }
+  $operation = Read-Json $operationPath
+  $operation.phase = $Phase
+  Write-JsonAtomic $operationPath $operation
+}
+
 function Wait-ForHost {
   if ($HostPid -le 0 -or $HostPid -eq $PID) { return }
   try {
     $hostProcess = Get-Process -Id $HostPid -ErrorAction Stop
+    if ($StopHost) {
+      Set-UpdatePhase "restarting"
+      $executable = Join-Path $rootPath "Groby's Deck.exe"
+      $stopProcess = Start-Process -FilePath $executable -ArgumentList "--stop" -WorkingDirectory $rootPath -WindowStyle Hidden -PassThru
+      try {
+        if (!$stopProcess.WaitForExit(10000)) { throw "Windows stop command did not finish in time" }
+      } finally {
+        $stopProcess.Dispose()
+      }
+    }
     if (!$hostProcess.WaitForExit(30000)) { throw "Windows host did not stop in time" }
   } catch [Microsoft.PowerShell.Commands.ProcessCommandException] { }
 }
@@ -69,7 +89,7 @@ function Copy-TreeItem([string]$Source, [string]$Destination) {
 
 function Remove-Managed([string]$Base) {
   foreach ($relative in $managedDirectories + $managedFiles) {
-    $target = Join-Path $Base $relative
+    $target = Assert-ChildPath (Join-Path $Base $relative) $Base
     if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
   }
   foreach ($relative in $managedRuntimeFiles) {
@@ -91,7 +111,9 @@ function Start-Core([string]$Argument) {
   if ($NoLaunch) { return }
   $executable = Join-Path $rootPath "Groby's Deck.exe"
   if (!(Test-Path -LiteralPath $executable -PathType Leaf)) { throw "Updated Windows host is missing" }
-  Start-Process -FilePath $executable -ArgumentList $Argument -WorkingDirectory $rootPath -WindowStyle Hidden
+  $arguments = @($Argument)
+  if ($Background) { $arguments += "--background" }
+  Start-Process -FilePath $executable -ArgumentList $arguments -WorkingDirectory $rootPath -WindowStyle Hidden
 }
 
 function Restore-Backup($State) {
@@ -101,63 +123,98 @@ function Restore-Backup($State) {
   Copy-Managed $backupPath $rootPath
 }
 
-Wait-ForHost
-Write-UpdateLog "$Action started"
-
-if ($Action -eq "Rollback") {
-  $statePath = if (Test-Path -LiteralPath $pendingPath) { $pendingPath } else { $availablePath }
-  $state = Read-Json $statePath
-  Restore-Backup $state
-  Remove-Item -LiteralPath $pendingPath, $availablePath -Force -ErrorAction SilentlyContinue
-  Write-UpdateLog "Restored version $($state.previousVersion)"
-  Start-Core "--post-rollback"
-  exit 0
-}
-
-$staged = Read-Json $stagedStatePath
-if ($staged.verified -ne $true -or "$($staged.version)" -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?[a-z]?$') { throw "Update is not verified" }
-$archivePath = Assert-ChildPath "$($staged.archivePath)" (Join-Path $updateRoot "downloads")
-if (!(Test-Path -LiteralPath $archivePath -PathType Leaf)) { throw "Staged archive is missing" }
-$actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash.ToLowerInvariant()
-if ($actualHash -ne "$($staged.sha256)".ToLowerInvariant()) { throw "Staged archive checksum changed" }
-
-$extractPath = Join-Path $updateRoot "extract-$($staged.version)-$PID"
-$backupPath = Join-Path $updateRoot "rollback\$([DateTimeOffset]::UtcNow.ToString('yyyyMMddHHmmss'))"
-Assert-ChildPath $extractPath $updateRoot | Out-Null
-Assert-ChildPath $backupPath (Join-Path $updateRoot "rollback") | Out-Null
-New-Item -ItemType Directory -Force -Path $extractPath, $backupPath | Out-Null
-
+$extractPath = $null
+$backupPath = $null
+$hostStopped = $false
 try {
+  Write-UpdateLog "$Action started"
+  if ($Action -eq "Rollback") {
+    $automatic = Test-Path -LiteralPath $pendingPath -PathType Leaf
+    $statePath = if ($automatic) { $pendingPath } else { $availablePath }
+    $state = Read-Json $statePath
+    $backupPath = Assert-ChildPath "$($state.backupPath)" (Join-Path $updateRoot "rollback")
+    if (!(Test-Path -LiteralPath (Join-Path $backupPath "Groby's Deck.exe") -PathType Leaf)) {
+      throw "Rollback snapshot is incomplete"
+    }
+    Wait-ForHost
+    $hostStopped = $true
+    Restore-Backup $state
+    Remove-Item -LiteralPath $statePath -Force
+    Write-UpdateLog "Restored version $($state.previousVersion)"
+    Set-UpdatePhase $(if ($automatic) { "rolled-back" } else { "restored" })
+    Start-Core "--post-rollback"
+    Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction SilentlyContinue
+    exit 0
+  }
+
+  if (Test-Path -LiteralPath $pendingPath) { throw "An earlier update still needs health confirmation" }
+  $staged = Read-Json $stagedStatePath
+  if ($staged.verified -ne $true -or "$($staged.version)" -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?[a-z]?$') { throw "Update is not verified" }
+  $archivePath = Assert-ChildPath "$($staged.archivePath)" (Join-Path $updateRoot "downloads")
+  if (!(Test-Path -LiteralPath $archivePath -PathType Leaf)) { throw "Staged archive is missing" }
+  $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash.ToLowerInvariant()
+  if ($actualHash -ne "$($staged.sha256)".ToLowerInvariant()) {
+    Remove-Item -LiteralPath $stagedStatePath -Force
+    throw "Staged archive checksum changed"
+  }
+
+  $extractPath = Assert-ChildPath (Join-Path $updateRoot "extract-$($staged.version)-$PID") $updateRoot
+  $rollbackRoot = Join-Path $updateRoot "rollback"
+  $backupPath = Assert-ChildPath (Join-Path $rollbackRoot "$([DateTimeOffset]::UtcNow.ToString('yyyyMMddHHmmss'))-$PID") $rollbackRoot
+  New-Item -ItemType Directory -Force -Path $extractPath, $backupPath | Out-Null
   Expand-Archive -LiteralPath $archivePath -DestinationPath $extractPath -Force
   $release = Read-Json (Join-Path $extractPath "RELEASE_BUILD.json")
   if ("$($release.version)" -ne "$($staged.version)" -or "$($release.channel)" -ne "release") { throw "Archive release identity does not match" }
-  if (!(Test-Path -LiteralPath (Join-Path $extractPath "src\app\core\create-core-server.js"))) { throw "Archive server entry is missing" }
-  if (!(Test-Path -LiteralPath (Join-Path $extractPath "Groby's Deck.exe"))) { throw "Archive Windows host is missing" }
+  foreach ($entry in @("src\app\optional\feature-enabled-server.js", "Groby's Deck.exe", "runtime\Grobys-Deck-Node.exe")) {
+    if (!(Test-Path -LiteralPath (Join-Path $extractPath $entry) -PathType Leaf)) { throw "Archive is missing $entry" }
+  }
+  $releasePath = Join-Path $rootPath "RELEASE_BUILD.json"
+  $current = if (Test-Path -LiteralPath $releasePath) { Read-Json $releasePath } else { Read-Json (Join-Path $rootPath "package.json") }
+  $previousVersion = if ($current.releaseVersion) { $current.releaseVersion } else { $current.version }
+  # Check write access before stopping the app.
+  $probePath = Join-Path $rootPath ".update-write-$PID.tmp"
+  New-Item -ItemType File -Path $probePath | Out-Null
+  Remove-Item -LiteralPath $probePath -Force
 
-  $current = if (Test-Path -LiteralPath (Join-Path $rootPath "RELEASE_BUILD.json")) { Read-Json (Join-Path $rootPath "RELEASE_BUILD.json") } else { @{ version = "unknown" } }
-  $rollbackRoot = Join-Path $updateRoot "rollback"
-  if (Test-Path -LiteralPath $rollbackRoot) { Remove-Item -LiteralPath $rollbackRoot -Recurse -Force }
-  New-Item -ItemType Directory -Force -Path $backupPath | Out-Null
   Copy-Managed $rootPath $backupPath
   $rollback = [ordered]@{
-    previousVersion = "$($current.version)"
+    previousVersion = "$previousVersion"
     updatedVersion = "$($staged.version)"
     backupPath = $backupPath
     createdAt = [DateTimeOffset]::UtcNow.ToString("o")
   }
+  Wait-ForHost
+  $hostStopped = $true
   Write-JsonAtomic $pendingPath $rollback
   Remove-Managed $rootPath
   Copy-Managed $extractPath $rootPath
-  Remove-Item -LiteralPath $availablePath -Force -ErrorAction SilentlyContinue
   Write-UpdateLog "Applied version $($staged.version); awaiting health confirmation"
   Start-Core "--post-update"
 } catch {
-  Write-UpdateLog "Apply failed: $($_.Exception.Message)"
-  if (Test-Path -LiteralPath $pendingPath) {
-    try { Restore-Backup (Read-Json $pendingPath); Remove-Item -LiteralPath $pendingPath -Force } catch { Write-UpdateLog "Immediate restore failed: $($_.Exception.Message)" }
+  Write-UpdateLog "$Action failed: $($_.Exception.Message)"
+  Set-UpdatePhase "failed"
+  if ($Action -eq "Apply" -and $hostStopped) {
+    try {
+      if (Test-Path -LiteralPath $pendingPath) {
+        Restore-Backup (Read-Json $pendingPath)
+        Remove-Item -LiteralPath $pendingPath -Force
+        Set-UpdatePhase "rolled-back"
+      }
+      Start-Core "--post-rollback"
+    } catch {
+      Write-UpdateLog "Immediate recovery failed: $($_.Exception.Message)"
+    }
   }
-  Start-Core "--post-rollback"
   throw
 } finally {
-  Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+  if ($extractPath) {
+    Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  if ($Action -eq "Apply" -and $backupPath -and !(Test-Path -LiteralPath $pendingPath)) {
+    # A fast successful restart may already have promoted this snapshot.
+    $available = if (Test-Path -LiteralPath $availablePath) { Read-Json $availablePath } else { $null }
+    if (!$available -or $available.backupPath -ne $backupPath) {
+      Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
 }

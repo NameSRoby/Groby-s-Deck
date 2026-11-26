@@ -2585,26 +2585,30 @@
             <div><span>ROLLBACK</span><strong id="rollbackVersion">NONE</strong></div>
           </div>
           <div class="cluster">
-            <h3>RELEASE CHECKS</h3>
+            <h3>APP UPDATE</h3>
+            <div class="actions">
+              <button id="checkForUpdate" type="button">Check for updates</button>
+              <button id="downloadUpdate" class="primary" type="button" hidden>
+                Download and restart
+              </button>
+              <button id="applyUpdate" class="primary" type="button" hidden>
+                Restart to install
+              </button>
+            </div>
+            <progress id="updateProgress" aria-label="Update download progress" hidden></progress>
+            <div id="updateNotice" class="notice" role="status" aria-live="polite">
+              Loading update status…
+            </div>
             <label
               class="checkLabel"
               title="Ask GitHub for the newest stable Groby’s Deck release when the server starts. Nothing is downloaded or installed automatically."
               ><input id="checkUpdatesOnLaunch" type="checkbox" disabled /> Check for stable
               releases on startup</label
             >
-            <div class="actions">
-              <button id="saveUpdatePreference" type="button" disabled>Save preference</button>
-              <button id="checkForUpdate" type="button">Check now</button>
-              <button id="downloadUpdate" type="button" disabled>Download and verify</button>
-            </div>
-            <div id="updateNotice" class="notice" role="status" aria-live="polite">
-              Loading update status…
-            </div>
           </div>
           <div class="cluster">
-            <h3>INSTALL OR RECOVER</h3>
+            <h3>RECOVERY</h3>
             <div class="actions">
-              <button id="applyUpdate" type="button" disabled="">Install verified update</button>
               <button id="rollbackUpdate" class="danger" type="button" disabled="">
                 Roll back
               </button>

@@ -154,6 +154,14 @@ test(
       install,
       'process.exitCode = process.env.GROBY_TEST_SETUP_FAILURE === "feature" ? 1 : 0;\n',
     );
+    const registryPath =
+      "Software\\GrobyDeck\\SetupFixture\\" + crypto.randomBytes(8).toString("hex");
+    const firstRun = require("../scripts/installer-first-run-code")()
+      .join("\n")
+      .replace(
+        String.raw`Software\Microsoft\Windows\CurrentVersion\Uninstall\{CF817F37-5F04-4C18-A2B0-8A1EAA2674C5}_is1`,
+        registryPath,
+      );
     const script = path.join(root, "setup.iss");
     fs.writeFileSync(
       script,
@@ -161,7 +169,7 @@ test(
 AppId=GrobySetupResult${crypto.randomBytes(8).toString("hex")}
 AppName=Groby's Deck setup result fixture
 AppVersion=1
-DefaultDirName=${path.join(root, "app")}
+DefaultDirName={code:DefaultCoreDirectory}
 OutputDir=${root}
 OutputBaseFilename=fixture
 PrivilegesRequired=lowest
@@ -177,8 +185,13 @@ Source: "${process.execPath}"; DestDir: "{app}\\runtime"; DestName: "Grobys-Deck
 Source: "${check}"; DestDir: "{app}\\scripts"
 Source: "${install}"; DestDir: "{app}\\scripts"
 [Code]
-${require("../scripts/installer-first-run-code")().join("\n")}
+${firstRun}
 ${require("../scripts/installer-navigation-code")().join("\n")}
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  ExistingInstall := not FreshSetup;
+  Result := '';
+end;
 `,
     );
     const compiled = run(compiler, ["/Qp", script]);
@@ -192,6 +205,41 @@ ${require("../scripts/installer-navigation-code")().join("\n")}
       );
       assert.equal(result.status, mode === "ok" ? 0 : 20, result.stdout + result.stderr);
       assert.equal(fs.existsSync(path.join(app, "runtime/system/navigation.json")), mode === "ok");
+    }
+    const existing = path.join(root, "User-chosen install folder");
+    fs.mkdirSync(path.join(existing, "runtime", "system"), { recursive: true });
+    fs.mkdirSync(path.join(existing, "config"));
+    fs.writeFileSync(path.join(existing, "Groby's Deck.exe"), "existing host marker");
+    fs.writeFileSync(path.join(existing, "RELEASE_BUILD.json"), '{"version":"0.8.2c"}');
+    const layout = path.join(existing, "runtime", "system", "navigation.json");
+    const audio = path.join(existing, "config", "music-to-light.disabled");
+    fs.writeFileSync(layout, '{"custom":"layout"}');
+    fs.writeFileSync(audio, "disabled by user");
+    const registryKey = "HKCU\\" + registryPath;
+    const registered = run("reg.exe", [
+      "add",
+      registryKey,
+      "/v",
+      "Inno Setup: App Path",
+      "/t",
+      "REG_SZ",
+      "/d",
+      existing,
+      "/f",
+    ]);
+    assert.equal(registered.status, 0, registered.stderr);
+    try {
+      const result = run(
+        path.join(root, "fixture.exe"),
+        ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"],
+        { GROBY_TEST_SETUP_FAILURE: "feature" },
+      );
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(fs.existsSync(path.join(existing, "scripts", "check-installation.js")), true);
+      assert.equal(fs.readFileSync(layout, "utf8"), '{"custom":"layout"}');
+      assert.equal(fs.readFileSync(audio, "utf8"), "disabled by user");
+    } finally {
+      assert.equal(run("reg.exe", ["delete", registryKey, "/f"]).status, 0);
     }
   },
 );

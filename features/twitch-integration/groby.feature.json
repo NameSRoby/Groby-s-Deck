@@ -3,7 +3,7 @@
   "id": "twitch-integration",
   "name": "Twitch Integration",
   "description": "Optional Twitch Device Code authorization, redemption settlement, EventSub foundation, and chat transport.",
-  "version": "0.12.70",
+  "version": "0.12.71",
   "publisher": "grobys-deck",
   "entry": "dist/main.js",
   "engine": {
@@ -146,7 +146,7 @@
       "ui/automations-controller.js": "31cf637d67ab1f230b9242f2cd049fa742ba0c69f1523fe2893d406386b55796",
       "ui/automations-layout.css": "31177fe75fe6edd2d6a4ca703912e70309d0e11038d10a440c68f543892f73f9",
       "ui/automations-list.js": "3f3867054aaa14becea7319c97bd7b91b555c6ce50a31dfd7ccd6e40d2f24a47",
-      "ui/automations.html": "b395330aa5f7b751387718ef212e250ba8d51f6d006f6685da6e64e1ba826cbb",
+      "ui/automations.html": "bb6f2ebbf0c368d1dc71348a8220bdc4d0b8b3d6d3af37c91b5f2ce94f8b1cb3",
       "ui/command-list-controller.js": "cc5160ec799060d5c317abf08e14a7c0383c05eb8d594078cf3b1b61481971c4",
       "ui/command-list-layout.html": "bf27a77e4269c30223aa8f65ac23e1c449bdb8494e3f0f47139aff42efb47536",
       "ui/command-list-model.js": "ea0435955cd61fad7e49a062141b52733900fbaf7352a30abb3ac9791c8c4ed3",
@@ -158,7 +158,7 @@
       "ui/duration-input.js": "d37303482538b419af104e660f99ffd2a89df0565f17b780a8ff6ed7979943a4",
       "ui/quotes-manager.js": "109e9f73b4809ca2a233c5822e84002b80e84370d7894d288df3e91b8156c00a",
       "ui/quotes.html": "2df75ac4c03835273076a93892cc38e4dae6004a8164604b5109ecdeb6649056",
-      "ui/syntax.html": "a801830e54051accd9ed82ae78bd42c3b128998aa36109431057a20cd3382e7a",
+      "ui/syntax.html": "70326a7f6ff6a01dd62ca2fea0135031ce9ef91ad586f9325d365915c140b470",
       "ui/watchtime.html": "6dcafa05b4bb6a77a6085dbf109ad2b28933bc51c7b216a65d412e3527f76df5"
     }
   }

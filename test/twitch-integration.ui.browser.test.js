@@ -168,7 +168,37 @@ for (const channel of ["ravelink-feature-ui-v1", "groby-feature-ui-v1"]) {
     await twitchTab.waitFor();
     await twitchTab.click();
 
-    const contribution = page.frameLocator("iframe.featurePageFrame").frameLocator("#surface");
+    if (channel === "ravelink-feature-ui-v1") {
+      await page.getByRole("button", { name: "Syntax & examples", exact: true }).click();
+      const syntax = page.frameLocator('iframe[data-page-id="syntax"]').frameLocator("#surface");
+      await syntax.locator("html.native-feature").waitFor({ state: "attached" });
+      const header = syntax.getByRole("columnheader", { name: "Variable" });
+      assert.equal(
+        await header.evaluate((node) => {
+          const expected = document.createElement("div");
+          expected.style.background = "var(--surface)";
+          document.body.append(expected);
+          const same =
+            getComputedStyle(node).backgroundColor === getComputedStyle(expected).backgroundColor;
+          expected.remove();
+          return same && document.querySelector("main").clientWidth >= innerWidth * 0.9;
+        }),
+        true,
+      );
+      await page.setViewportSize({ width: 390, height: 844 });
+      await syntax.getByRole("tab", { name: "Language manual" }).click();
+      assert.equal(
+        await syntax
+          .locator("html")
+          .evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.getByRole("button", { name: "Connection", exact: true }).click();
+    }
+    const contribution = page
+      .frameLocator('iframe[data-page-id="connection"]')
+      .frameLocator("#surface");
     const developerSection = contribution.locator("#developerApplication");
     await developerSection.waitFor({ state: "attached" });
     await contribution.locator("#state").filter({ hasText: "STATUS UNAVAILABLE" }).waitFor();

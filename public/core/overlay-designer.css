@@ -1009,12 +1009,17 @@ dialog header button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 8px;
 }
+.tileGeometry input {
+  min-width: 0;
+}
 .challengeEditor {
   position: relative;
   overflow: hidden;
   container-type: inline-size;
   background: #101827;
   outline: 1px solid #34445f;
+  border-radius: 5px;
+  margin-block: 10px;
 }
 .challengeEditor button,
 .challengeEditor img {
@@ -1036,6 +1041,20 @@ dialog header button {
   border-radius: 3px;
   font-size: 4cqi;
 }
+.challengeEditor.gridLayout button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.challengeCaption {
+  display: block;
+  overflow: hidden;
+  padding-inline: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 1px 4px #000,
+    0 0 4px #000;
+}
 .challengeEditor button img {
   z-index: -1;
 }
@@ -1051,6 +1070,7 @@ dialog header button {
   height: min(12px, 45%);
   background: #93ceff;
   cursor: nwse-resize;
+  touch-action: none;
 }
 
 #stageWrap.handReady,

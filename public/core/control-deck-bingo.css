@@ -1,5 +1,6 @@
 .controlDeck[data-bingo-page="true"] .deckWorkspace,
 .controlDeck[data-bingo-page="true"] .deckWidgetRegion,
+.controlDeck[data-bingo-page="true"] .deckWidgetCollapse,
 .controlDeck[data-bingo-page="true"] .deckFooter,
 .controlDeck[data-bingo-page="true"] .deckInlineMixer,
 .controlDeck[data-bingo-page="true"] #deckEdit,
@@ -24,6 +25,38 @@
 .deckBingoStage {
   overflow: auto;
   padding: 10px 4px;
+}
+.deckFullscreenTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-inline-end: auto;
+}
+.deckFullscreenTabs button {
+  min-height: 44px;
+}
+.deckFullscreenTabs button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text, #fff);
+}
+.controlDeck[data-focus="true"] #deckBingo:not([hidden]) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.controlDeck[data-focus="true"] .deckBingoStage {
+  flex: 1;
+  container-type: size;
+}
+.controlDeck[data-focus="true"] .deckBingoGrid.freeform {
+  width: min(100%, calc(100cqh * var(--board-aspect)));
+  margin-inline: auto;
+}
+.controlDeck[data-focus="true"]:has(.deckFullscreenTabs:not([hidden])) .deckFullscreenBar {
+  flex-wrap: wrap;
 }
 .deckBingoGrid {
   display: grid;

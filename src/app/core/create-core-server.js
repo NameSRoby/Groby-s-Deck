@@ -76,7 +76,6 @@ module.exports = function createCoreServer(options = {}) {
   const coreUpdates = createCoreUpdateService({
     rootDir,
     runtimeDir,
-    requestShutdown: options.requestShutdown,
     ...(options.coreUpdateOptions || {}),
   });
   const widgetTokenVault = createWidgetIntakeTokenVault({

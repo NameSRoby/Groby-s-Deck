@@ -196,6 +196,12 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.21
+
+- Challenge boards have adjustable grid dimensions, per-tile images and one-click sizing for the whole board.
+- Saved game boards open in fullscreen Button Deck. Syntax & examples uses the app theme and available width.
+- Core Updates downloads, verifies and installs in one step from the Windows app. Setup can upgrade or repair an existing installation in its original folder.
+
 ## What's new in 0.8.2c
 
 - **Workspace layout** profiles adjust controls, typography, rows and spacing across the app. Preview Compact, Spacious or Side navigation in **Choose Tabs**. Normal is the default.
@@ -266,7 +272,7 @@ See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Earlier versions
 
-Groby’s Deck 0.8.2c is the current release. Previous releases remain available in the
+Previous releases remain available in the
 [release archive](docs/RELEASE_ARCHIVE.md) for reference.
 
 Existing settings, secrets, mods and automation data are preserved when upgrading in the same folder.

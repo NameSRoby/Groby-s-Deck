@@ -7,22 +7,33 @@
     <style>
       body {
         color-scheme: dark;
-        background: #0b101b;
-        color: #edf1ff;
-        font: 15px/1.5 system-ui;
+        background: var(--panel, #0b101b);
+        color: var(--text, #edf1ff);
+        font: 15px/1.55 system-ui, sans-serif;
         margin: 0;
-        padding: 24px;
+        padding: clamp(12px, 1.4vw, 24px);
+      }
+      html.native-feature body {
+        font-family: system-ui, sans-serif;
       }
       main {
-        max-width: 1100px;
-        margin: auto;
+        max-width: 78rem;
+        margin-inline: auto;
       }
-      h1 {
-        font-size: 25px;
+      .native-feature body > main {
+        max-width: none;
+      }
+      main > h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      main > p {
+        margin: 4px 0 14px;
       }
       p,
-      small {
-        color: #aab7d1;
+      small,
+      label {
+        color: var(--muted, #aab7d1);
       }
       input,
       textarea,
@@ -30,25 +41,30 @@
       button {
         font: inherit;
         color: inherit;
-        background: #162137;
-        border: 1px solid #394762;
+        background: var(--surface, #162137);
+        border: 1px solid var(--edge, #394762);
         border-radius: 8px;
-        padding: 12px;
+        padding: 8px 12px;
         box-sizing: border-box;
       }
       textarea,
       input,
       select {
         width: 100%;
+        min-width: 0;
+      }
+      button,
+      input,
+      select {
+        min-height: 44px;
       }
       button {
         cursor: pointer;
-        min-height: 44px;
       }
       section {
-        border: 1px solid #2a3855;
-        border-radius: 12px;
-        padding: 18px;
+        border: 1px solid var(--edge, #2a3855);
+        border-radius: 10px;
+        padding: clamp(12px, 2vw, 18px);
         margin: 16px 0;
       }
       label {
@@ -61,44 +77,142 @@
       }
       #result {
         min-height: 30px;
-        color: #e8b8d0;
+        color: var(--text, #e8b8d0);
       }
-    </style>
-<style>
-      [hidden] { display: none !important; }
-      h1 { margin-bottom: 6px; }
-      .syntaxTabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #2a3855; padding: 12px 0 16px; margin-bottom: 22px; }
-      .syntaxTabs button[aria-selected="true"] { background: #293b5c; border-color: #829ac0; }
-      .syntaxTabs button:focus-visible { outline: 2px solid #a4c6ff; outline-offset: 3px; }
-      #manualPanel th:first-child { width: 20%; }
-      #manualPanel td:last-child { width: 28%; }
-      #manualPanel th[scope="row"] { font-weight: 400; }
-      .manualNavigation { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-      .manualNavigation a { color: #b5d1ff; padding: 10px 0; min-height: 44px; box-sizing: border-box; }
-      #manualPanel section { scroll-margin-top: 16px; }
-      .referenceTools { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; }
-      .referenceTools label { margin: 0; }
-      .referenceTools input, .referenceTools select { margin-top: 6px; }
-      .referenceHint { font-size: 13px; margin-bottom: 6px; }
-      #referenceCount { display: block; margin-bottom: 14px; font-size: 13px; }
-      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #2a3855; vertical-align: top; overflow-wrap: anywhere; }
-      thead th { background: #162137; font-weight: 600; }
-      th:first-child { width: 40%; }
-      .referenceGroup th { background: #111a2a; color: #aab7d1; padding: 8px 14px; font-size: 13px; }
-      .variableRow th { font-weight: 400; }
-      .variableRow td { color: #c4cfe3; }
-      code { font: 13px/1.65 ui-monospace, monospace; overflow-wrap: anywhere; user-select: text; }
-      #examplesPanel > section:first-child { margin-top: 0; }
-      summary { cursor: pointer; min-height: 44px; align-content: center; font-weight: 600; }
-      #arenaSteps > details { border-bottom: 1px solid #394762; padding: 8px 0; }
-      #arenaSteps textarea { font: 14px/1.7 ui-monospace, monospace; tab-size: 2; white-space: pre-wrap; }
+      [hidden] {
+        display: none !important;
+      }
+      .syntaxTabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: 1px solid var(--edge, #2a3855);
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+      .syntaxTabs button[aria-selected="true"] {
+        background: var(--accent, #293b5c);
+        border-color: var(--accent, #829ac0);
+        color: var(--accent-text, #fff);
+      }
+      .syntaxTabs button:focus-visible {
+        outline: 2px solid var(--text, #a4c6ff);
+        outline-offset: 2px;
+      }
+      #manualPanel th:first-child {
+        width: 20%;
+      }
+      #manualPanel td:last-child {
+        width: 28%;
+      }
+      #manualPanel th[scope="row"],
+      .variableRow th {
+        font-weight: 400;
+      }
+      .manualNavigation {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+      }
+      .manualNavigation a {
+        color: var(--text, #b5d1ff);
+        padding: 10px 0;
+        min-height: 44px;
+        box-sizing: border-box;
+      }
+      #manualPanel section {
+        scroll-margin-top: 16px;
+      }
+      .referenceTools {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(9rem, 14rem);
+        gap: 12px;
+      }
+      .referenceTools label {
+        margin: 0;
+      }
+      .referenceTools input,
+      .referenceTools select {
+        margin-top: 4px;
+      }
+      .referenceHint,
+      #referenceCount {
+        font-size: 13px;
+      }
+      .referenceHint {
+        margin: 10px 0 4px;
+      }
+      #referenceCount {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--muted, #aab7d1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--edge, #2a3855);
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      thead th {
+        background: var(--surface, #162137);
+        color: var(--text, #edf1ff);
+        font-weight: 600;
+      }
+      #variableTable thead th:first-child {
+        width: min(40%, 25rem);
+      }
+      .referenceGroup th {
+        background: var(--input, #111a2a);
+        color: var(--text, #aab7d1);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      code {
+        font: 0.9em/1.55 ui-monospace, Consolas, monospace;
+        color: var(--text, #edf1ff);
+        background: var(--input, #101827);
+        border-radius: 3px;
+        padding-inline: 2px;
+        overflow-wrap: anywhere;
+        user-select: text;
+      }
+      #examplesPanel > section:first-child {
+        margin-top: 0;
+      }
+      summary {
+        cursor: pointer;
+        min-height: 44px;
+        align-content: center;
+        font-weight: 600;
+      }
+      #arenaSteps > details {
+        border-bottom: 1px solid var(--edge, #394762);
+        padding: 8px 0;
+      }
+      #arenaSteps textarea {
+        font: 14px/1.7 ui-monospace, Consolas, monospace;
+        tab-size: 2;
+        white-space: pre-wrap;
+      }
       @media (max-width: 600px) {
-        body { padding: 16px; }
-        .referenceTools { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-        th, td { padding: 10px 8px; }
-        th:first-child { width: 43%; }
-        section { padding: 14px; }
+        .referenceTools {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 8px;
+        }
+        th,
+        td {
+          padding: 8px 6px;
+        }
+        #variableTable thead th:first-child {
+          width: 43%;
+        }
       }
     </style>
   </head>
@@ -800,13 +914,6 @@ function attachCommandEditor(input, { legend = true } = {}) {
         channel = "ravelink-feature-ui-v1";
       let sequence = 0,
         pending = null;
-      function height() {
-        parent.postMessage(
-          { channel, type: "feature-height", height: document.documentElement.scrollHeight },
-          "*",
-        );
-      }
-      new ResizeObserver(height).observe(document.body);
       const syntaxViews = ["variables", "manual", "examples"];
       function showTab(name, focus = false) {
         for (const view of syntaxViews) {
@@ -816,7 +923,6 @@ function attachCommandEditor(input, { legend = true } = {}) {
           $(view + 'Panel').hidden = !selected;
           if (selected && focus) tab.focus();
         }
-        height();
       }
       for (const name of syntaxViews) {
         $(name + 'Tab').onclick = () => showTab(name);
@@ -862,6 +968,7 @@ function attachCommandEditor(input, { legend = true } = {}) {
           }
         }
         $('referenceCount').textContent = count + (count === 1 ? ' variable' : ' variables');
+        table.hidden = count === 0;
         $('noVariables').hidden = count !== 0;
       }
       $('variableCategory').onchange = draw;

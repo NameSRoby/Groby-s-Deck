@@ -42,6 +42,11 @@ begin
     NavigationApply.Checked := not FileExists(ExpandConstant('{app}\runtime\system\navigation.json'));
 end;
 
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := (PageID = NavigationPage.ID) and not FreshSetup;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   I: Integer;
@@ -51,7 +56,7 @@ var
 begin
   if CurStep <> ssPostInstall then Exit;
   CompleteFirstRunSetup;
-  if not InstallationReady or not NavigationApply.Checked then Exit;
+  if ExistingInstall or not InstallationReady or not NavigationApply.Checked then Exit;
   if WizardSilent and FileExists(ExpandConstant('{app}\runtime\system\navigation.json')) then Exit;
   Keys[0] := 'dashboard'; Keys[1] := 'lights'; Keys[2] := 'fixtures'; Keys[3] := 'widget';
   Keys[4] := 'feature:song-request'; Keys[5] := 'feature:twitch-integration';

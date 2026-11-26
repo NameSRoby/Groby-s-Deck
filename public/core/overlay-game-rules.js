@@ -95,14 +95,29 @@
       }),
     };
   }
+  const challengeCount = (w) =>
+    w.challengeLayout === "grid" ? w.gridSize * w.gridRows : w.tiles.length;
+  function challengeGeometry(w, tile, index) {
+    if (w.challengeLayout !== "grid") return tile;
+    const width = (tile.gridWidth ?? w.challengeTileWidth) / w.gridSize;
+    const height = (tile.gridHeight ?? w.challengeTileHeight) / w.gridRows;
+    return {
+      x: (((index % w.gridSize) + 0.5) * 100) / w.gridSize - width / 2,
+      y: ((Math.floor(index / w.gridSize) + 0.5) * 100) / w.gridRows - height / 2,
+      width,
+      height,
+      rotation: 0,
+    };
+  }
   function board(w, s = {}, at = Date.now()) {
     if (w.type === "bingo") return bingoBoard(w, s.marks);
     if (w.type === "tile-match") return matchBoard(w, s, at);
     const marked = new Set(s.marks);
     return {
       freeform: true,
-      cells: w.tiles.map((tile, index) => ({
+      cells: w.tiles.slice(0, challengeCount(w)).map((tile, index) => ({
         ...tile,
+        ...challengeGeometry(w, tile, index),
         text: tile.text || "Tile " + (index + 1),
         marked: marked.has(tile.id),
       })),
@@ -186,7 +201,7 @@
     else if (w.type === "tile-match" && operation === "flip") flip(s, w, input.cell, at, random);
     else if (markTypes.includes(w.type) && ["mark", "complete", "uncomplete"].includes(operation)) {
       const index = Number(input.cell) - 1;
-      const layout = w.type === "bingo" ? bingoLayout(w) : { count: w.tiles.length, center: -1 };
+      const layout = w.type === "bingo" ? bingoLayout(w) : { count: challengeCount(w), center: -1 };
       const { count, center } = layout;
       if (!Number.isInteger(index) || index < 0 || index >= count)
         throw Error("Choose a square number on this board.");
@@ -224,6 +239,8 @@
     control,
     bingoLayout,
     bingoBoard,
+    challengeCount,
+    challengeGeometry,
     board,
     boardTypes,
     markTypes,

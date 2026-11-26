@@ -60,6 +60,7 @@ export function installDeckKeys({ host, getConfig, isEditing, pager }) {
       event.isComposing ||
       document.hidden ||
       host.hidden ||
+      host.dataset.bingoPage === "true" ||
       isEditing() ||
       !host.getClientRects().length ||
       document.querySelector("dialog[open]") ||

@@ -182,11 +182,16 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
   );
   await page.route("**/system/update/check", (route) => route.fulfill({ json: update }));
   let downloads = 0;
+  let installs = 0;
   await page.route("**/system/update/download", (route) => {
     downloads++;
     if (downloads === 1)
       return route.fulfill({ status: 503, json: { ok: false, error: "network_unavailable" } });
     return route.fulfill({ json: { ...update, staged: { version: "99.0", verified: true } } });
+  });
+  await page.route("**/system/update/apply", (route) => {
+    installs++;
+    return route.fulfill({ json: { ...update, operation: { phase: "preparing" } } });
   });
   await page.goto(url);
   await page.locator("#health").filter({ hasText: "Online" }).waitFor();
@@ -198,11 +203,11 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
   await page.locator("#checkForUpdate").click();
   await page.locator("#updateStatus").filter({ hasText: "Update available" }).waitFor();
   await page.locator("#downloadUpdate").click();
-  await page.locator("#updateNotice").filter({ hasText: "Download failed." }).waitFor();
+  await page.locator("#updateNotice").filter({ hasText: "Could not finish the update." }).waitFor();
   await page.locator("#downloadUpdate").click();
-  await page.locator("#updateStatus").filter({ hasText: "Ready to install" }).waitFor();
-  assert.equal(await page.locator("#applyUpdate").isEnabled(), true);
+  await page.locator("#updateStatus").filter({ hasText: "Preparing" }).waitFor();
   assert.equal(downloads, 2);
+  assert.equal(installs, 1);
   await page.close();
 });
 

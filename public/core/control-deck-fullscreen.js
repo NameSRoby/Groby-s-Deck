@@ -1,12 +1,13 @@
 import { createDeckAwake } from "./control-deck-awake.js";
 /** A user gesture enters native fullscreen; unsupported clients retain a grid view. */
-export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
+export function createDeckFullscreen({ host, button, onEnter, widgetToggle, pageTabs }) {
   let active = false,
     native = false,
     generation = 0;
   const chrome = document.createElement("div");
   chrome.className = "deckFullscreenBar";
   chrome.hidden = true;
+  if (pageTabs) chrome.append(pageTabs);
   host.prepend(chrome);
   const exit = document.createElement("button");
   exit.id = "deckExitFullscreen";
@@ -63,14 +64,16 @@ export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
     showAwakeState(awakeSwitch.checked ? (active ? "requesting" : "idle") : "off");
     if (awakeSwitch.checked !== awake.enabled) awake.toggle();
   };
-  home.append(awakeButton, widgetToggle);
+  home.append(awakeButton);
+  if (widgetToggle) home.append(widgetToggle);
   function reset() {
     generation++;
     active = native = false;
     host.dataset.focus = "false";
     exit.hidden = true;
     chrome.hidden = true;
-    home.append(awakeButton, widgetToggle);
+    home.append(awakeButton);
+    if (widgetToggle) home.append(widgetToggle);
     awake.leave();
     button.setAttribute("aria-pressed", "false");
     button.focus({ preventScroll: true });
@@ -85,11 +88,13 @@ export function createDeckFullscreen({ host, button, onEnter, widgetToggle }) {
     if (active) return leave();
     const ticket = ++generation;
     active = true;
-    chrome.append(awakeButton, widgetToggle, exit);
+    chrome.append(awakeButton);
+    if (widgetToggle) chrome.append(widgetToggle);
+    chrome.append(exit);
     chrome.hidden = false;
     awake.enter();
-    onEnter();
     host.dataset.focus = "true";
+    onEnter();
     exit.hidden = false;
     button.setAttribute("aria-pressed", "true");
     if (host.requestFullscreen)

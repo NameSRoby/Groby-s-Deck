@@ -410,6 +410,9 @@
           const w = OverlayModel.widget({
             type: row.type,
             ...(row.type === "credits" ? { creditsSource: "subscribers" } : {}),
+            ...(row.type === "challenge-board"
+              ? { challengeLayout: "grid", gridSize: 3, gridRows: 3 }
+              : {}),
             id: globalThis.GrobyRandomId(),
             x: Math.min(80, doc.width - row.width),
             y: Math.min(80, doc.height - row.height),
