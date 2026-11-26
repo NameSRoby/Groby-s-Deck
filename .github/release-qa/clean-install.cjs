@@ -77,7 +77,7 @@ async function main() {
     assert.equal(features.some((f) => f.id === "song-request"), !skipSong);
     if (!skipSong) assert.equal(features.find((f) => f.id === "song-request").version, "0.45.32");
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).releaseVersion, "0.8.2c");
-    assert.equal(await page.locator("html").getAttribute("data-workspace-profile"), "normal");
+    await page.locator('html[data-workspace-profile="normal"]').waitFor();
     const gameConfig = await api("/api/stream-overlays/game-commands");
     assert.equal(gameConfig.enabled, false);
     assert.deepEqual(gameConfig.commands.find((command) => command.id === "complete").roles, ["moderator"]);
