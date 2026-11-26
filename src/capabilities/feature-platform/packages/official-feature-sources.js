@@ -5,7 +5,7 @@
  */
 // A release must download every manifest and payload from one immutable tree.
 // A moving branch can be cached per file by GitHub and briefly mix revisions.
-const OFFICIAL_FEATURE_REVISION = "1942d9fdc9c04115da810c725424c1c4c2fdbf06";
+const OFFICIAL_FEATURE_REVISION = "797c22870b0642cd684605af210ca49d7444fd6e";
 const GITHUB_RAW_ROOT = `https://raw.githubusercontent.com/NameSRoby/Groby-s-Deck/${OFFICIAL_FEATURE_REVISION}/features/`;
 
 const OFFICIAL_FEATURE_SOURCES = Object.freeze([
@@ -20,7 +20,7 @@ const OFFICIAL_FEATURE_SOURCES = Object.freeze([
   }),
   Object.freeze({
     id: "twitch-integration",
-    minimumVersion: "0.12.70",
+    minimumVersion: "0.12.71",
     name: "Twitch Integration",
     description:
       "Twitch OAuth, EventSub, Channel Points rewards, chat responses, and redemption settlement.",

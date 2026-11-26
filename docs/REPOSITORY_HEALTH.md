@@ -1,5 +1,20 @@
 # Repository health and security review
 
+## 0.8.21
+
+Windows Setup and the online Packages catalog provide Song Request 0.45.32
+and Twitch Integration 0.12.71. The source launcher pins the final portable
+Windows archive by SHA-256.
+
+Windows tests cover detection of a custom installation folder and retention
+of saved navigation and audio settings. The native update test keeps the
+original process open when package preparation fails and verifies that it
+restarts on the expected version after a valid update.
+
+Browser coverage checks that Challenge board images and tile geometry reach
+the OBS source, saved games can be played in fullscreen, and the embedded
+Twitch Syntax guide fits the app at desktop and mobile widths.
+
 ## 0.8.2c
 
 The release pairs Song Request 0.45.32 and Twitch Integration 0.12.70 with
