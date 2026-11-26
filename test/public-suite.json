@@ -67,6 +67,7 @@
   "control-deck-playback.test.js",
   "network-sharing.test.js",
   "core-client-api.http.test.js",
+  "lighting-core.independence.test.js",
   "fixture-output-runtime.test.js",
   "hue-bridge.adapter.test.js",
   "hue-ca-path.test.js",

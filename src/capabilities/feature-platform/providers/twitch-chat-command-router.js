@@ -4,6 +4,7 @@
  * docs/DEVELOPMENT.md#chat-command-permissions-and-player-controls
  */
 const { youtubeVideoId } = require("../../../shared/media/youtube-reference");
+const { boundedText, roleFromEvent } = require("../../../shared/security/twitch-chat-role");
 const { normalizeCommandPermissions } = require("./twitch-command-policy");
 const { classify: classifySongInput } = require("./song-link-input");
 
@@ -63,29 +64,6 @@ const BUILTIN_ALIASES = new Map([
   ["teachcolour", "teach"],
   ["teach", "teach"],
 ]);
-
-function boundedText(value, maximum) {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maximum);
-}
-
-function roleFromEvent(event = {}) {
-  const badges = Array.isArray(event.badges) ? event.badges : [];
-  const badgeIds = new Set(
-    badges.map((row) => boundedText(row?.set_id || row?.id, 40).toLowerCase()),
-  );
-  if (
-    (event.chatter_user_id && event.chatter_user_id === event.broadcaster_user_id) ||
-    badgeIds.has("broadcaster") ||
-    badgeIds.has("moderator")
-  )
-    return "moderator";
-  return badgeIds.has("vip") ? "vip" : "viewer";
-}
 
 function resultValue(result) {
   return result?.ok === true && result.value && typeof result.value === "object"

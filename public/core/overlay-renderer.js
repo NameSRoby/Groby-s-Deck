@@ -212,8 +212,9 @@
   const rotatingValue = (w, now) =>
     w.items[Math.floor(now / (w.rotateEvery * 1000)) % w.items.length];
   function media(w, video, url, loop) {
-    const node = el(video ? "video" : "img");
-    node.src = url;
+    const node = video ? document.createElement("video") : document.createElement("img");
+    const source = root.OverlayModel.mediaUrl(url);
+    if (source) node.src = source;
     fitMedia(node, w);
     if (video)
       Object.assign(node, {

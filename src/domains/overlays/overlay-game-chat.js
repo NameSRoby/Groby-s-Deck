@@ -1,9 +1,7 @@
 /** Twitch chat uses the same saved game owner as OBS and local controls. */
 const path = require("node:path");
 const { readJsonFile, writeJsonFile } = require("../../shared/fs/json-file-store");
-const {
-  roleFromEvent,
-} = require("../../capabilities/feature-platform/providers/twitch-chat-command-router");
+const { roleFromEvent } = require("../../shared/security/twitch-chat-role");
 const { markTypes } = require("../../../public/core/overlay-game-rules");
 
 const roles = ["moderator", "vip", "viewer"];
