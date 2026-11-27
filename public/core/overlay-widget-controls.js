@@ -364,5 +364,12 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       : "Preview is available. Restart Core before saving animated styles or the new widgets.";
     host.append(note);
   }
-  return { content, preview, style, mediaFit, boardStyle: extra.boardStyle };
+  return {
+    content,
+    preview,
+    style,
+    mediaFit,
+    boardStyle: extra.boardStyle,
+    tileColors: extra.tileColors,
+  };
 };

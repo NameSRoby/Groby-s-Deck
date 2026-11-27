@@ -7,6 +7,7 @@ globalThis.setupOverlayInspector = function (a) {
   const sections = new Map();
   for (const [key, name] of [
     ["content", "Content"],
+    ["tile-colors", "Tile colors"],
     ["style", "Style & text"],
     ["position", "Position, size & alignment"],
     ["animation", "Animation"],
@@ -24,6 +25,7 @@ globalThis.setupOverlayInspector = function (a) {
       }
       tab = key;
       draw();
+      summary.scrollIntoView({ block: "start" });
     };
     section.append(summary);
     $("widgetSettings").append(section);
@@ -393,6 +395,9 @@ globalThis.setupOverlayInspector = function (a) {
   function renderFields() {
     const rows = a.selected(),
       w = rows[0];
+    const board = rows.length === 1 && OverlayGameRules.boardTypes.includes(w.type);
+    sections.get("tile-colors").hidden = !board;
+    if (tab === "tile-colors" && !board) tab = "style";
     host.replaceChildren();
     for (const [key, section] of sections) section.open = key === tab;
     sections.get(tab).append(host);
@@ -409,8 +414,9 @@ globalThis.setupOverlayInspector = function (a) {
     for (const button of document.querySelectorAll("[data-inspector]"))
       button.setAttribute("aria-selected", String(button.dataset.inspector === tab));
     if (!w) return;
-    if (tab === "content") {
-      if (rows.length === 1) content(w);
+    const edit = { content, "tile-colors": widgetTools.tileColors }[tab];
+    if (edit) {
+      if (rows.length === 1) edit(w);
       else
         $("selectionHelp").textContent =
           "Select one layer to edit its content, or use Style and Position for the selection.";
@@ -508,7 +514,6 @@ globalThis.setupOverlayInspector = function (a) {
         }
       }
       if (OverlayTextStyle.simple.has(w.type)) looks.unshift(...OverlayTextStyle.looks);
-      const board = OverlayGameRules.boardTypes.includes(w.type) && rows.length === 1;
       const firstBoardField = host.children.length;
       if (board) widgetTools.boardStyle(w, looks);
       if (w.type === "chat")

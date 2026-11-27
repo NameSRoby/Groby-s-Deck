@@ -411,6 +411,7 @@
       return img;
     };
     grid.className = board.freeform ? "bingoGrid freeform" : "bingoGrid";
+    grid.classList.toggle("symbol-above-text", w.symbolAboveLabel);
     for (const position of ["above", "below"])
       grid.classList.toggle(
         "labels-" + position,
@@ -448,6 +449,14 @@
       cell.className =
         "bingoCell" + (item.marked ? " marked" : "") + (item.covered ? " covered" : "");
       const style = conditions.get(item.condition);
+      const showText = OverlayGameRules.showLabel(
+        item,
+        w.showCellLabels,
+        board.operation === "flip",
+      );
+      const tintInFront =
+        w.tintAboveLabel && showText && !["above", "below"].includes(item.labelPosition);
+      cell.classList.toggle("color-above-text", tintInFront);
       cell.dataset.condition = item.condition;
       cell.dataset.labelPosition = item.covered ? "center" : item.labelPosition;
       cell.classList.toggle(
@@ -470,10 +479,17 @@
         });
       if (item.image) {
         const photo = image(item.image, w.cellImageFit, "bingoImage");
-        photo.style.filter = boardImageTint(style);
+        const frontTint = tintInFront ? boardImageTint(style, true) : "";
+        photo.style.filter = frontTint ? "" : boardImageTint(style);
         cell.append(photo);
+        if (frontTint) {
+          const tint = photo.cloneNode();
+          tint.classList.add("bingoTint");
+          tint.style.filter = frontTint;
+          cell.append(tint);
+        }
       }
-      if (OverlayGameRules.showLabel(item, w.showCellLabels, board.operation === "flip")) {
+      if (showText) {
         const label = el("span", item.covered ? w.matchBack : item.text);
         label.className = "bingoLabel";
         cell.append(label);

@@ -241,7 +241,7 @@
       cellBorder: number(raw.cellBorder, 0, 12, 1),
       cellRadius: number(raw.cellRadius, 0, 120, 0),
       cellGap: number(raw.cellGap, 0, 60, 4),
-      markMode: ["color", "symbol", "both"].includes(raw.markMode)
+      markMode: ["none", "color", "symbol", "both"].includes(raw.markMode)
         ? raw.markMode
         : raw.type === "challenge-board"
           ? "symbol"
@@ -249,6 +249,8 @@
       markColor: color(raw.markColor, color(raw.palette?.[0], "#8b5cf6")),
       markOpacity: number(raw.markOpacity, 0, 100, 100),
       markTintTarget: raw.markTintTarget === "image" ? "image" : "tile",
+      tintAboveLabel: raw.tintAboveLabel === true,
+      symbolAboveLabel: raw.symbolAboveLabel !== false,
       markSymbol: typeof raw.markSymbol === "string" ? text(raw.markSymbol, 16) : "✓",
       markSymbolColor: color(raw.markSymbolColor, "#ffffff"),
       failureCondition: boardCondition(
