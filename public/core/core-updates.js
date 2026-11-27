@@ -74,7 +74,7 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
     } else if (phase === "preparing") {
       message(
         "Preparing",
-        "Checking the update files. You can keep using the app while this finishes.",
+        "Unpacking the verified update and backing up your version. The app will restart when ready.",
       );
     } else if (value.downloading) {
       message("Downloading", "Downloading the release and verifying its checksum…");

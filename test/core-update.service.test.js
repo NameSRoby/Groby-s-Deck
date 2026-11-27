@@ -156,5 +156,11 @@ test(
     assert.equal(service.status().canRestart, false);
     assert.equal(service.status().operation.phase, "failed");
     await assert.rejects(service.apply(), /windows_launcher_update_required/);
+    fs.writeFileSync(path.join(root, "RELEASE_BUILD.json"), JSON.stringify({ version: "0.8.23" }));
+    assert.equal(
+      service.status().operation.phase,
+      "installed",
+      "in-place Setup clears the stale UI",
+    );
   },
 );

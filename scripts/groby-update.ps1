@@ -158,11 +158,13 @@ try {
     throw "Staged archive checksum changed"
   }
 
-  $extractPath = Assert-ChildPath (Join-Path $updateRoot "extract-$($staged.version)-$PID") $updateRoot
+  $extractId = [guid]::NewGuid().ToString("N")
+  $extractPath = Assert-ChildPath (Join-Path $updateRoot "extract-$($staged.version)-$extractId") $updateRoot
   $rollbackRoot = Join-Path $updateRoot "rollback"
   $backupPath = Assert-ChildPath (Join-Path $rollbackRoot "$([DateTimeOffset]::UtcNow.ToString('yyyyMMddHHmmss'))-$PID") $rollbackRoot
   New-Item -ItemType Directory -Force -Path $extractPath, $backupPath | Out-Null
-  Expand-Archive -LiteralPath $archivePath -DestinationPath $extractPath -Force
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  [IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $extractPath)
   $release = Read-Json (Join-Path $extractPath "RELEASE_BUILD.json")
   if ("$($release.version)" -ne "$($staged.version)" -or "$($release.channel)" -ne "release") { throw "Archive release identity does not match" }
   foreach ($entry in @("src\app\optional\feature-enabled-server.js", "Groby's Deck.exe", "runtime\Grobys-Deck-Node.exe")) {

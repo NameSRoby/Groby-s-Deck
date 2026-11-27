@@ -145,6 +145,7 @@ function createCoreUpdateService(options = {}) {
   const updateDir = path.join(runtimeDir, "updates");
   const settingsPath = path.join(updateDir, "settings.json");
   const stagedPath = path.join(updateDir, "staged.json");
+  const pendingHealthPath = path.join(updateDir, "pending-health.json");
   const availableRollbackPath = path.join(updateDir, "available-rollback.json");
   const operationPath = path.join(updateDir, "operation.json");
   const fetchImpl = options.fetch || globalThis.fetch;
@@ -165,11 +166,17 @@ function createCoreUpdateService(options = {}) {
     const staged = readJson(stagedPath);
     const rollback = readJson(availableRollbackPath);
     const operation = readJson(operationPath);
-    const phase =
-      (activeOperation(operation) && !canRestart) ||
-      (activeOperation(operation) && Date.now() - Date.parse(operation.startedAt) > 600000)
-        ? "failed"
-        : operation?.phase;
+    let phase = operation?.phase;
+    if (activeOperation(operation)) {
+      if (
+        operation.action === "Apply" &&
+        operation.version === currentVersion &&
+        !fs.existsSync(pendingHealthPath)
+      )
+        phase = "installed";
+      else if (!canRestart || Date.now() - Date.parse(operation.startedAt) > 600000)
+        phase = "failed";
+    }
     return {
       ok: true,
       currentVersion,
