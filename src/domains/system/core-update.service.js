@@ -152,6 +152,8 @@ function createCoreUpdateService(options = {}) {
   let checking = null;
   let progress = null;
   let lastError = "";
+  const hosted = process.platform === "win32" && process.env.RAVELINK_WINDOWS_HOST === "1";
+  const canRestart = hosted && process.env.RAVELINK_WINDOWS_UPDATE_PROTOCOL === "1";
 
   function settings() {
     const value = readJson(settingsPath, {});
@@ -164,7 +166,8 @@ function createCoreUpdateService(options = {}) {
     const rollback = readJson(availableRollbackPath);
     const operation = readJson(operationPath);
     const phase =
-      activeOperation(operation) && Date.now() - Date.parse(operation.startedAt) > 600000
+      (activeOperation(operation) && !canRestart) ||
+      (activeOperation(operation) && Date.now() - Date.parse(operation.startedAt) > 600000)
         ? "failed"
         : operation?.phase;
     return {
@@ -180,13 +183,15 @@ function createCoreUpdateService(options = {}) {
             name: latest.name,
             publishedAt: latest.publishedAt,
             available: compareVersions(currentVersion, latest.version) < 0,
+            installerUrl: latest.installerUrl,
           }
         : null,
       staged: usableStage(staged, currentVersion)
         ? { version: staged.version, verified: true }
         : null,
       rollback: rollback ? { version: String(rollback.previousVersion || "") } : null,
-      hosted: process.env.RAVELINK_WINDOWS_HOST === "1",
+      hosted,
+      canRestart,
       operation: phase ? { phase, action: operation.action, version: operation.version } : null,
       lastError,
     };
@@ -235,12 +240,16 @@ function createCoreUpdateService(options = {}) {
       const archiveName = body.assets?.some?.((asset) => asset?.name === legacyName)
         ? legacyName
         : archiveBase + ".zip";
+      const installerName = archiveBase + "-setup-installer.exe";
       latest = {
         version,
         name: String(body.name || `Groby’s Deck v${version}`).slice(0, 160),
         publishedAt: String(body.published_at || "").slice(0, 64),
         archive: safeAsset(body, archiveName),
         checksums: safeAsset(body, "SHA256SUMS.txt"),
+        installerUrl: body.assets?.some?.((asset) => asset?.name === installerName)
+          ? safeAsset(body, installerName).url
+          : "",
       };
     } catch (error) {
       lastError = String(error?.message || "update_check_failed").slice(0, 160);
@@ -316,8 +325,8 @@ function createCoreUpdateService(options = {}) {
   }
 
   async function launchHelper(action) {
-    if (process.platform !== "win32" || process.env.RAVELINK_WINDOWS_HOST !== "1")
-      throw new Error("windows_host_required");
+    if (!hosted) throw new Error("windows_host_required");
+    if (!canRestart) throw new Error("windows_launcher_update_required");
     if (progress || activeOperation(status().operation)) throw new Error("update_in_progress");
     const staged = readJson(stagedPath);
     const rollback = readJson(availableRollbackPath);

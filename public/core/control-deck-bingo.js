@@ -138,7 +138,9 @@ export function createDeckBingo({
       image.style.objectFit = board.cellImageFit;
       button.classList.toggle("covered", cell.covered === true);
       label.hidden =
-        board.showLabels === false && (Boolean(cell.image) || board.operation !== "flip");
+        !cell.covered &&
+        (cell.labelHidden ||
+          (board.showLabels === false && (Boolean(cell.image) || board.operation !== "flip")));
       const text = cell.covered ? board.matchBack : cell.text;
       if (label.textContent !== text) label.textContent = text;
       symbol.hidden = !cell.marked || board.markMode === "color";

@@ -313,7 +313,10 @@ globalThis.setupOverlayInspector = function (a) {
         1000000000,
       ).step = "any";
     }
-    if (!["shape", "text", "image", "video", "custom", "goal"].includes(w.type))
+    if (
+      !["shape", "text", "image", "video", "custom", "goal"].includes(w.type) &&
+      !OverlayGameRules.boardTypes.includes(w.type)
+    )
       field("Optional label", "label");
     if (w.type === "alerts") num("Alert duration (seconds)", "lifetime", 1, 300);
     if (w.type === "alerts") setupOverlayAlertControls(a, host, w);
@@ -376,6 +379,7 @@ globalThis.setupOverlayInspector = function (a) {
       note.textContent = info.requirement;
       host.append(note);
     }
+    widgetTools.preview(w);
   }
   function draw() {
     if (drawing) return;

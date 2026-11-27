@@ -22,8 +22,7 @@ globalThis.OverlayWidgetControls = function (a, tools) {
     };
     sync();
   }
-  function content(w) {
-    extra.content(w);
+  function preview(w) {
     if (
       ![
         "shape",
@@ -43,6 +42,9 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       test.onclick = () => a.testWidget(w);
       host.append(test);
     }
+  }
+  function content(w) {
+    extra.content(w);
     if (w.type === "chat") {
       const removal = select("Message removal", "chatMode", [
         ["expire", "Disappear after a set time"],
@@ -362,5 +364,5 @@ globalThis.OverlayWidgetControls = function (a, tools) {
       : "Preview is available. Restart Core before saving animated styles or the new widgets.";
     host.append(note);
   }
-  return { content, style, mediaFit, boardStyle: extra.boardStyle };
+  return { content, preview, style, mediaFit, boardStyle: extra.boardStyle };
 };

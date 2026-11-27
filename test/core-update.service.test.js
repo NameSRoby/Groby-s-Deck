@@ -121,3 +121,40 @@ test("release metadata rejects assets outside the fixed GitHub repository", asyn
   });
   await assert.rejects(service.check(), /release_asset_origin_invalid/);
 });
+
+test(
+  "an older Windows launcher is offered installer recovery and cannot pretend to restart",
+  {
+    skip: process.platform !== "win32",
+  },
+  async (t) => {
+    const root = temporaryRoot();
+    const hosted = process.env.RAVELINK_WINDOWS_HOST;
+    const protocol = process.env.RAVELINK_WINDOWS_UPDATE_PROTOCOL;
+    process.env.RAVELINK_WINDOWS_HOST = "1";
+    delete process.env.RAVELINK_WINDOWS_UPDATE_PROTOCOL;
+    t.after(() => {
+      if (hosted === undefined) delete process.env.RAVELINK_WINDOWS_HOST;
+      else process.env.RAVELINK_WINDOWS_HOST = hosted;
+      if (protocol === undefined) delete process.env.RAVELINK_WINDOWS_UPDATE_PROTOCOL;
+      else process.env.RAVELINK_WINDOWS_UPDATE_PROTOCOL = protocol;
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+    const updateDir = path.join(root, "runtime/updates");
+    fs.mkdirSync(updateDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(updateDir, "operation.json"),
+      JSON.stringify({
+        phase: "preparing",
+        action: "Apply",
+        version: "0.8.23",
+        startedAt: new Date().toISOString(),
+      }),
+    );
+    const service = createCoreUpdateService({ rootDir: root });
+    assert.equal(service.status().hosted, true);
+    assert.equal(service.status().canRestart, false);
+    assert.equal(service.status().operation.phase, "failed");
+    await assert.rejects(service.apply(), /windows_launcher_update_required/);
+  },
+);

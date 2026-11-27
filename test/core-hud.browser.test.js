@@ -176,6 +176,7 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
     latest: { version: "99.0", available: true },
     checkOnLaunch: false,
     hosted: true,
+    canRestart: false,
   };
   await page.route("**/system/update/status", (route) =>
     route.fulfill({ status: 503, json: { ok: false, error: "updates_unavailable" } }),
@@ -200,6 +201,12 @@ test("clean HUD boots and remains usable on desktop and mobile", async (t) => {
   await page.locator("#moreNav > summary").click();
   await page.locator('[data-tab="features"]').click();
   await page.locator("#updateStatus").filter({ hasText: "Unavailable" }).waitFor();
+  await page.locator("#checkForUpdate").click();
+  await page.locator("#updateStatus").filter({ hasText: "Launcher update required" }).waitFor();
+  assert.equal(await page.locator("#updateInstaller").isVisible(), true);
+  assert.equal(await page.locator("#downloadUpdate").isHidden(), true);
+  assert.equal(await page.locator("#applyUpdate").isHidden(), true);
+  update.canRestart = true;
   await page.locator("#checkForUpdate").click();
   await page.locator("#updateStatus").filter({ hasText: "Update available" }).waitFor();
   await page.locator("#downloadUpdate").click();

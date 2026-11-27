@@ -1,5 +1,5 @@
 /** Board editing shares the stored layout and game controls used by the deck. */
-/* global OverlayModel, OverlayGameRules, GrobyRandomId */
+/* global OverlayModel, OverlayGameRules, OverlayBoardStyle, GrobyRandomId */
 globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, button, note) => {
   const selected = new WeakMap();
   let highlightedTile;
@@ -63,6 +63,24 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     const index = host.children.length;
     draw();
     panel.append(...Array.from(host.children).slice(index));
+  }
+  function section(title, start) {
+    const block = el("section");
+    block.className = "boardSettings";
+    block.append(el("h3", title), ...Array.from(host.children).slice(start));
+    host.append(block);
+  }
+  function hideLabel(parent, item) {
+    const input = el("input");
+    input.type = "checkbox";
+    input.checked = item.labelHidden === true;
+    labeled("Hide label on board", input, parent).parentElement.className = "check";
+    input.onchange = () =>
+      a.change(() => {
+        if (input.checked) item.labelHidden = true;
+        else delete item.labelHidden;
+      }, false);
+    return input;
   }
   function imageControl(parent, w, title, read, write) {
     const box = el("div");
@@ -142,7 +160,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       if (input.reportValidity()) return run("mark", { cell: Number(input.value) });
     });
   }
-  function bingo(w, run) {
+  function bingo(w, run, setupStart) {
     const max = OverlayModel.boardLimit;
     const columns = labeled("Board size", el("select"));
     const sizes = [...new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, w.gridSize])].sort((a, b) => a - b);
@@ -184,6 +202,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     };
     const { count } = OverlayGameRules.bingoLayout(w);
     const free = check("Free center square (odd-sized boards)", "freeCenter");
+    section("Board setup", setupStart);
+    const squaresStart = host.children.length;
     const grid = el("div");
     grid.className = "bingoEditor";
     const nav = el("div");
@@ -204,27 +224,49 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         const line = el("div"),
           cell = el("input"),
           pick = el("button", "Image"),
+          visibility = el("button"),
           mark = el("button", "✓");
         cell.value = i === center ? "FREE" : w.items[i] || "";
         cell.disabled = i === center;
         cell.placeholder = "Square " + (i + 1);
         cell.maxLength = 200;
         cell.setAttribute("aria-label", "Bingo text " + (i + 1));
-        cell.onchange = () =>
+        const updateVisibility = () => {
+          const hidden = Boolean(w.boardHiddenLabels[i]);
+          visibility.textContent = hidden ? "Show" : "Hide";
+          visibility.setAttribute(
+            "aria-label",
+            (hidden ? "Show" : "Hide") + " label for square " + (i + 1),
+          );
+        };
+        cell.onchange = () => {
           a.change(() => {
             while (w.items.length <= i) w.items.push("");
             w.items[i] = cell.value;
+            if (!cell.value.trim()) w.boardHiddenLabels[i] = true;
           }, false);
+          updateVisibility();
+        };
         pick.type = "button";
         pick.setAttribute("aria-label", "Image for square " + (i + 1));
         pick.onclick = () => openImage(i + 1, true);
+        visibility.type = "button";
+        visibility.disabled = i === center;
+        visibility.onclick = () => {
+          a.change(() => {
+            if (w.boardHiddenLabels[i]) delete w.boardHiddenLabels[i];
+            else w.boardHiddenLabels[i] = true;
+          }, false);
+          updateVisibility();
+        };
+        updateVisibility();
         mark.type = "button";
         mark.disabled = i === center;
         mark.title = "Toggle square " + (i + 1);
         mark.setAttribute("aria-label", mark.title);
         mark.onclick = () =>
           void run("mark", { cell: i + 1 }).catch((error) => a.notice(error.message));
-        line.append(cell, pick, mark);
+        line.append(cell, pick, visibility, mark);
         grid.append(line);
       }
       previous.disabled = !start;
@@ -291,21 +333,19 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         return a.notice("Increase the board dimensions to fit the pasted labels.");
       a.change(() => {
         w.items = values.map((value) => value.slice(0, 200));
+        for (const [i, value] of values.entries()) if (!value.trim()) w.boardHiddenLabels[i] = true;
       }, false);
       labels();
     };
     bulk.append(apply);
-    play(w, run, count);
-    note(
-      "Changing Bingo dimensions starts a fresh round. Open saved boards from Game boards in the Button Deck.",
-    );
+    section("Edit squares", squaresStart);
   }
   function numberInput(parent, name, value, min, max, step = 1) {
     const input = labeled(name, el("input"), parent);
     Object.assign(input, { type: "number", min, max, step, required: true, value });
     return input;
   }
-  function challenge(w, run) {
+  function challenge(w, setupStart) {
     const grid = w.challengeLayout === "grid";
     const count = OverlayGameRules.challengeCount(w);
     const active = Math.min(selected.get(w) || 1, count);
@@ -368,6 +408,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       });
       add.disabled = w.tiles.length >= OverlayModel.boardLimit;
     }
+    section("Board setup", setupStart);
+    const tilesStart = host.children.length;
 
     const visual = el("div");
     visual.className = "challengeEditor";
@@ -495,6 +537,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     visual.classList.toggle("gridLayout", grid);
     if (!tile) {
       note("Add a tile to start building your board.");
+      section("Edit tiles", tilesStart);
       return background;
     }
 
@@ -507,10 +550,14 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     const name = labeled("Tile label", el("input"));
     name.maxLength = 200;
     name.value = tile.text;
+    name.placeholder = "Tile " + active;
+    const hidden = hideLabel(host, tile);
     name.onchange = () => {
       a.change(() => {
         tile.text = name.value;
+        if (!name.value.trim()) tile.labelHidden = true;
       }, false);
+      hidden.checked = tile.labelHidden === true;
       const label = title(tile, active - 1);
       tiles.options[active - 1].text =
         node.title =
@@ -600,7 +647,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         ? "Drag the selected tile’s corner to resize it."
         : "Drag tiles to move them. Drag the selected tile’s corner to resize it.",
     );
-    play(w, run, count);
+    section("Edit tiles", tilesStart);
     return background;
   }
   function setImage(image, url) {
@@ -608,11 +655,12 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     if (url) image.src = url;
     else image.removeAttribute("src");
   }
-  function match(w, run) {
+  function match(w, setupStart) {
     num("Columns", "matchColumns", 2, 12);
     num("Mismatch reveal time (seconds)", "matchRevealSeconds", 0.5, 10).step = 0.5;
     field("Tile back symbol", "matchBack", "text", { maxLength: 16 });
     check("Show matching progress", "matchProgress");
+    section("Board setup", setupStart);
     const pairs = details("Edit pairs");
     pairs.open = true;
     for (const [index, pair] of w.matchPairs.entries()) {
@@ -622,10 +670,14 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       const name = labeled("Pair " + (index + 1) + " label", el("input"), entry);
       name.maxLength = 80;
       name.value = pair.text;
+      name.placeholder = "Pair " + (index + 1);
+      const hidden = hideLabel(entry, pair);
       name.onchange = () => {
         a.change(() => {
           pair.text = name.value;
+          if (!name.value.trim()) pair.labelHidden = true;
         }, false);
+        hidden.checked = pair.labelHidden === true;
         summary.textContent = pair.text || "Pair " + (index + 1);
       };
       imageControl(
@@ -654,6 +706,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       ),
     );
     add.disabled = w.matchPairs.length >= OverlayModel.matchPairLimit;
+  }
+  function matchPlay(w, run) {
     const tiles = el("div");
     tiles.className = "matchPlayControls";
     tiles.setAttribute("role", "group");
@@ -664,12 +718,15 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       tiles.append(flip);
     }
     host.append(tiles);
-    note(
-      "Try the numbered tiles with Sample data, or open saved games from Game boards in the Button Deck.",
-    );
   }
-  function content(w, run) {
-    const thumbnail = w.type === "challenge-board" ? challenge(w, run) : null;
+  function content(w, run, finish) {
+    const setupStart = host.children.length;
+    field("Board title", "label", "text", { maxLength: 100 });
+    check("Show tile labels", "showCellLabels");
+    let thumbnail;
+    if (w.type === "challenge-board") thumbnail = challenge(w, setupStart);
+    else if (w.type === "bingo") bingo(w, run, setupStart);
+    else match(w, setupStart);
     const background = details("Board background image");
     imageControl(
       background,
@@ -681,154 +738,25 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         if (thumbnail) setImage(thumbnail, url);
       },
     );
-    field("Board title", "label", "text", { maxLength: 100 });
-    check("Show tile labels", "showCellLabels");
-    if (w.type === "bingo") bingo(w, run);
-    else if (w.type === "tile-match") match(w, run);
-  }
-  function style(w, looks) {
-    const boardLooks = [
-      [
-        "Midnight grid",
-        {
-          cellBackground: "#15233b",
-          cellOpacity: 90,
-          cellBorderColor: "#63768f",
-          cellBorder: 1,
-          cellRadius: 10,
-          cellGap: 6,
-          color: "#ffffff",
-          markColor: "#137252",
-          markOpacity: 85,
-        },
-      ],
-      [
-        "Paper card",
-        {
-          cellBackground: "#fff4d9",
-          cellOpacity: 100,
-          cellBorderColor: "#a59172",
-          cellBorder: 1,
-          cellRadius: 5,
-          cellGap: 4,
-          color: "#252019",
-          markColor: "#f7bf53",
-          markOpacity: 85,
-        },
-      ],
-      [
-        "Photo tiles",
-        {
-          cellBackground: "#0f172a",
-          cellOpacity: 80,
-          cellBorderColor: "#475569",
-          cellBorder: 0,
-          cellRadius: 8,
-          cellGap: 4,
-          color: "#ffffff",
-          markColor: "#065f46",
-          markOpacity: 55,
-          textEffect: "shadow",
-        },
-      ],
-    ];
-    looks.splice(0, looks.length, ...boardLooks);
-    if (w.type === "tile-match") field("Tile back color", "matchBackColor", "color");
     group(
-      "Completion marks",
+      "Play or test",
       () => {
-        const mode = select("Completed square", "markMode", [
-          ["color", "Color"],
-          ["symbol", "Symbol"],
-          ["both", "Color and symbol"],
-        ]);
-        const colors = [
-          field("Completion color", "markColor", "color"),
-          num("Completion color opacity (%)", "markOpacity", 0, 100),
-        ];
-        const symbols = [
-          field("Completion symbol", "markSymbol", "text", { maxLength: 16 }),
-          field("Symbol color", "markSymbolColor", "color"),
-        ];
-        const refresh = () => {
-          for (const input of colors) input.parentElement.hidden = w.markMode === "symbol";
-          for (const input of symbols) input.parentElement.hidden = w.markMode === "color";
-        };
-        const change = mode.onchange;
-        mode.onchange = () => {
-          change();
-          refresh();
-        };
-        refresh();
-      },
-      true,
-    );
-    group("Tile appearance", () => {
-      const fitOptions = [
-        ["cover", "Fill and crop"],
-        ["contain", "Fit entire image"],
-      ];
-      select("Board image fit", "boardImageFit", fitOptions);
-      select("Tile image fit", "cellImageFit", fitOptions);
-      field("Square background", "cellBackground", "color");
-      num("Square background opacity (%)", "cellOpacity", 0, 100);
-      field("Square border color", "cellBorderColor", "color");
-      num("Square border (px)", "cellBorder", 0, 12);
-      num("Square corner radius (px)", "cellRadius", 0, 120);
-      if (w.type !== "challenge-board") num("Space between squares (px)", "cellGap", 0, 60);
-    });
-    if (w.type !== "bingo") return;
-    const patterns = details("Winning patterns");
-    for (const [key, name] of [
-      ["rows", "Rows"],
-      ["columns", "Columns"],
-      ["diagonals", "Diagonals on square boards"],
-      ["all", "Full board"],
-    ]) {
-      const input = el("input");
-      input.type = "checkbox";
-      input.checked = w.bingoPatterns.includes(key);
-      labeled(name, input, patterns).parentElement.className = "check";
-      input.onchange = () =>
-        a.change(() => {
-          if (input.checked) w.bingoPatterns.push(key);
-          else w.bingoPatterns = w.bingoPatterns.filter((pattern) => pattern !== key);
-        }, false);
-    }
-    group(
-      "Announcements",
-      () => {
-        const mode = select("Bingo announcement", "bingoAnnouncement", [
-          ["off", "Hidden"],
-          ["always", "Show while board has a win"],
-          ["timed", "Show briefly after completing a pattern"],
-        ]);
-        const settings = [
-          field("Announcement text", "bingoMessage", "text", { maxLength: 200 }),
-          select("Announcement placement", "bingoPlacement", [
-            ["top", "Above the board"],
-            ["bottom", "Below the board"],
-            ["overlay", "Over the board"],
-          ]),
-          field("Announcement text color", "bingoColor", "color"),
-          field("Announcement background", "bingoBackground", "color"),
-          num("Announcement background opacity (%)", "bingoBackgroundOpacity", 0, 100),
-          num("Announcement text size (px)", "bingoFontSize", 8, 240),
-        ];
-        const seconds = num("Timed announcement (seconds)", "bingoSeconds", 1, 120);
-        const refresh = () => {
-          for (const input of settings) input.parentElement.hidden = w.bingoAnnouncement === "off";
-          seconds.parentElement.hidden = w.bingoAnnouncement !== "timed";
-        };
-        const change = mode.onchange;
-        mode.onchange = () => {
-          change();
-          refresh();
-        };
-        refresh();
+        if (w.type === "tile-match") matchPlay(w, run);
+        else
+          play(
+            w,
+            run,
+            w.type === "bingo"
+              ? OverlayGameRules.bingoLayout(w).count
+              : OverlayGameRules.challengeCount(w),
+          );
+        finish();
       },
       true,
     );
   }
-  return { content, style };
+  return {
+    content,
+    style: OverlayBoardStyle(a, { host, num, select, field }, { group, details, el, labeled }),
+  };
 };
