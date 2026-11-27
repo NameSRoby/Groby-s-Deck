@@ -54,6 +54,7 @@
         mode: w.markMode,
         color: w.markColor,
         opacity: w.markOpacity,
+        tintTarget: w.markTintTarget,
         symbol: w.markSymbol,
         symbolColor: w.markSymbolColor,
       },

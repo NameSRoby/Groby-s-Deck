@@ -30,7 +30,7 @@ module.exports = function registerOverlays(
       catalog: service.catalog(),
       presentationEffects: true,
       livePreview: true,
-      designerVersion: 6,
+      designerVersion: 7,
     })),
   );
   app.get(

@@ -332,14 +332,14 @@ test("clicking a canvas tile opens its settings and dragging still moves the who
   await page.locator('[data-inspector="style"]').click();
 
   const layer = page.locator('#canvas [data-widget-type="challenge-board"]');
-  const tile = layer.locator('[data-challenge-tile="20"]');
+  const tile = layer.locator('[data-board-tile="20"]');
   const position = () => layer.evaluate((node) => node.style.left);
   const before = await position();
   await tile.click();
   const picker = page.getByLabel("Selected tile", { exact: true });
   assert.equal(await picker.inputValue(), "20");
   assert.equal(await position(), before);
-  assert.equal(await tile.evaluate((node) => node.matches(".selectedChallengeTile")), true);
+  assert.equal(await tile.evaluate((node) => node.matches(".selectedBoardTile")), true);
   const label = page.getByLabel("Tile label", { exact: true });
   await label.fill("Canvas selection");
   await label.press("Tab");
@@ -458,13 +458,13 @@ test("board designer saves images, custom marks, announcements and freeform geom
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jia0AAAAASUVORK5CYII=",
     "base64",
   );
-  const upload = async (label) => {
+  const upload = async (label, chooser) => {
     const response = page.waitForResponse(
       (r) => r.url().endsWith("/api/stream-overlays/media") && r.request().method() === "POST",
     );
-    await page
-      .getByLabel(label, { exact: true })
-      .setInputFiles({ name: "tile.png", mimeType: "image/png", buffer: png });
+    const file = { name: "tile.png", mimeType: "image/png", buffer: png };
+    if (chooser) await chooser.setFiles(file);
+    else await page.getByLabel(label, { exact: true }).setInputFiles(file);
     const result = await (await response).json();
     assert.equal(result.ok, true);
     await page.locator("#canvas img").filter({ visible: true }).first().waitFor();
@@ -483,8 +483,14 @@ test("board designer saves images, custom marks, announcements and freeform geom
   await blankBingo.press("Tab");
   await page.getByText("Board background image", { exact: true }).click();
   const image = await upload("Board image");
-  await page.getByText("Square image", { exact: true }).click();
-  const square = await upload("Square 1 image");
+  const selectedTile = page.getByLabel("Selected tile", { exact: true });
+  await page.locator('#canvas .extra-bingo [data-board-tile="3"]').click();
+  assert.equal(await selectedTile.inputValue(), "3");
+  await page.getByLabel("Tile image", { exact: true }).waitFor();
+  const bingoChooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Image for square 1", exact: true }).click();
+  const square = await upload("Tile image", await bingoChooser);
+  assert.equal(await selectedTile.inputValue(), "1");
   await page.locator('[data-inspector="style"]').click();
   await page.getByLabel("Design preset").selectOption("Photo tiles");
   await page.getByLabel("Completed square").selectOption("both");
@@ -516,7 +522,10 @@ test("board designer saves images, custom marks, announcements and freeform geom
     await page.getByLabel(label, { exact: true }).fill(value);
     await page.getByLabel(label, { exact: true }).press("Tab");
   }
-  const tileImage = await upload("Tile image");
+  await page.getByText("Tile image list", { exact: true }).click();
+  const challengeChooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Image for tile 1", exact: true }).click();
+  const tileImage = await upload("Tile image", await challengeChooser);
   await page.locator("#save").click();
   await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
   const [doc] = service.store.snapshot().documents;
@@ -604,7 +613,12 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
   await page.getByText("Tile appearance", { exact: true }).click();
   await page.getByLabel("Tile label position", { exact: true }).selectOption("below");
   await page.getByLabel("Hide completed tiles", { exact: true }).check();
+  await page.getByLabel("Completed square", { exact: true }).selectOption("both");
+  await page.getByLabel("Completion overlay area", { exact: true }).selectOption("image");
   await page.getByText("Failure mark", { exact: true }).click();
+  const failureArea = page.getByLabel("Overlay area", { exact: true });
+  await failureArea.selectOption("image");
+  await failureArea.selectOption("tile");
   const failureOpacity = page.getByLabel("Overlay opacity (%)", { exact: true });
   await failureOpacity.fill("40");
   await failureOpacity.press("Tab");
@@ -620,6 +634,8 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
   assert.equal(w.customConditions[0].name, "Needs another try");
   assert.equal(w.failureCondition.opacity, 40);
   assert.equal(w.failureCondition.symbol, "⚠");
+  assert.equal(w.markTintTarget, "image");
+  assert.equal(w.failureCondition.tintTarget, "tile");
   await page.locator('[data-inspector="content"]').click();
   await page.getByLabel("Mark as", { exact: true }).selectOption("failed");
   await page.getByRole("button", { name: "Set condition", exact: true }).click();
@@ -665,6 +681,118 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
     await complete.waitFor({ state: "attached" });
     assert.equal(await complete.isHidden(), true);
   }
+});
+test("board tint follows artwork alpha in the designer and OBS", async (t) => {
+  const { page, service, base, browser } = await setup(t);
+  const artwork = "https://example.invalid/transparent-tile.png";
+  const fixture =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="90" height="45">' +
+    '<path fill="red" d="M30 0h30v45H30z"/><path fill="red" opacity=".5" d="M60 0h30v45H60z"/></svg>';
+  const saved = service.save({
+    expectedRevision: 0,
+    document: {
+      name: "Tint test",
+      width: 640,
+      height: 360,
+      widgets: [
+        {
+          id: "board",
+          type: "challenge-board",
+          width: 480,
+          height: 140,
+          gridSize: 3,
+          gridRows: 1,
+          challengeLayout: "grid",
+          showCellLabels: false,
+          showCellBorders: false,
+          cellImageFit: "contain",
+          cellOpacity: 0,
+          markMode: "both",
+          markSymbol: "X",
+          markSymbolColor: "#abcdef",
+          markColor: "#00ff00",
+          markOpacity: 50,
+          markTintTarget: "image",
+          failureCondition: { mode: "color", color: "#00ff00", opacity: 50, tintTarget: "tile" },
+          tiles: [
+            { id: "image", image: artwork },
+            { id: "whole", image: artwork },
+            { id: "blank" },
+          ],
+        },
+      ],
+    },
+  });
+  for (const [cell, condition] of [
+    [1, "completed"],
+    [2, "failed"],
+    [3, "completed"],
+  ])
+    service.gameControl({
+      documentId: saved.selectedId,
+      widgetId: "board",
+      operation: "condition",
+      cell,
+      condition,
+    });
+  const output = await browser.newPage({ viewport: { width: 640, height: 360 } });
+  for (const view of [page, output])
+    await view.route(artwork, (route) =>
+      route.fulfill({ contentType: "image/svg+xml", body: fixture }),
+    );
+  await page.reload();
+  await page.locator("#overlayLibrary > summary").click();
+  await page.getByRole("button", { name: /Tint test/ }).click();
+  await output.goto(base + "/stream-overlay.html?id=" + saved.selectedId);
+  for (const view of [page, output]) {
+    const tile = view.locator(".bingoCell[data-condition]").first();
+    await tile.locator("img").evaluate((img) => img.decode());
+    assert.equal(
+      await tile.locator(".bingoSymbol").evaluate((el) => getComputedStyle(el).color),
+      "rgb(171, 205, 239)",
+    );
+    assert.equal(
+      await tile.evaluate((el) => getComputedStyle(el, "::before").backgroundColor),
+      "rgba(0, 0, 0, 0)",
+    );
+    const failed = view.locator('.bingoCell[data-condition="failed"]');
+    assert.equal(
+      await failed.evaluate((el) => getComputedStyle(el, "::before").backgroundColor),
+      "rgba(0, 255, 0, 0.5)",
+    );
+    const bytes = await tile.screenshot({ omitBackground: true });
+    const pixels = await view.evaluate(async (png) => {
+      const image = new Image();
+      image.src = "data:image/png;base64," + png;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0);
+      return [
+        [0.16, 0.6],
+        [0.42, 0.36],
+        [0.83, 0.6],
+        [0.42, 0.12],
+      ].map(([x, y]) =>
+        Array.from(context.getImageData(x * image.width, y * image.height, 1, 1).data),
+      );
+    }, bytes.toString("base64"));
+    const [, opaque] = pixels;
+    assert.ok(opaque[0] >= 124 && opaque[0] <= 131 && opaque[1] >= 124 && opaque[1] <= 131);
+    if (view === output) {
+      assert.deepEqual(
+        pixels.map((pixel) => pixel[3]),
+        [0, 255, 128, 0],
+      );
+    }
+  }
+  const blank = output.locator(".bingoCell[data-condition]").last();
+  assert.equal(
+    await blank.evaluate((el) => getComputedStyle(el, "::before").backgroundColor),
+    "rgba(0, 0, 0, 0)",
+  );
 });
 test("Tile Match pairs can be edited and tried in the designer without changing the live overlay", async (t) => {
   const { page, add, service } = await setup(t);
@@ -801,6 +929,63 @@ test("widget category and search filters keep the picker compact and preserve ac
       .evaluate((node) => node.scrollHeight > node.clientHeight + 2),
     false,
   );
+});
+
+test("keyboard widget search and shared frames work across widget types and OBS", async (t) => {
+  const { page, service, base, browser } = await setup(t);
+  const search = page.locator("#widgetSearch");
+  await page.locator("#add").click();
+  await search.fill("static  panel");
+  await search.press("ArrowDown");
+  assert.equal(await page.locator("#widgetCatalog button:focus").textContent(), "Shape / panel");
+  await page.keyboard.press("Enter");
+  await page.locator("#add").click();
+  await search.fill("static image");
+  await search.press("Enter");
+  await page
+    .locator("#layers")
+    .getByRole("button", { name: "Shape / panel", exact: true })
+    .click({
+      modifiers: ["Shift"],
+    });
+  await page.locator('[data-inspector="style"]').click();
+  const frame = page.getByRole("group", { name: "Widget frame" });
+  for (const [label, value] of [
+    ["Frame border (px)", "6"],
+    ["Frame border color", "#1278cc"],
+    ["Frame border opacity (%)", "50"],
+    ["Corner radius", "16"],
+  ]) {
+    const input = frame.getByLabel(label, { exact: true });
+    await input.fill(value);
+    await input.press("Tab");
+  }
+  await frame.getByLabel("Frame border style").selectOption("dashed");
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const [doc] = service.store.snapshot().documents;
+  assert.deepEqual(
+    doc.widgets.map((w) => w.type),
+    ["shape", "image"],
+  );
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  for (const view of [page, output]) {
+    for (const w of doc.widgets) {
+      const layer = view.locator(`[data-widget-id="${w.id}"]`);
+      const actual = await layer.evaluate((element) => {
+        const border = getComputedStyle(element, "::before");
+        return [
+          border.borderTopWidth,
+          border.borderTopStyle,
+          border.borderTopColor,
+          border.borderTopLeftRadius,
+          element.offsetWidth,
+        ];
+      });
+      assert.deepEqual(actual, ["6px", "dashed", "rgba(18, 120, 204, 0.5)", "16px", w.width]);
+    }
+  }
 });
 
 test("the full widget catalog keeps titles and permission hints inside scrollable cards", async (t) => {

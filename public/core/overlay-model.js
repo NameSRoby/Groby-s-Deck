@@ -104,6 +104,7 @@
       mode: ["none", "color", "symbol", "both"].includes(raw.mode) ? raw.mode : "both",
       color: color(raw.color, "#b91c1c"),
       opacity: number(raw.opacity, 0, 100, 65),
+      tintTarget: raw.tintTarget === "image" ? "image" : "tile",
       symbol: typeof raw.symbol === "string" ? text(raw.symbol, 16) : "\u2715",
       symbolColor: color(raw.symbolColor, "#ffffff"),
     };
@@ -247,6 +248,7 @@
           : "color",
       markColor: color(raw.markColor, color(raw.palette?.[0], "#8b5cf6")),
       markOpacity: number(raw.markOpacity, 0, 100, 100),
+      markTintTarget: raw.markTintTarget === "image" ? "image" : "tile",
       markSymbol: typeof raw.markSymbol === "string" ? text(raw.markSymbol, 16) : "✓",
       markSymbolColor: color(raw.markSymbolColor, "#ffffff"),
       failureCondition: boardCondition(
@@ -291,6 +293,10 @@
       height: number(raw.height, 20, 8192, definition.height),
       rotation: number(raw.rotation, -360, 360, 0),
       opacity: number(raw.opacity, 0, 100, 100),
+      frameWidth: number(raw.frameWidth, 0, 32, 0),
+      frameColor: color(raw.frameColor, "#ffffff"),
+      frameOpacity: number(raw.frameOpacity, 0, 100, 100),
+      frameStyle: ["dashed", "dotted"].includes(raw.frameStyle) ? raw.frameStyle : "solid",
       visible: raw.visible !== false,
       locked: raw.locked === true,
       group: text(raw.group, 80),

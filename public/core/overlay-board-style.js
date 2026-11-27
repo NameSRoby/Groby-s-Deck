@@ -22,6 +22,10 @@ globalThis.OverlayBoardStyle = (
     ["\u25a0", "Square"],
     ["\u2212", "Dash"],
   ];
+  const tintTargets = [
+    ["tile", "Whole tile"],
+    ["image", "Image pixels only"],
+  ];
   function symbolPicker(parent, name, input) {
     const browser = labeled(name, el("select"), parent);
     browser.add(new Option("Choose a symbol", ""));
@@ -66,6 +70,13 @@ globalThis.OverlayBoardStyle = (
     ])
       mode.add(new Option(title, key));
     mode.value = condition.mode;
+    const tintTarget = labeled("Overlay area", el("select"), parent);
+    for (const [key, title] of tintTargets) tintTarget.add(new Option(title, key));
+    tintTarget.value = condition.tintTarget;
+    tintTarget.onchange = () =>
+      a.change(() => {
+        condition.tintTarget = tintTarget.value;
+      }, false);
     const color = field("Overlay color", "color", "color");
     const opacity = field("Overlay opacity (%)", "number", "opacity");
     Object.assign(opacity, { min: 0, max: 100, required: true });
@@ -78,7 +89,7 @@ globalThis.OverlayBoardStyle = (
     const icons = symbolPicker(parent, "Condition symbol library", symbol);
     const symbolColor = field("Condition symbol color", "color", "symbolColor");
     const refresh = () => {
-      for (const input of [color, opacity])
+      for (const input of [tintTarget, color, opacity])
         input.parentElement.hidden = !["color", "both"].includes(mode.value);
       for (const input of [symbol, icons, symbolColor])
         input.parentElement.hidden = !["symbol", "both"].includes(mode.value);
@@ -96,6 +107,76 @@ globalThis.OverlayBoardStyle = (
       remove.onclick = removing;
       parent.append(remove);
     }
+  }
+  function setImage(image, url) {
+    image.hidden = !url;
+    if (url) image.src = url;
+    else image.removeAttribute("src");
+  }
+  function imageControl(parent, w, title, read, write) {
+    const box = el("div");
+    box.className = "boardImageControl";
+    parent.append(box);
+    const upload = el("input"),
+      url = el("input"),
+      thumbnail = el("img"),
+      remove = el("button", "Remove image");
+    thumbnail.alt = "";
+    upload.type = "file";
+    upload.accept = "image/png,image/jpeg,image/webp,image/gif";
+    remove.type = "button";
+    box.append(thumbnail);
+    labeled(title, upload, box);
+    box.append(remove);
+    const link = el("details");
+    link.append(el("summary", "Use an image URL"));
+    labeled(title + " URL", url, link);
+    url.placeholder = "https://";
+    box.append(link);
+    const update = () => {
+      const current = read() || "";
+      url.value = current;
+      thumbnail.hidden = remove.hidden = !current;
+      if (current) thumbnail.src = current;
+      else thumbnail.removeAttribute("src");
+    };
+    const set = (value) => {
+      a.change(() => write(value), false);
+      update();
+    };
+    url.oninput = () => url.setCustomValidity("");
+    url.onchange = () => {
+      const value = OverlayModel.imageUrl(url.value.trim());
+      if (!value && url.value.trim()) {
+        url.setCustomValidity("Enter an HTTPS image URL.");
+        url.reportValidity();
+      } else set(value);
+    };
+    remove.onclick = () => {
+      url.setCustomValidity("");
+      set("");
+    };
+    upload.onchange = async () => {
+      if (!upload.files[0]) return;
+      upload.disabled = true;
+      try {
+        const asset = await a.request("/media", "POST", upload.files[0], {
+          "Content-Type": upload.files[0].type,
+        });
+        if (!a.doc.widgets.includes(w) || !box.isConnected)
+          throw Error("Reopen the image picker for this square.");
+        if (!OverlayModel.imageUrl(asset.url))
+          throw Error("Choose a PNG, JPEG, WebP or GIF image.");
+        set(asset.url);
+      } catch (error) {
+        a.notice(error.message);
+      } finally {
+        upload.disabled = false;
+        upload.value = "";
+      }
+    };
+    update();
+    return upload;
   }
   function hideLabel(parent, item) {
     const input = el("input");
@@ -175,6 +256,7 @@ globalThis.OverlayBoardStyle = (
           ["both", "Color and symbol"],
         ]);
         const colors = [
+          select("Completion overlay area", "markTintTarget", tintTargets),
           field("Completion color", "markColor", "color"),
           num("Completion color opacity (%)", "markOpacity", 0, 100),
         ];
@@ -248,6 +330,7 @@ globalThis.OverlayBoardStyle = (
             mode: "both",
             color: "#1d4ed8",
             opacity: 60,
+            tintTarget: "tile",
             symbol: "\u2605",
             symbolColor: "#ffffff",
           }),
@@ -313,5 +396,5 @@ globalThis.OverlayBoardStyle = (
       true,
     );
   }
-  return { style, hideLabel, labelPosition };
+  return { style, hideLabel, labelPosition, setImage, imageControl };
 };
