@@ -5185,7 +5185,9 @@ function installSpotifyPlayer({ showView, volumeControls }) {
       const row = body.insertRow();
       row.insertCell().textContent = item.candidate?.title || "Spotify track";
       row.insertCell().textContent = item.requesterLabel || "Requester not recorded";
-      row.insertCell().textContent = description[item.phase];
+      row.insertCell().textContent = item.reviewOnly
+        ? "Needs review · no matching track in the current Spotify queue"
+        : description[item.phase];
       const actions = row.insertCell();
       actions.className = "rowActions";
       const controls = document.createElement("div");

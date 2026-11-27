@@ -15,8 +15,8 @@ module.exports = function nativeAdmission({ queue, provider, waitForDelivery, is
           return { ok: false, code: "rejected", reason: "request_limits_unavailable" };
         if (!(await isSelected()))
           return { ok: false, code: "rejected", reason: "player_inactive" };
-        const pending = status.handoffs.filter((row) =>
-          ["appended", "pending", "unknown"].includes(row.phase),
+        const pending = status.handoffs.filter(
+          (row) => !row.reviewOnly && ["appended", "pending", "unknown"].includes(row.phase),
         );
         return queue.submit(payload, { pending });
       } catch {

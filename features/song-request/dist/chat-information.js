@@ -55,7 +55,7 @@ module.exports = async function chatInformation(
       ok: false,
       message: "The player queue is unavailable right now; request positions cannot be confirmed.",
     };
-  const { rows, pending } = queueView(queue, provider, current?.entryId, state);
+  const { rows, pending, review } = queueView(queue, provider, current?.entryId, state);
   const timing = require("./chat-queue-timing")({
     rows,
     current,
@@ -65,23 +65,33 @@ module.exports = async function chatInformation(
     native,
   });
   if (payload.command === "songqueue") {
+    const names = (items, limit) =>
+      items
+        .slice(0, limit)
+        .map((row) => describe(row, 35))
+        .join(" | ");
+    const reviewed = review.length
+      ? ` ${review.length} older ${review.length === 1 ? "request needs" : "requests need"} review in Song Request.`
+      : "";
     if (pending.length)
       return reply(
-        (rows.length
-          ? `Known requests: ${rows
-              .slice(0, 5)
-              .map((row) => describe(row, 48))
-              .join(" | ")}. `
-          : "") +
-          `${pending.length} request${pending.length === 1 ? " is" : "s are"} awaiting player confirmation. Positions and ETAs are unavailable.`,
+        (rows.length ? `Known requests: ${names(rows, 3)}. ` : "") +
+          `${pending.length} request${pending.length === 1 ? " is" : "s are"} awaiting player confirmation: ${names(pending, 3)}. Positions and ETAs are unavailable.` +
+          reviewed,
       );
-    if (!rows.length) return reply("There are no pending song requests.");
+    if (!rows.length)
+      return reply(
+        review.length
+          ? "Needs review: " + names(review, 4) + "." + reviewed
+          : "There are no pending song requests.",
+      );
     return reply(
       "Next requests: " +
         rows
           .slice(0, 5)
           .map((row, i) => `${i + 1}. ${describe(row, 48)} (${timing[i]})`)
-          .join(" | "),
+          .join(" | ") +
+        reviewed,
     );
   }
   const key = "req_" + crypto.createHash("sha256").update(payload.requesterId).digest("hex");
@@ -102,6 +112,11 @@ module.exports = async function chatInformation(
       `${playing ? currentNotice + " " : ""}Your request "${describe(next, 90)}" is ${owned.length ? "in the request queue" : "awaiting player confirmation"}. Its position is not confirmed yet.`,
     );
   if (playing && !owned.length) return reply(currentNotice);
+  const unresolved = review.find((row) => row.requesterKey === key);
+  if (!owned.length && unresolved)
+    return reply(
+      `Spotify did not confirm "${describe(unresolved, 90)}". The streamer can review it in Song Request.`,
+    );
   if (!owned.length) return reply("You have no pending song requests.");
   return reply(
     `${playing ? currentNotice + " " : ""}Your next request "${describe(owned[0].row, 90)}" is #${owned[0].position} in the request queue (${owned[0].position - 1} ahead; ${timing[owned[0].position - 1]})${owned.length > 1 ? `; ${owned.length - 1} more queued` : ""}.`,
