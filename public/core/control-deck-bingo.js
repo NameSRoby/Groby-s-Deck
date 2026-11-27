@@ -1,4 +1,5 @@
 /** One tile per saved overlay square. All edits go through the overlay game owner. */
+/* global boardImageTint */
 export function createDeckBingo({
   host,
   workspace,
@@ -190,6 +191,7 @@ export function createDeckBingo({
               mode: board.markMode,
               color: board.markColor,
               opacity: board.markOpacity,
+              tintTarget: board.markTintTarget,
               symbol: board.markSymbol,
               symbolColor: board.markSymbolColor,
             }
@@ -206,7 +208,8 @@ export function createDeckBingo({
           transform: `rotate(${cell.rotation}deg)`,
         });
       else button.removeAttribute("style");
-      if (["color", "both"].includes(style.mode)) {
+      image.style.filter = boardImageTint(style);
+      if (style.tintTarget !== "image" && ["color", "both"].includes(style.mode)) {
         button.style.setProperty("--board-mark-color", style.color);
         button.style.setProperty("--board-mark-opacity", (style.opacity ?? 100) / 100);
       } else {

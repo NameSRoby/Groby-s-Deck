@@ -596,6 +596,26 @@ globalThis.setupOverlayInspector = function (a) {
         host.insertBefore(label, host.children[firstBoardField] || null);
       }
 
+      const frame = document.createElement("fieldset");
+      frame.className = "widgetFrame";
+      const heading = document.createElement("legend");
+      heading.textContent = "Widget frame";
+      frame.append(
+        heading,
+        field("Background color", "background", "color").parentElement,
+        num("Background opacity (%)", "backgroundOpacity", 0, 100).parentElement,
+        num("Corner radius", "radius", 0, 500).parentElement,
+        num("Frame border (px)", "frameWidth", 0, 32).parentElement,
+        select("Frame border style", "frameStyle", [
+          ["solid", "Solid"],
+          ["dashed", "Dashed"],
+          ["dotted", "Dotted"],
+        ]).parentElement,
+        field("Frame border color", "frameColor", "color").parentElement,
+        num("Frame border opacity (%)", "frameOpacity", 0, 100).parentElement,
+        num("Layer opacity (%)", "opacity", 0, 100).parentElement,
+      );
+      host.append(frame);
       field("Text color", "color", "color");
       num("Font size", "fontSize", 8, 240);
       select("Font", "font", [
@@ -621,10 +641,6 @@ globalThis.setupOverlayInspector = function (a) {
         ["glow", "Soft glow"],
       ]);
       OverlayTextStyle.controls(a, w, { num, select, field });
-      field("Background color", "background", "color");
-      num("Background opacity (%)", "backgroundOpacity", 0, 100);
-      num("Corner radius", "radius", 0, 500);
-      num("Layer opacity (%)", "opacity", 0, 100);
     }
     if (tab === "position") {
       if (rows.length === 1) field("Layer name", "name");

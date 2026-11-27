@@ -549,6 +549,7 @@ module.exports = function streamOverlays({
               markSymbolColor: chosen.widget.markSymbolColor,
               markColor: chosen.widget.markColor,
               markOpacity: chosen.widget.markOpacity,
+              markTintTarget: chosen.widget.markTintTarget,
               matchBack: chosen.widget.matchBack,
               matchBackColor: chosen.widget.matchBackColor,
               showLabels: chosen.widget.showCellLabels,

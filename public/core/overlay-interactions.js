@@ -96,8 +96,7 @@ globalThis.setupOverlayInteractions = function (a) {
     }
     const widgetId = layer.dataset.widgetId;
     const multi = event.shiftKey || event.ctrlKey || event.metaKey;
-    const tile =
-      !multi && Number(event.target.closest("[data-challenge-tile]")?.dataset.challengeTile);
+    const tile = !multi && Number(event.target.closest("[data-board-tile]")?.dataset.boardTile);
     if (!a.selection.has(widgetId) || multi) a.select(widgetId, multi);
     if (!a.selection.has(layer.dataset.widgetId)) return;
     a.showSelection?.();
@@ -252,7 +251,7 @@ globalThis.setupOverlayInteractions = function (a) {
     }
     if (canvas.hasPointerCapture(current.id)) canvas.releasePointerCapture(current.id);
     if (!cancel && !current.changed && current.tile)
-      a.selectChallengeTile(current.widgetId, current.tile);
+      a.selectBoardTile(current.widgetId, current.tile);
     else a.draw();
   }
   for (const type of ["pointerup", "pointercancel", "lostpointercapture"])

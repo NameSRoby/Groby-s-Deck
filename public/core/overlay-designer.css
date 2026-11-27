@@ -267,11 +267,11 @@ h3 {
 #canvas .overlayLayer .widgetBody {
   pointer-events: none;
 }
-body:not(.previewMode) #canvas [data-challenge-tile] {
+body:not(.previewMode) #canvas [data-board-tile] {
   pointer-events: auto;
   cursor: pointer;
 }
-#canvas .selectedChallengeTile {
+#canvas .selectedBoardTile {
   outline: 4px solid #8acbff;
   outline-offset: -4px;
 }
@@ -847,6 +847,20 @@ dialog header button {
 #widgetFields > label {
   margin: 10px 0;
 }
+.widgetFrame {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+}
+.widgetFrame label,
+.widgetFrame :is(input, select) {
+  min-width: 0;
+}
 #canvasDialog {
   width: min(560px, calc(100vw - 32px));
 }
@@ -994,11 +1008,13 @@ dialog header button {
 .scheduleEntries input {
   min-width: 0;
 }
-.bingoEditor {
+.boardTileList {
   display: grid;
   gap: 4px;
+  max-height: min(32vh, 320px);
+  overflow: auto;
 }
-.bingoEditor > div,
+.boardTileList > div,
 .boardEditorTools {
   display: flex;
   align-items: center;
@@ -1029,13 +1045,20 @@ dialog header button {
 .matchPlayControls button {
   padding-inline: 0;
 }
-.bingoEditor input {
+.boardTileList input {
   flex: 1;
   min-width: 0;
   margin: 0;
   padding: 6px;
 }
-.bingoEditor button {
+.boardTileList span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.boardTileList button {
   padding-inline: 8px;
 }
 .boardImageControl img {

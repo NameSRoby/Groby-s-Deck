@@ -297,6 +297,13 @@
         host.append(node);
       }
       place(node, w);
+      const frameAlpha = Math.round((w.frameOpacity * 255) / 100)
+        .toString(16)
+        .padStart(2, "0");
+      node.style.setProperty(
+        "--widget-frame",
+        w.frameWidth ? `${w.frameWidth}px ${w.frameStyle} ${w.frameColor}${frameAlpha}` : "",
+      );
       Object.assign(node.style, {
         transform: "rotate(" + w.rotation + "deg)",
         opacity: String(w.opacity / 100),

@@ -16,6 +16,15 @@
   box-sizing: border-box;
   overflow: hidden;
 }
+.overlayLayer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--widget-frame, 0);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
 .overlayLayer .widgetBody {
   box-sizing: border-box;
   width: 100%;

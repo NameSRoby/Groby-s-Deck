@@ -19,9 +19,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyDescription("Groby’s Deck Windows runtime host")]
 [assembly: System.Reflection.AssemblyCompany("NameSRoby")]
 [assembly: System.Reflection.AssemblyProduct("Groby’s Deck")]
-[assembly: System.Reflection.AssemblyVersion("0.8.24.0")]
-[assembly: System.Reflection.AssemblyFileVersion("0.8.24.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("0.8.24")]
+[assembly: System.Reflection.AssemblyVersion("0.8.25.0")]
+[assembly: System.Reflection.AssemblyFileVersion("0.8.25.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("0.8.25")]
 
 namespace Groby.Deck.WindowsHost
 {

@@ -1,5 +1,5 @@
 /** Additional widgets render the same public document/feed in the editor and OBS. */
-/* global OverlayModel, OverlayGameRules, OverlayRecordFormat */
+/* global OverlayModel, OverlayGameRules, OverlayRecordFormat, boardImageTint */
 (() => {
   const types = new Set([
     "prediction",
@@ -444,7 +444,7 @@
     if (w.boardImage) grid.append(image(w.boardImage, w.boardImageFit, "bingoImage"));
     for (const [index, item] of board.cells.entries()) {
       const cell = el("div");
-      if (w.type === "challenge-board") cell.dataset.challengeTile = index + 1;
+      if (board.operation !== "flip") cell.dataset.boardTile = index + 1;
       cell.className =
         "bingoCell" + (item.marked ? " marked" : "") + (item.covered ? " covered" : "");
       const style = conditions.get(item.condition);
@@ -458,7 +458,7 @@
         "completed-hidden",
         w.hideCompletedTiles && item.marked && (board.operation === "flip" || !item.free),
       );
-      if (style && ["color", "both"].includes(style.mode))
+      if (style && style.tintTarget !== "image" && ["color", "both"].includes(style.mode))
         cell.style.setProperty("--cell-mark", alpha(style.color, style.opacity));
       if (board.freeform)
         Object.assign(cell.style, {
@@ -468,7 +468,11 @@
           height: item.height + "%",
           transform: `rotate(${item.rotation}deg)`,
         });
-      if (item.image) cell.append(image(item.image, w.cellImageFit, "bingoImage"));
+      if (item.image) {
+        const photo = image(item.image, w.cellImageFit, "bingoImage");
+        photo.style.filter = boardImageTint(style);
+        cell.append(photo);
+      }
       if (OverlayGameRules.showLabel(item, w.showCellLabels, board.operation === "flip")) {
         const label = el("span", item.covered ? w.matchBack : item.text);
         label.className = "bingoLabel";

@@ -1,5 +1,5 @@
 /** Editor drafts and sample events are local; Save is the only live document write. */
-/* global OverlayModel, OverlayRenderer, OverlayGameRules, setupOverlayInspector, setupOverlayInteractions, setupOverlayViewport, setupOverlayCommands, setupOverlayLivePreview, setupOverlayGameChatSettings */
+/* global OverlayModel, OverlayRenderer, OverlayGameRules, setupOverlayInspector, setupOverlayInteractions, setupOverlayViewport, setupOverlayCommands, setupOverlayLivePreview, setupOverlayGameChatSettings, setupOverlayCatalog */
 (() => {
   const $ = (id) => document.getElementById(id),
     selection = new Set();
@@ -13,15 +13,13 @@
     drawing = false,
     redrawNeeded = false;
   let doc = OverlayModel.document(),
-    catalog = [],
-    catalogReady = false,
     feed;
   const serial = () => JSON.stringify(doc),
     dirty = () => serial() !== saved;
   const a = {
     $,
     selection,
-    catalog,
+    catalog: [],
     motionReady: false,
     livePreviewReady: false,
     previewing,
@@ -52,6 +50,7 @@
   };
   const inspector = setupOverlayInspector(a);
   setupOverlayGameChatSettings(a);
+  const drawCatalog = setupOverlayCatalog(a, addWidget);
   document.addEventListener("overlay-media-error", (event) => a.notice(event.detail));
   const commands = setupOverlayCommands(a);
   a.commands = commands;
@@ -349,115 +348,31 @@
     showSettings("canvas");
     draw();
   }
-  function drawCatalog() {
-    const host = $("widgetCatalog"),
-      query = $("widgetSearch").value.toLowerCase();
-    host.replaceChildren();
-    host.scrollTop = 0;
-    let group = "";
-    const groups = [
-      "Static",
-      "Music",
-      "Labels",
-      "Twitch",
-      "Alerts",
-      "Records",
-      "Games",
-      "Tools",
-      "Custom",
-    ];
-    const selectedGroup =
-      groups.includes($("widgetGroup").value) &&
-      catalog.some((row) => row.group === $("widgetGroup").value)
-        ? $("widgetGroup").value
-        : "";
-    $("widgetGroup").replaceChildren(
-      new Option("All categories", ""),
-      ...groups
-        .filter((group) => catalog.some((row) => row.group === group))
-        .map((group) => new Option(group, group)),
-    );
-    $("widgetGroup").value = selectedGroup;
-    const choices = catalog
-      .filter(
-        (row) =>
-          (row.name + " " + row.group).toLowerCase().includes(query) &&
-          (!selectedGroup || row.group === selectedGroup),
-      )
-      .sort(
-        (a, b) => groups.indexOf(a.group) - groups.indexOf(b.group) || a.name.localeCompare(b.name),
-      );
-    for (const row of choices) {
-      if (row.group !== group) {
-        group = row.group;
-        const title = document.createElement("h3");
-        title.textContent = group;
-        host.append(title);
-      }
-      const button = document.createElement("button");
-      const name = document.createElement("span");
-      name.textContent = row.name;
-      button.append(name);
-      if (row.requirement) {
-        const hint = document.createElement("small");
-        hint.id = "widget-requirement-" + row.type;
-        hint.textContent = row.requirement;
-        button.setAttribute("aria-label", row.name);
-        button.setAttribute("aria-describedby", hint.id);
-        button.append(hint);
-      }
-      button.onclick = () => {
-        if (doc.widgets.length >= 64) return a.notice("An overlay can contain up to 64 layers.");
-        change(() => {
-          const w = OverlayModel.widget({
-            type: row.type,
-            ...(row.type === "credits" ? { creditsSource: "subscribers" } : {}),
-            ...(row.type === "challenge-board"
-              ? { challengeLayout: "grid", gridSize: 3, gridRows: 3 }
-              : {}),
-            id: globalThis.GrobyRandomId(),
-            x: Math.min(80, doc.width - row.width),
-            y: Math.min(80, doc.height - row.height),
-            width: Math.min(row.width, doc.width),
-            height: Math.min(row.height, doc.height),
-          });
-          doc.widgets.push(w);
-          selection.clear();
-          selection.add(w.id);
-        });
-        $("catalogDialog").close();
-        showSettings("widget");
-        inspector.draw();
-      };
-      host.append(button);
+  function addWidget(row) {
+    if (doc.widgets.length >= 64) {
+      a.notice("An overlay can contain up to 64 layers.");
+      return false;
     }
-    if (!choices.length) {
-      const empty = document.createElement("p");
-      empty.className = "catalogEmpty";
-      empty.textContent = !catalogReady
-        ? "Loading widgets…"
-        : query
-          ? "No matching widgets."
-          : "No widgets available.";
-      host.append(empty);
-    }
-    $("catalogHelp").textContent =
-      "You can design with sample data. Setup hints show what each live widget needs.";
+    change(() => {
+      const w = OverlayModel.widget({
+        type: row.type,
+        ...(row.type === "credits" ? { creditsSource: "subscribers" } : {}),
+        ...(row.type === "challenge-board"
+          ? { challengeLayout: "grid", gridSize: 3, gridRows: 3 }
+          : {}),
+        id: globalThis.GrobyRandomId(),
+        x: Math.min(80, doc.width - row.width),
+        y: Math.min(80, doc.height - row.height),
+        width: Math.min(row.width, doc.width),
+        height: Math.min(row.height, doc.height),
+      });
+      doc.widgets.push(w);
+      selection.clear();
+      selection.add(w.id);
+    });
+    showSettings("widget");
+    inspector.draw();
   }
-  $("add").onclick = () => {
-    drawCatalog();
-    $("catalogDialog").showModal();
-    $("widgetSearch").focus();
-    void request()
-      .then((result) => {
-        catalog = result.catalog;
-        a.catalog = catalog;
-        if ($("catalogDialog").open) drawCatalog();
-      })
-      .catch((error) => a.notice(error.message));
-  };
-  $("widgetSearch").oninput = drawCatalog;
-  $("widgetGroup").onchange = drawCatalog;
   $("canvasOptions").onclick = () => {
     syncCanvasFields();
     $("canvasDialog").showModal();
@@ -670,6 +585,22 @@
       return;
     }
     if (
+      !a.stylesReady &&
+      doc.widgets.some(
+        (w) =>
+          w.frameWidth > 0 ||
+          w.frameColor !== "#ffffff" ||
+          w.frameOpacity !== 100 ||
+          w.frameStyle !== "solid" ||
+          w.markTintTarget === "image" ||
+          w.failureCondition?.tintTarget === "image" ||
+          w.customConditions?.some((condition) => condition.tintTarget === "image"),
+      )
+    ) {
+      a.notice("Restart Core to save the new frames and tile tints. Your draft is still here.");
+      return;
+    }
+    if (
       !a.refinementsReady &&
       doc.widgets.some(
         (w) =>
@@ -794,23 +725,22 @@
     .then((result) => {
       documents = result.documents;
       revision = result.revision;
-      catalog = result.catalog;
-      a.catalog = catalog;
+      a.catalog = result.catalog;
       a.motionReady = result.presentationEffects === true;
       a.livePreviewReady = result.livePreview === true;
       a.enhancedReady = result.designerVersion >= 4;
       a.boardsReady = result.designerVersion >= 5;
       a.refinementsReady = result.designerVersion >= 6;
+      a.stylesReady = result.designerVersion >= 7;
       library();
       if (documents.length && !dirty()) void load(documents[0].id);
     })
     .catch((error) => {
-      catalog = OverlayModel.definitions;
-      a.catalog = catalog;
+      a.catalog = OverlayModel.definitions;
       a.notice(error.message);
     })
     .finally(() => {
-      catalogReady = true;
+      a.catalogReady = true;
       if ($("catalogDialog").open) drawCatalog();
     });
 })();

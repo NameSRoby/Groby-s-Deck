@@ -3,37 +3,39 @@
 globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, button, note) => {
   const selected = new WeakMap();
   let highlightedTile;
-  a.selectChallengeTile = (id, tile) => {
+  function selectTile(board, tile) {
+    selected.set(board, tile);
+    a.draw();
+    host.querySelector("[data-selected-board-tile]")?.scrollIntoView({ block: "nearest" });
+  }
+  a.selectBoardTile = (id, tile) => {
     const board = a.doc.widgets.find((w) => w.id === id);
     if (!board) return;
-    selected.set(board, tile);
     a.selection.clear();
     a.selection.add(id);
     a.showSelection();
     a.showInspectorSection("content", false);
-    a.draw();
-    host.querySelector("#selectedChallengeTile")?.scrollIntoView({ block: "center" });
+    selectTile(board, tile);
   };
   a.renderTileSelection = () => {
     const board = a.selection.size === 1 && a.selected()[0];
-    const tile =
-      board?.type === "challenge-board" &&
-      Math.min(selected.get(board) || 1, OverlayGameRules.challengeCount(board));
+    const counts = {
+      bingo: OverlayGameRules.bingoLayout,
+      "challenge-board": (w) => ({ count: OverlayGameRules.challengeCount(w) }),
+    };
+    const count = counts[board?.type]?.(board).count;
+    const tile = count && Math.min(selected.get(board) || 1, count);
     const next =
       !a.previewing && tile
         ? a
             .$("canvas")
             .querySelector(
-              '[data-widget-id="' +
-                CSS.escape(board.id) +
-                '"] [data-challenge-tile="' +
-                tile +
-                '"]',
+              '[data-widget-id="' + CSS.escape(board.id) + '"] [data-board-tile="' + tile + '"]',
             )
         : null;
     if (highlightedTile === next) return;
-    highlightedTile?.classList.remove("selectedChallengeTile");
-    next?.classList.add("selectedChallengeTile");
+    highlightedTile?.classList.remove("selectedBoardTile");
+    next?.classList.add("selectedBoardTile");
     highlightedTile = next;
   };
   const pageSize = 24;
@@ -70,74 +72,57 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     block.append(el("h3", title), ...Array.from(host.children).slice(start));
     host.append(block);
   }
-  const { style, hideLabel, labelPosition } = OverlayBoardStyle(
+  const { style, hideLabel, labelPosition, setImage, imageControl } = OverlayBoardStyle(
     a,
     { host, num, select, field },
     { group, details, el, labeled },
   );
-  function imageControl(parent, w, title, read, write) {
-    const box = el("div");
-    box.className = "boardImageControl";
-    parent.append(box);
-    const upload = el("input"),
-      url = el("input"),
-      thumbnail = el("img"),
-      remove = el("button", "Remove image");
-    thumbnail.alt = "";
-    upload.type = "file";
-    upload.accept = "image/png,image/jpeg,image/webp,image/gif";
-    remove.type = "button";
-    box.append(thumbnail);
-    labeled(title, upload, box);
-    box.append(remove);
-    const link = el("details");
-    link.append(el("summary", "Use an image URL"));
-    labeled(title + " URL", url, link);
-    url.placeholder = "https://";
-    box.append(link);
-    const update = () => {
-      const current = read() || "";
-      url.value = current;
-      thumbnail.hidden = remove.hidden = !current;
-      if (current) thumbnail.src = current;
-      else thumbnail.removeAttribute("src");
+  function tileImage(w, read, write) {
+    const upload = imageControl(host, w, "Tile image", read, write);
+    upload.dataset.boardTileUpload = "";
+  }
+  function quickImage(w, number, kind) {
+    const pick = el("button", "Image");
+    pick.type = "button";
+    pick.setAttribute("aria-label", "Image for " + kind + " " + number);
+    pick.onclick = () => {
+      selectTile(w, number);
+      host.querySelector("[data-board-tile-upload]")?.click();
     };
-    const set = (value) => {
-      a.change(() => write(value), false);
-      update();
+    return pick;
+  }
+  function tileList(count, active, rowAt) {
+    const list = el("div");
+    list.className = "boardTileList";
+    const nav = el("div");
+    nav.className = "boardEditorTools";
+    const previous = el("button", "Previous squares"),
+      next = el("button", "Next squares"),
+      range = el("span");
+    previous.type = next.type = "button";
+    nav.append(previous, range, next);
+    nav.hidden = count <= pageSize;
+    host.append(nav, list);
+    let start = Math.floor((active - 1) / pageSize) * pageSize;
+    function refresh() {
+      const end = Math.min(count, start + pageSize);
+      list.replaceChildren();
+      for (let i = start; i < end; i++) list.append(rowAt(i));
+      list.scrollTop = 0;
+      previous.disabled = !start;
+      next.disabled = end === count;
+      range.textContent = start + 1 + "–" + end + " of " + count;
+    }
+    previous.onclick = () => {
+      start -= pageSize;
+      refresh();
     };
-    url.oninput = () => url.setCustomValidity("");
-    url.onchange = () => {
-      const value = OverlayModel.imageUrl(url.value.trim());
-      if (!value && url.value.trim()) {
-        url.setCustomValidity("Enter an HTTPS image URL.");
-        url.reportValidity();
-      } else set(value);
+    next.onclick = () => {
+      start += pageSize;
+      refresh();
     };
-    remove.onclick = () => {
-      url.setCustomValidity("");
-      set("");
-    };
-    upload.onchange = async () => {
-      if (!upload.files[0]) return;
-      upload.disabled = true;
-      try {
-        const asset = await a.request("/media", "POST", upload.files[0], {
-          "Content-Type": upload.files[0].type,
-        });
-        if (!a.doc.widgets.includes(w) || !box.isConnected)
-          throw Error("Reopen the image picker for this square.");
-        if (!OverlayModel.imageUrl(asset.url))
-          throw Error("Choose a PNG, JPEG, WebP or GIF image.");
-        set(asset.url);
-      } catch (error) {
-        a.notice(error.message);
-      } finally {
-        upload.disabled = false;
-        upload.value = "";
-      }
-    };
-    update();
+    refresh();
+    return refresh;
   }
   function play(w, run, count) {
     if (!count) return;
@@ -208,127 +193,79 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     const free = check("Free center square (odd-sized boards)", "freeCenter");
     section("Board setup", setupStart);
     const squaresStart = host.children.length;
-    const grid = el("div");
-    grid.className = "bingoEditor";
-    const nav = el("div");
-    nav.className = "boardEditorTools";
-    const previous = el("button", "Previous squares"),
-      next = el("button", "Next squares");
-    previous.type = next.type = "button";
-    const range = el("span");
-    nav.append(previous, range, next);
-    host.append(nav, grid);
-    let active = Math.min(selected.get(w) || 1, count),
-      start = Math.floor((active - 1) / pageSize) * pageSize;
-    function labels() {
-      const end = Math.min(count, start + pageSize);
+    const active = Math.min(selected.get(w) || 1, count);
+    const picker = numberInput(host, "Selected tile", active, 1, count);
+    picker.dataset.selectedBoardTile = "";
+    picker.onchange = () => {
+      if (!picker.reportValidity()) return;
+      selectTile(w, picker.valueAsNumber);
+      host.querySelector("[data-selected-board-tile]").focus();
+    };
+    const index = active - 1;
+    tileImage(
+      w,
+      () => w.boardImages[index],
+      (url) => {
+        if (url) w.boardImages[index] = url;
+        else delete w.boardImages[index];
+      },
+    );
+    labelPosition(host, "Selected tile label position", w.boardLabelPositions[index], (value) => {
+      if (value) w.boardLabelPositions[index] = value;
+      else delete w.boardLabelPositions[index];
+    });
+    const labels = tileList(count, active, (i) => {
       const center = OverlayGameRules.bingoLayout(w).center;
-      grid.replaceChildren();
-      for (let i = start; i < end; i++) {
-        const line = el("div"),
-          cell = el("input"),
-          pick = el("button", "Image"),
-          visibility = el("button"),
-          mark = el("button", "✓");
-        cell.value = i === center ? "FREE" : w.items[i] || "";
-        cell.disabled = i === center;
-        cell.placeholder = "Square " + (i + 1);
-        cell.maxLength = 200;
-        cell.setAttribute("aria-label", "Bingo text " + (i + 1));
-        const updateVisibility = () => {
-          const hidden = Boolean(w.boardHiddenLabels[i]);
-          visibility.textContent = hidden ? "Show" : "Hide";
-          visibility.setAttribute(
-            "aria-label",
-            (hidden ? "Show" : "Hide") + " label for square " + (i + 1),
-          );
-        };
-        cell.onchange = () => {
-          a.change(() => {
-            while (w.items.length <= i) w.items.push("");
-            w.items[i] = cell.value;
-            if (!cell.value.trim()) w.boardHiddenLabels[i] = true;
-          }, false);
-          updateVisibility();
-        };
-        pick.type = "button";
-        pick.setAttribute("aria-label", "Image for square " + (i + 1));
-        pick.onclick = () => openImage(i + 1, true);
-        visibility.type = "button";
-        visibility.disabled = i === center;
-        visibility.onclick = () => {
-          a.change(() => {
-            if (w.boardHiddenLabels[i]) delete w.boardHiddenLabels[i];
-            else w.boardHiddenLabels[i] = true;
-          }, false);
-          updateVisibility();
-        };
+      const line = el("div"),
+        cell = el("input"),
+        pick = quickImage(w, i + 1, "square"),
+        visibility = el("button"),
+        mark = el("button", "✓");
+      cell.value = i === center ? "FREE" : w.items[i] || "";
+      cell.disabled = i === center;
+      cell.placeholder = "Square " + (i + 1);
+      cell.maxLength = 200;
+      cell.setAttribute("aria-label", "Bingo text " + (i + 1));
+      const updateVisibility = () => {
+        const hidden = Boolean(w.boardHiddenLabels[i]);
+        visibility.textContent = hidden ? "Show" : "Hide";
+        visibility.setAttribute(
+          "aria-label",
+          (hidden ? "Show" : "Hide") + " label for square " + (i + 1),
+        );
+      };
+      cell.onchange = () => {
+        a.change(() => {
+          while (w.items.length <= i) w.items.push("");
+          w.items[i] = cell.value;
+          if (!cell.value.trim()) w.boardHiddenLabels[i] = true;
+        }, false);
         updateVisibility();
-        mark.type = "button";
-        mark.disabled = i === center;
-        mark.title = "Toggle square " + (i + 1);
-        mark.setAttribute("aria-label", mark.title);
-        mark.onclick = () =>
-          void run("mark", { cell: i + 1 }).catch((error) => a.notice(error.message));
-        line.append(cell, pick, visibility, mark);
-        grid.append(line);
-      }
-      previous.disabled = !start;
-      next.disabled = end === count;
-      range.textContent = start + 1 + "–" + end + " of " + count;
-    }
-    previous.onclick = () => {
-      start -= pageSize;
-      labels();
-    };
-    next.onclick = () => {
-      start += pageSize;
-      labels();
-    };
-    nav.hidden = count <= pageSize;
+      };
+      visibility.type = "button";
+      visibility.disabled = i === center;
+      visibility.onclick = () => {
+        a.change(() => {
+          if (w.boardHiddenLabels[i]) delete w.boardHiddenLabels[i];
+          else w.boardHiddenLabels[i] = true;
+        }, false);
+        updateVisibility();
+      };
+      updateVisibility();
+      mark.type = "button";
+      mark.disabled = i === center;
+      mark.title = "Toggle square " + (i + 1);
+      mark.setAttribute("aria-label", mark.title);
+      mark.onclick = () =>
+        void run("mark", { cell: i + 1 }).catch((error) => a.notice(error.message));
+      line.append(cell, pick, visibility, mark);
+      return line;
+    });
     const freeChange = free.onchange;
     free.onchange = () => {
       freeChange();
       labels();
     };
-    const squareImage = details("Square image");
-    const imageNumber = labeled("Square number for image", el("input"), squareImage);
-    imageNumber.type = "number";
-    imageNumber.min = 1;
-    imageNumber.max = count;
-    imageNumber.required = true;
-    const picker = el("div");
-    squareImage.append(picker);
-    function openImage(value, reveal) {
-      active = value;
-      selected.set(w, active);
-      imageNumber.value = active;
-      picker.replaceChildren();
-      const index = active - 1;
-      imageControl(
-        picker,
-        w,
-        "Square " + active + " image",
-        () => w.boardImages[index],
-        (url) => {
-          if (url) w.boardImages[index] = url;
-          else delete w.boardImages[index];
-        },
-      );
-      labelPosition(picker, "Square label position", w.boardLabelPositions[index], (value) => {
-        if (value) w.boardLabelPositions[index] = value;
-        else delete w.boardLabelPositions[index];
-      });
-      if (reveal) {
-        squareImage.open = true;
-        picker.querySelector('input[type="file"]').click();
-      }
-    }
-    imageNumber.onchange = () => {
-      if (imageNumber.reportValidity()) openImage(Number(imageNumber.value));
-    };
-    labels();
-    openImage(active);
     const bulk = details("Paste square labels");
     const lines = labeled("Labels in board order, one per line", el("textarea"), bulk);
     const apply = el("button", "Replace square labels");
@@ -551,7 +488,7 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
 
     const node = nodes[active - 1];
     const tiles = labeled("Selected tile", el("select"));
-    tiles.id = "selectedChallengeTile";
+    tiles.dataset.selectedBoardTile = "";
     shown.forEach((item, index) => tiles.add(new Option(title(item, index), index + 1)));
     tiles.value = active;
     tiles.onchange = () => choose(tiles.selectedIndex, false);
@@ -585,10 +522,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         node.querySelector(".challengeCaption").textContent =
           label;
     };
-    imageControl(
-      host,
+    tileImage(
       w,
-      "Tile image",
       () => tile.image,
       (url) => {
         tile.image = url;
@@ -668,13 +603,16 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
         ? "Drag the selected tile’s corner to resize it."
         : "Drag tiles to move them. Drag the selected tile’s corner to resize it.",
     );
+    const imageList = details("Tile image list");
+    const listStart = host.children.length;
+    tileList(count, active, (index) => {
+      const row = el("div");
+      row.append(el("span", title(shown[index], index)), quickImage(w, index + 1, "tile"));
+      return row;
+    });
+    imageList.append(...Array.from(host.children).slice(listStart));
     section("Edit tiles", tilesStart);
     return background;
-  }
-  function setImage(image, url) {
-    image.hidden = !url;
-    if (url) image.src = url;
-    else image.removeAttribute("src");
   }
   function match(w, setupStart) {
     num("Columns", "matchColumns", 2, 12);

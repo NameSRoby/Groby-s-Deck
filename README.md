@@ -196,6 +196,12 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.25
+
+- Game board color overlays can cover the whole tile or tint only the visible image pixels. Tint opacity and symbol color are independent.
+- Bingo and Challenge use the same tile image editor. Click a tile on the canvas or use the image shortcut in the tile list.
+- Every overlay widget has an adjustable frame with border style, width, color and opacity. Find widgets by multiple search words and add them from the keyboard.
+
 ## What's new in 0.8.24
 
 - Game boards support color and opacity for tile outcomes, a symbol library, and labels above, below, or inside tiles.
