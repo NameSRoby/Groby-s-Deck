@@ -472,6 +472,15 @@ test("board designer saves images, custom marks, announcements and freeform geom
   };
   await add("Bingo board");
   await page.getByLabel("Board size").selectOption("2");
+  const bingoName = page.getByLabel("Bingo text 1", { exact: true });
+  await bingoName.fill("Opening square");
+  await bingoName.press("Tab");
+  await page.getByRole("button", { name: "Hide label for square 1" }).click();
+  const blankBingo = page.getByLabel("Bingo text 2", { exact: true });
+  await blankBingo.fill("Temporary name");
+  await blankBingo.press("Tab");
+  await blankBingo.clear();
+  await blankBingo.press("Tab");
   await page.getByText("Board background image", { exact: true }).click();
   const image = await upload("Board image");
   await page.getByText("Square image", { exact: true }).click();
@@ -489,6 +498,15 @@ test("board designer saves images, custom marks, announcements and freeform geom
   await page.getByLabel("Tile layout").selectOption("freeform");
   await page.getByLabel("Tile label", { exact: true }).fill("First hero");
   await page.getByLabel("Tile label", { exact: true }).press("Tab");
+  await page.getByLabel("Hide label on board", { exact: true }).check();
+  assert.equal(await page.getByLabel("Tile label", { exact: true }).inputValue(), "First hero");
+  assert.equal(
+    await page
+      .locator("#widgetFields > section > h3")
+      .allTextContents()
+      .then((text) => text.join(" / ")),
+    "Board setup / Edit tiles",
+  );
   await page.getByText("Tile placement", { exact: true }).click();
   for (const [label, value] of [
     ["Left (%)", "34"],
@@ -503,6 +521,13 @@ test("board designer saves images, custom marks, announcements and freeform geom
   await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
   const [doc] = service.store.snapshot().documents;
   const [bingo, challenge] = doc.widgets;
+  assert.deepEqual(bingo.boardHiddenLabels, { 0: true, 1: true });
+  assert.equal(challenge.tiles[0].labelHidden, true);
+  assert.equal(challenge.tiles[0].text, "First hero");
+  assert.equal(
+    service.bingoDeck({ documentId: doc.id, widgetId: challenge.id }).board.cells[0].text,
+    "First hero",
+  );
   for (const [widgetId, cell] of [
     [bingo.id, 1],
     [bingo.id, 2],
@@ -516,8 +541,25 @@ test("board designer saves images, custom marks, announcements and freeform geom
     assert.equal(await view.locator(".extra-bingo .bingoSymbol").first().textContent(), "★");
     assert.equal(await view.locator(".extra-bingo .bingoGrid > img").getAttribute("src"), image);
     assert.equal(await view.locator(".extra-bingo .bingoCell img").getAttribute("src"), square);
+    assert.equal(
+      await view
+        .locator(".extra-bingo .bingoCell")
+        .nth(0)
+        .locator("span:not(.bingoSymbol)")
+        .count(),
+      0,
+    );
+    assert.equal(
+      await view
+        .locator(".extra-bingo .bingoCell")
+        .nth(1)
+        .locator("span:not(.bingoSymbol)")
+        .count(),
+      0,
+    );
     const tile = view.locator(".extra-challenge-board .bingoCell.marked");
     assert.equal(await tile.locator("img").getAttribute("src"), tileImage);
+    assert.equal(await tile.locator("span:not(.bingoSymbol)").count(), 0);
     assert.deepEqual(
       await tile.evaluate((node) => [node.style.left, node.style.width, node.style.transform]),
       ["34%", "45%", "rotate(-22deg)"],
@@ -553,6 +595,7 @@ test("Tile Match pairs can be edited and tried in the designer without changing 
   await page.getByText("Moon", { exact: true }).click();
   await page.getByLabel("Pair 1 label").fill("Night");
   await page.getByLabel("Pair 1 label").press("Tab");
+  await page.getByLabel("Hide label on board", { exact: true }).first().check();
   assert.equal(await page.locator("#canvas .bingoCell.covered").count(), 12);
   await page.getByRole("button", { name: "Flip tile 1", exact: true }).click();
   assert.equal(await page.locator("#canvas .bingoCell.covered").count(), 11);
@@ -561,6 +604,7 @@ test("Tile Match pairs can be edited and tried in the designer without changing 
   await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
   const [doc] = service.store.snapshot().documents;
   assert.equal(doc.widgets[0].matchPairs[0].text, "Night");
+  assert.equal(doc.widgets[0].matchPairs[0].labelHidden, true);
   assert.equal(
     service.bingoDeck({ documentId: doc.id }).board.cells.filter((cell) => cell.covered).length,
     12,

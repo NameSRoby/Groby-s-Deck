@@ -57,6 +57,7 @@
       cells: Array.from({ length: count }, (_, index) => ({
         text: index === center ? "FREE" : w.items[index] || "Square " + (index + 1),
         image: w.boardImages[index] || "",
+        ...(index !== center && w.boardHiddenLabels?.[index] ? { labelHidden: true } : {}),
         marked: marked.has(index),
         free: index === center,
       })),
@@ -88,12 +89,18 @@
         return {
           text: pair ? pair.text || "Pair " + (faces[index] + 1) : "Tile " + (index + 1),
           image: pair?.image || "",
+          ...(pair?.labelHidden ? { labelHidden: true } : {}),
           marked: marked.has(index),
           covered: !pair,
           free: Boolean(pair),
         };
       }),
     };
+  }
+  function showLabel(cell, showLabels, isMatch) {
+    return (
+      cell.covered || (!cell.labelHidden && (showLabels !== false || (isMatch && !cell.image)))
+    );
   }
   const challengeCount = (w) =>
     w.challengeLayout === "grid" ? w.gridSize * w.gridRows : w.tiles.length;
@@ -238,6 +245,7 @@
     signature,
     control,
     bingoLayout,
+    showLabel,
     bingoBoard,
     challengeCount,
     challengeGeometry,

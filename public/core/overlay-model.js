@@ -110,6 +110,7 @@
         id: /^[a-zA-Z0-9-]{1,80}$/.test(pair?.id || "") ? pair.id : "pair-" + index,
         text: text(pair?.text, 80),
         image: imageUrl(pair?.image),
+        ...(pair?.labelHidden === true ? { labelHidden: true } : {}),
       }));
     if (new Set(pairs.map((pair) => pair.id)).size !== pairs.length)
       throw Error("Each matching pair needs a unique ID.");
@@ -127,10 +128,15 @@
     const columns = Math.round(number(raw.gridSize, 1, boardLimit, challenge ? 4 : 5));
     const rows = Math.round(number(raw.gridRows, 0, Math.floor(boardLimit / columns), 0));
     const images = {};
+    const hiddenLabels = {};
     for (const [index, value] of Object.entries(raw.boardImages || {})) {
       if (!/^(0|[1-9]\d*)$/.test(index) || Number(index) >= boardLimit) continue;
       const url = imageUrl(value);
       if (url) images[index] = url;
+    }
+    for (const [index, value] of Object.entries(raw.boardHiddenLabels || {})) {
+      if (/^(0|[1-9]\d*)$/.test(index) && Number(index) < boardLimit && value === true)
+        hiddenLabels[index] = true;
     }
     const tiles = [];
     const seen = new Set();
@@ -144,6 +150,7 @@
         id,
         text: text(tile?.text, 200),
         image: imageUrl(tile?.image),
+        ...(tile?.labelHidden === true ? { labelHidden: true } : {}),
         x: number(tile?.x, 0, 100, 0),
         y: number(tile?.y, 0, 100, 0),
         width: number(tile?.width, 0.1, 100, 25),
@@ -174,6 +181,7 @@
       boardImage: imageUrl(raw.boardImage),
       boardImageFit: raw.boardImageFit === "contain" ? "contain" : "cover",
       boardImages: images,
+      ...(raw.type === "bingo" ? { boardHiddenLabels: hiddenLabels } : {}),
       tiles,
       cellImageFit: raw.cellImageFit === "contain" ? "contain" : "cover",
       showCellLabels: raw.showCellLabels !== false,

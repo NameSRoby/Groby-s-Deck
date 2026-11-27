@@ -9,6 +9,7 @@
   "windows-media-observer.test.js",
   "windows-dpapi.test.js",
   "core-update.service.test.js",
+  "windows-core-update.integration.test.js",
   "security-patches.http.test.js",
   "overlay-media-security.test.js",
   "local-route-limits.http.test.js",

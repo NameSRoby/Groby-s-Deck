@@ -442,9 +442,8 @@
           transform: `rotate(${item.rotation}deg)`,
         });
       if (item.image) cell.append(image(item.image, w.cellImageFit, "bingoImage"));
-      if (item.covered) cell.append(el("span", w.matchBack));
-      else if (w.showCellLabels || (!item.image && board.operation === "flip"))
-        cell.append(el("span", item.text));
+      if (OverlayGameRules.showLabel(item, w.showCellLabels, board.operation === "flip"))
+        cell.append(el("span", item.covered ? w.matchBack : item.text));
       if (item.marked && w.markMode !== "color") {
         const symbol = el("span", w.markSymbol);
         symbol.className = "bingoSymbol";

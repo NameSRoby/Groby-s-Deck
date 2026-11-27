@@ -7,6 +7,7 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
   const check = byId("checkForUpdate");
   const download = byId("downloadUpdate");
   const install = byId("applyUpdate");
+  const installer = byId("updateInstaller");
   const rollback = byId("rollbackUpdate");
   let current;
   let busy = false;
@@ -26,13 +27,20 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
     const locked = busy || working();
     check.disabled = locked;
     checkOnLaunch.disabled = locked || !current;
-    install.hidden = !(current?.hosted && current.staged?.verified);
+    install.hidden = !(current?.canRestart && current.staged?.verified);
     install.disabled = locked;
     download.hidden =
-      !current?.latest?.available || current.staged?.version === current.latest.version;
+      !current?.canRestart ||
+      !current?.latest?.available ||
+      current.staged?.version === current.latest.version;
     download.disabled = locked;
-    download.textContent = current?.hosted ? "Download and restart" : "Download update";
-    rollback.disabled = locked || !current?.hosted || !current.rollback;
+    installer.hidden =
+      locked ||
+      !current ||
+      (current.canRestart && !["failed", "rolled-back"].includes(current.operation?.phase));
+    installer.href =
+      current?.latest?.installerUrl || "https://github.com/NameSRoby/Groby-s-Deck/releases/latest";
+    rollback.disabled = locked || !current?.canRestart || !current.rollback;
   }
 
   function message(title, text, failed = false) {
@@ -66,12 +74,17 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
     } else if (phase === "preparing") {
       message(
         "Preparing",
-        "Checking the update files. You can keep using the app while this finishes.",
+        "Unpacking the verified update and backing up your version. The app will restart when ready.",
       );
     } else if (value.downloading) {
       message("Downloading", "Downloading the release and verifying its checksum…");
     } else if (value.checking) {
       message("Checking", "Checking for stable releases…");
+    } else if (value.hosted && !value.canRestart) {
+      message(
+        "Launcher update required",
+        "Run the Windows installer in your existing installation folder to update the launcher and keep your settings.",
+      );
     } else if (phase === "failed" || phase === "rolled-back") {
       message(
         phase === "rolled-back" ? "Previous version restored" : "Update failed",
@@ -90,7 +103,7 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
         "Version " +
           value.staged.version +
           " is verified. " +
-          (value.hosted ? "Restart to install it." : "Open the Windows desktop app to install it."),
+          (value.canRestart ? "Restart to install it." : "Use the Windows installer to update."),
       );
     } else if (value.latest?.available) {
       message("Update available", "Version " + value.latest.version + " is ready to download.");
@@ -180,7 +193,7 @@ globalThis.initCoreUpdates = ({ byId, request }) => {
     run(
       async () => {
         const staged = await post("download");
-        if (!staged.hosted) return staged;
+        if (!staged.canRestart) return staged;
         render(staged);
         message("Preparing", "Preparing to install the verified update…");
         return post("apply");

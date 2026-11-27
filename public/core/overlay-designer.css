@@ -1017,6 +1017,9 @@ dialog header button {
 .boardSettings > summary {
   cursor: pointer;
 }
+.boardSettings > h3 {
+  margin: 0 0 8px;
+}
 .matchPlayControls {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -196,6 +196,11 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.23
+
+- Core Updates checks that the Windows launcher supports restarting into a new release. Older launchers can be upgraded in place with the Windows installer.
+- Game boards support blank tiles and custom names that stay off the board. The designer groups board setup, tile editing, appearance and testing.
+
 ## What's new in 0.8.22
 
 - Spotify queue replies show known requests while other deliveries are pending. Numbered commands follow the displayed queue, and skip targets the current song.

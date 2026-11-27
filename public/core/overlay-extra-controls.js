@@ -154,12 +154,13 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
         "Viewers type the command and a choice number, for example !vote 2. One vote per Twitch user, up to 20,000 voters. App-sent replies never vote.",
       );
     }
-    if (OverlayGameRules.boardTypes.includes(w.type)) board.content(w, run);
-    b("Reset game", "reset");
-    host.append(controls);
-    note(
-      "Data: Sample tests locally. Data: Live controls the saved overlay. Save edited choices before running a live game. The same controls are available under Overlay games in the action builder.",
-    );
+    const finish = () => {
+      b("Reset game", "reset");
+      host.append(controls);
+      note("Sample tests the draft. Live controls the saved overlay.");
+    };
+    if (OverlayGameRules.boardTypes.includes(w.type)) board.content(w, run, finish);
+    else finish();
   }
   return {
     content(w) {

@@ -19,9 +19,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyDescription("Groby’s Deck Windows runtime host")]
 [assembly: System.Reflection.AssemblyCompany("NameSRoby")]
 [assembly: System.Reflection.AssemblyProduct("Groby’s Deck")]
-[assembly: System.Reflection.AssemblyVersion("0.8.22.0")]
-[assembly: System.Reflection.AssemblyFileVersion("0.8.22.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("0.8.22")]
+[assembly: System.Reflection.AssemblyVersion("0.8.23.0")]
+[assembly: System.Reflection.AssemblyFileVersion("0.8.23.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("0.8.23")]
 
 namespace Groby.Deck.WindowsHost
 {
@@ -224,6 +224,7 @@ namespace Groby.Deck.WindowsHost
                 start.EnvironmentVariables["PORT"] = port.ToString();
                 start.EnvironmentVariables["HOST"] = "127.0.0.1";
                 start.EnvironmentVariables["RAVELINK_WINDOWS_HOST"] = "1";
+                start.EnvironmentVariables["RAVELINK_WINDOWS_UPDATE_PROTOCOL"] = "1";
                 start.EnvironmentVariables["RAVELINK_HOST_PID"] = Process.GetCurrentProcess().Id.ToString();
                 server = new Process { StartInfo = start, EnableRaisingEvents = true };
                 server.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) HostLog.Write(root, e.Data); };
