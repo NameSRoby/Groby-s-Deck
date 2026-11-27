@@ -82,10 +82,9 @@ module.exports = function createExperimentalTidal({
   async function handle(method, payload = {}) {
     if (method === "moderate") {
       if (moderating) return { ok: false, code: "rejected", reason: "tidal_moderation_busy" };
-      const waiting = entries();
       moderating = true;
       try {
-        return await moderate(payload, waiting);
+        return await moderate(payload);
       } finally {
         moderating = false;
         delivery.trigger();

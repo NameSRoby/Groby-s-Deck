@@ -10,7 +10,10 @@ module.exports = function createTidalModeration({
   waitForDelivery,
   providerName = "tidal",
 }) {
-  return async function moderate(payload, waiting) {
+  return async function moderate(payload) {
+    // A handoff may settle after a command chooses a request. Read its local and
+    // native state after the in-flight delivery drains to keep the target stable.
+    await waitForDelivery();
     let status;
     try {
       status = await provider("status", null);
@@ -23,14 +26,17 @@ module.exports = function createTidalModeration({
         code: "rejected",
         reason: providerName + "_current_changed",
       };
+    const local = require("./chat-queue-view")
+      .queueView(queue, providerName)
+      .rows.find((row) => row.id === payload.entryId);
     const entry =
-      waiting.find((row) => row.id === payload.entryId) ||
+      local ||
       status?.handoffs?.find((row) => row.entryId === payload.entryId) ||
       (payload.currentUid ? status?.current : null);
     const action = payload.action,
       trackId = entry?.candidate?.providerItemId || entry?.trackId || payload.providerItemId;
     let result;
-    if (["remove", "skip"].includes(action) && !waiting.some((row) => row.id === payload.entryId)) {
+    if (["remove", "skip"].includes(action) && !local) {
       result = entry
         ? { ok: true, code: "removed", entryId: payload.entryId }
         : { ok: false, code: "rejected", reason: "entry_not_found" };
@@ -45,9 +51,7 @@ module.exports = function createTidalModeration({
     changed(result);
     if (!["remove", "skip", "block_song", "timeout_song", "block", "timeout"].includes(action))
       return result;
-    // Block admission locally first, drain an already dispatched insertion, then
-    // remove only matching recorded native UIDs. Never clear the user's playlist.
-    await waitForDelivery();
+    // Only remove matching recorded native occurrences.
     const selection = ["block", "timeout"].includes(action)
       ? { requesterKey: payload.requesterKey }
       : ["block_song", "timeout_song"].includes(action)
@@ -56,8 +60,15 @@ module.exports = function createTidalModeration({
             ...(payload.currentUid ? { currentUid: payload.currentUid } : {}),
           }
         : payload.currentUid
-          ? { currentUid: payload.currentUid, trackId }
-          : { entryId: payload.entryId };
+          ? {
+              currentUid: payload.currentUid,
+              trackId,
+              ...(payload.entryId ? { entryId: payload.entryId } : {}),
+            }
+          : {
+              entryId: payload.entryId,
+              ...(action === "remove" && providerName === "spotify" ? { queuedOnly: true } : {}),
+            };
     if (!Object.values(selection).some(Boolean)) return result;
     let removal;
     try {
@@ -75,16 +86,18 @@ module.exports = function createTidalModeration({
             : row.requesterKey === selection.requesterKey),
     );
     if (
-      !removal?.ok &&
-      (native ||
-        payload.currentUid ||
-        (entry && !waiting.some((row) => row.id === payload.entryId)))
-    )
+      !(removal?.ok && (removal.removed > 0 || removal.skipped === true)) &&
+      (native || payload.currentUid || (entry && !local))
+    ) {
+      const nativeError = removal?.error || providerName + "_remove_unconfirmed";
+      if (["skip", "remove"].includes(action))
+        return { ok: false, code: "rejected", reason: nativeError };
       return {
         ...result,
         code: providerName + "_moderation_partial",
-        nativeError: removal?.error || providerName + "_remove_unconfirmed",
+        nativeError,
       };
+    }
     changed(result);
     return {
       ...result,

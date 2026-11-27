@@ -9,7 +9,7 @@ const { text, integer } = require("./normalized-values");
 const crypto = require("node:crypto");
 const { DEFAULT_OVERLAY, OVERLAY_BLOCK_KINDS } = require("./overlay-config");
 const { createOverlayProfiles } = require("./overlay-profiles");
-const { RESPONSE_KINDS } = require("./chat-responses");
+const { RESPONSE_KINDS, responseDefaults } = require("./chat-responses");
 const { DEFAULT_CATALOG_POLICY, catalogPolicyFrom } = require("./catalog-policy");
 const requesterRestrictions = require("./requester-restrictions");
 const { requesterKey, requesterRole } = require("./requester-identity");
@@ -105,7 +105,7 @@ function createSongQueue(options = {}) {
   let volume = 100;
   let volumeFloorPercent = 0;
   let volumeCeilingPercent = 40;
-  let responses = Object.fromEntries(RESPONSE_KINDS.map((kind) => [kind, false]));
+  const responses = responseDefaults();
   let catalogPolicy = catalogPolicyFrom();
   let playbackRevision = 0;
   const overlayProfiles = createOverlayProfiles({ now, text });
@@ -612,7 +612,7 @@ function createSongQueue(options = {}) {
     rememberRequester(requester, entry.requesterLabel, role);
     return response(true, "accepted", {
       entry: publicState({ offset: queue.length - 1 }).queue.at(-1),
-      position: queue.length,
+      position: require("./chat-queue-view").managedPosition(queue, entry, managedPlayback),
       preemptedPlaylist,
     });
   }

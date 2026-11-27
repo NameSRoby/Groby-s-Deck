@@ -130,10 +130,10 @@ module.exports = function createSpotifyPlayer({
       return result;
     }
     if (method === "moderate") {
-      const waiting = entries();
+      if (moderating) return { ok: false, code: "rejected", reason: "player_control_busy" };
       moderating = true;
       try {
-        return await moderate(payload, waiting);
+        return await moderate(payload);
       } finally {
         moderating = false;
         trigger();

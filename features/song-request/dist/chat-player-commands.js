@@ -4,6 +4,13 @@
  * track ID. Ambiguous titles fail without modifying any queue.
  */
 const crypto = require("node:crypto");
+const {
+  queueView,
+  currentReceipt,
+  managedCurrent,
+  rowId,
+  nativeReady,
+} = require("./chat-queue-view");
 const fail = (reason) => ({ ok: false, code: "rejected", reason });
 const text = (value) =>
   String(value || "")
@@ -100,50 +107,28 @@ module.exports = function chatPlayerCommands({
           return finish(
             reply.ok
               ? { ok: true, code: "playback_" + action, playbackControl: action }
-              : fail(reply.error || "player_control_unavailable"),
+              : fail(reply.error || reply.reason || "player_control_unavailable"),
           );
         }
         return finish(queue.controlPlayback({ action }));
       }
-      const local = [];
-      const first = queue.status({ limit: 25 });
-      for (let offset = 0; offset < Math.min(200, first.counts.queued); offset += 25)
-        local.push(...queue.status({ offset, limit: 25 }).queue);
-      let status = null;
-      if (native) status = await player("status", null);
-      const managed = queue.playbackStatus().managed;
-      const currentId = native
-        ? status?.current?.entryId
-        : action === "remove" && !managed?.started && managed?.status !== "playing"
-          ? ""
-          : managed?.entryId;
-      const receipts = native
-        ? (status?.handoffs || []).filter((r) =>
-            ["appended", "playing", "pending", "unknown"].includes(r.phase),
-          )
-        : [];
-      const rows = [
-        ...new Map(
-          [
-            ...(!native && managed?.origin === "playlist"
-              ? [{ ...managed, id: managed.entryId }]
-              : []),
-            ...receipts,
-            ...local,
-          ].map((r) => [
-            r.entryId || r.id,
-            {
-              ...r,
-              id: r.entryId || r.id,
-              candidate: r.candidate || {
-                provider: selected.player,
-                title: r.title || "",
-                providerItemId: r.trackId,
-              },
-            },
-          ]),
-        ).values(),
-      ].filter((r) => r.candidate.provider === selected.player);
+      const status = native ? await player("status", null) : null;
+      const receipt = currentReceipt(status);
+      const playback = native ? null : queue.playbackStatus();
+      const current = native
+        ? status?.current && { ...receipt, ...status.current }
+        : managedCurrent(playback, selected.player);
+      const { rows, pending } = queueView(queue, selected.player, current?.entryId, status);
+      const normalize = (row) => ({
+        ...row,
+        id: rowId(row),
+        candidate: row.candidate || {
+          provider: selected.player,
+          title: row.title || "",
+          artists: row.artists,
+          providerItemId: row.trackId,
+        },
+      });
       const owner = self
         ? "req_" +
           crypto
@@ -151,19 +136,28 @@ module.exports = function chatPlayerCommands({
             .update(payload.requesterId || "")
             .digest("hex")
         : null;
-      let choices =
-        action === "skip"
-          ? rows.filter((r) => r.id === currentId)
-          : action === "block_song"
-            ? rows
-            : rows.filter((r) => r.id !== currentId);
+      let choices = action === "skip" ? [] : [...rows, ...pending].map(normalize);
+      if (current && action !== "remove") choices.unshift(normalize(current));
+      if (
+        action === "skip" &&
+        !self &&
+        !current &&
+        playback?.managed?.status === "loading" &&
+        playback.managed.candidate?.provider === selected.player
+      )
+        choices.push(normalize(playback.managed));
       if (self) choices = choices.filter((r) => r.requesterKey === owner);
       const query = text(payload.query);
+      const position = payload.position || (/^\d{1,3}$/.test(query) ? Number(query) : 0);
+      if (native && action === "skip" && (!status?.ok || !status.connected))
+        return { value: fail("player_control_unavailable") };
+      if (position && (pending.length || (native && !nativeReady(status))))
+        return { value: fail("queue_position_unconfirmed") };
       if (payload.entryId) {
         choices = choices.filter((r) => r.id === payload.entryId);
-      } else if (payload.position || /^\d{1,3}$/.test(query)) {
-        const entry = rows[(payload.position || Number(query)) - 1];
-        choices = choices.filter((r) => r.id === entry?.id);
+      } else if (position) {
+        const entry = rows[position - 1];
+        choices = choices.filter((r) => entry && r.id === rowId(entry));
       } else if (query) {
         const exact = choices.filter(
           (r) => text(r.candidate.title) === query || r.id === payload.query,
@@ -171,22 +165,10 @@ module.exports = function chatPlayerCommands({
         choices = exact.length
           ? exact
           : choices.filter((r) => text(r.candidate.title).includes(query));
-      } else if (action === "remove") choices = choices.slice(-1);
-      if (
-        !self &&
-        action === "skip" &&
-        native &&
-        !choices.length &&
-        !query &&
-        !payload.position &&
-        !payload.entryId
-      ) {
-        if (!status?.current?.uid) return { value: fail("entry_not_found") };
-        if (selected.player !== "tidal")
-          return finish(
-            await player("control", { action: "skip", currentUid: status.current.uid }),
-          );
-        return finish(await player("moderate", { action: "skip", currentUid: status.current.uid }));
+      } else if (action === "remove") {
+        if (choices.length > 1 && pending.length)
+          return { value: fail("queue_position_unconfirmed") };
+        choices = choices.slice(-1);
       }
       if (choices.length !== 1)
         return {
@@ -199,15 +181,22 @@ module.exports = function chatPlayerCommands({
           ),
         };
       const entry = choices[0];
-      if (native)
+      if (native) {
+        if (action === "skip" && !status.current?.uid) return { value: fail("entry_not_found") };
+        const reply =
+          action === "skip" && selected.player === "spotify"
+            ? await player("control", { action, currentUid: status.current.uid })
+            : await player("moderate", {
+                action,
+                entryId: entry.id,
+                ...(action === "skip" ? { currentUid: status.current.uid } : {}),
+              });
         return finish({
-          ...(await player("moderate", {
-            action,
-            entryId: entry.id,
-            ...(action === "skip" ? { currentUid: status.current.uid } : {}),
-          })),
+          ...reply,
+          ...(!reply.ok ? { reason: reply.reason || reply.error } : {}),
           entry,
         });
+      }
       return finish({ ...queue.moderate({ action, entryId: entry.id }), entry });
     } catch {
       return { value: fail("player_control_unavailable") };
