@@ -118,7 +118,7 @@ module.exports = function chatPlayerCommands({
       const current = native
         ? status?.current && { ...receipt, ...status.current }
         : managedCurrent(playback, selected.player);
-      const { rows, pending } = queueView(queue, selected.player, current?.entryId, status);
+      const { rows, pending, review } = queueView(queue, selected.player, current?.entryId, status);
       const normalize = (row) => ({
         ...row,
         id: rowId(row),
@@ -136,7 +136,7 @@ module.exports = function chatPlayerCommands({
             .update(payload.requesterId || "")
             .digest("hex")
         : null;
-      let choices = action === "skip" ? [] : [...rows, ...pending].map(normalize);
+      let choices = action === "skip" ? [] : [...rows, ...pending, ...review].map(normalize);
       if (current && action !== "remove") choices.unshift(normalize(current));
       if (
         action === "skip" &&
@@ -166,7 +166,7 @@ module.exports = function chatPlayerCommands({
           ? exact
           : choices.filter((r) => text(r.candidate.title).includes(query));
       } else if (action === "remove") {
-        if (choices.length > 1 && pending.length)
+        if (choices.length > 1 && (pending.length || review.length))
           return { value: fail("queue_position_unconfirmed") };
         choices = choices.slice(-1);
       }

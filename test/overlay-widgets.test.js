@@ -102,6 +102,10 @@ test("Tile Match flips a pair, delays mismatches, and saves progress without exp
   const first = flip(rules.initial(widget), 1, 100);
   const wrong = flip(first, 2, 200);
   assert.equal(rules.board(widget, wrong, 250).waiting, true);
+  assert.deepEqual(
+    rules.board(widget, wrong, 250).cells.map((tile) => tile.condition),
+    ["failed", "failed", "pending", "pending"],
+  );
   assert.throws(() => flip(wrong, 3, 250), /Wait/);
   assert.equal(rules.board(widget, wrong, 2200).cells.filter((cell) => cell.covered).length, 4);
   const match = flip(flip(wrong, 1, 2201), 3, 2202);
@@ -120,6 +124,57 @@ test("Tile Match flips a pair, delays mismatches, and saves progress without exp
   assert.equal(
     reloaded.bingoDeck({ documentId: doc.id, widgetId: id }).board.cells[0].covered,
     false,
+  );
+});
+test("condition actions retain tile IDs and keep failed Bingo squares out of a win", (t) => {
+  const { service, save, create } = fixture(t);
+  const doc = save([
+    {
+      type: "bingo",
+      id: "board",
+      gridSize: 2,
+      gridRows: 1,
+      freeCenter: false,
+      bingoPatterns: ["rows"],
+    },
+    {
+      type: "challenge-board",
+      id: "challenge",
+      customConditions: [{ id: "skipped", name: "Skipped" }],
+      tiles: [
+        { id: "first", text: "First" },
+        { id: "second", text: "Second" },
+      ],
+    },
+  ]);
+  const set = (id, cell, condition) =>
+    service.execute("overlay.game.condition", {
+      widget: doc.id + "/" + id,
+      cell,
+      condition,
+    });
+  set("board", 1, "completed");
+  set("board", 2, "failed");
+  const board = () => service.bingoDeck({ documentId: doc.id, widgetId: "board" }).board;
+  assert.equal(board().won, false);
+  assert.equal(board().cells[1].condition, "failed");
+  set("board", 2, "completed");
+  assert.equal(board().won, true);
+  set("challenge", 2, "skipped");
+  assert.equal(set("challenge", 2, "skipped").unchanged, true);
+  assert.throws(() => set("board", 2, "skipped"), /configured on this board/);
+  const edited = service.store.get(doc.id);
+  edited.widgets[1].tiles.reverse();
+  service.save({ document: edited, expectedRevision: service.store.revision() });
+  const fresh = create();
+  t.after(() => fresh.close());
+  const tile = fresh.bingoDeck({ documentId: doc.id, widgetId: "challenge" }).board.cells[0];
+  assert.equal(tile.id, "second");
+  assert.equal(tile.condition, "skipped");
+  fresh.gameControl({ documentId: doc.id, widgetId: "challenge", operation: "reset" });
+  assert.equal(
+    fresh.bingoDeck({ documentId: doc.id, widgetId: "challenge" }).board.cells[0].condition,
+    "pending",
   );
 });
 test("large Bingo marks and freeform tile IDs survive reloads and layout edits", async (t) => {

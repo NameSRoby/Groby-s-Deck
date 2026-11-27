@@ -116,7 +116,9 @@ function playbackProvider(options) {
     const selected =
       useNative || !auth.status().connected || !settings.deviceId ? native : official;
     const all = [...new Map(rows().map((row) => [row.entryId, row])).values()],
-      count = all.filter((row) => ["pending", "unknown", "appended"].includes(row.phase)).length;
+      count = all.filter(
+        (row) => !row.reviewOnly && ["pending", "unknown", "appended"].includes(row.phase),
+      ).length;
     const matching = Boolean(
       native.deviceId && native.deviceId === settings.deviceId && official.ready,
     );

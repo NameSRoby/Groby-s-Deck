@@ -1,11 +1,12 @@
 # Release archive
 
-Use [0.8.23](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.23) for current fixes and new installations.
+Use [0.8.24](https://github.com/NameSRoby/Groby-s-Deck/releases/tag/v0.8.24) for current fixes and new installations.
 
 ## Archived 0.8 builds
 
 Repository maintainers can find the archived installers, ZIPs, and release notes in GitHub release drafts. The links below open the public source tags.
 
+- [0.8.23](https://github.com/NameSRoby/Groby-s-Deck/tree/v0.8.23)
 - [0.8.22](https://github.com/NameSRoby/Groby-s-Deck/tree/v0.8.22)
 - [0.8.21](https://github.com/NameSRoby/Groby-s-Deck/tree/v0.8.21)
 - [0.8.2c](https://github.com/NameSRoby/Groby-s-Deck/tree/v0.8.2c)

@@ -156,8 +156,21 @@ module.exports = function createSpotifyProvider(options) {
         onDevice(row, snapshot) &&
         matchesOccurrence(row, snapshot.current),
     );
-    const active = [...receipts.values()].filter((row) =>
-      ["pending", "unknown", "appended"].includes(row.phase),
+    const reviewOnly = new Set();
+    const queueUris = new Set(fresh ? snapshot.queue.map((item) => item.uri) : []);
+    if (fresh && snapshot.complete)
+      for (const row of receipts.values())
+        if (
+          row.phase === "unknown" &&
+          onDevice(row, snapshot) &&
+          Date.now() - (row.createdAt || 0) >= 10000 &&
+          !queueUris.has(row.uri) &&
+          snapshot.current?.uri !== row.uri
+        )
+          reviewOnly.add(row.entryId);
+    const active = [...receipts.values()].filter(
+      (row) =>
+        !reviewOnly.has(row.entryId) && ["pending", "unknown", "appended"].includes(row.phase),
     );
     const queueOrder = fresh
       ? snapshot.queue
@@ -204,13 +217,14 @@ module.exports = function createSpotifyProvider(options) {
         )
         .map((row) => ({
           ...row,
+          ...(reviewOnly.has(row.entryId) ? { reviewOnly: true } : {}),
           possibleMatches:
             row.phase === "unknown" &&
             fresh &&
             snapshot.localDevice &&
             (!row.deviceId || row.deviceId === snapshot.deviceId)
-              ? (snapshot?.queue || [])
-                  .filter((item) => item.uri === row.uri)
+              ? [...snapshot.queue, ...(snapshot.current ? [snapshot.current] : [])]
+                  .filter((item) => item.uid && item.uri === row.uri)
                   .map((item) => ({ uid: item.uid }))
               : [],
         })),

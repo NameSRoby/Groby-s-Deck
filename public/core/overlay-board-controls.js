@@ -70,18 +70,11 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     block.append(el("h3", title), ...Array.from(host.children).slice(start));
     host.append(block);
   }
-  function hideLabel(parent, item) {
-    const input = el("input");
-    input.type = "checkbox";
-    input.checked = item.labelHidden === true;
-    labeled("Hide label on board", input, parent).parentElement.className = "check";
-    input.onchange = () =>
-      a.change(() => {
-        if (input.checked) item.labelHidden = true;
-        else delete item.labelHidden;
-      }, false);
-    return input;
-  }
+  const { style, hideLabel, labelPosition } = OverlayBoardStyle(
+    a,
+    { host, num, select, field },
+    { group, details, el, labeled },
+  );
   function imageControl(parent, w, title, read, write) {
     const box = el("div");
     box.className = "boardImageControl";
@@ -156,9 +149,20 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     input.min = 1;
     input.max = count;
     input.value = Math.min(selected.get(w) || 1, count);
-    button("Toggle square", () => {
-      if (input.reportValidity()) return run("mark", { cell: Number(input.value) });
+    const condition = labeled("Mark as", el("select"));
+    condition.add(new Option("Toggle completion", ""));
+    for (const item of OverlayGameRules.conditions(w))
+      condition.add(new Option(item.name, item.id));
+    const apply = button("Toggle square", () => {
+      if (input.reportValidity())
+        return run(condition.value ? "condition" : "mark", {
+          cell: Number(input.value),
+          ...(condition.value ? { condition: condition.value } : {}),
+        });
     });
+    condition.onchange = () => {
+      apply.textContent = condition.value ? "Set condition" : "Toggle square";
+    };
   }
   function bingo(w, run, setupStart) {
     const max = OverlayModel.boardLimit;
@@ -311,6 +315,10 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
           else delete w.boardImages[index];
         },
       );
+      labelPosition(picker, "Square label position", w.boardLabelPositions[index], (value) => {
+        if (value) w.boardLabelPositions[index] = value;
+        else delete w.boardLabelPositions[index];
+      });
       if (reveal) {
         squareImage.open = true;
         picker.querySelector('input[type="file"]').click();
@@ -552,6 +560,19 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     name.value = tile.text;
     name.placeholder = "Tile " + active;
     const hidden = hideLabel(host, tile);
+    labelPosition(host, "Selected tile label position", tile.labelPosition, (value) => {
+      if (value) tile.labelPosition = value;
+      else delete tile.labelPosition;
+    });
+    const border = labeled("Hide border on this tile", el("input"));
+    border.type = "checkbox";
+    border.checked = tile.borderHidden === true;
+    border.parentElement.className = "check";
+    border.onchange = () =>
+      a.change(() => {
+        if (border.checked) tile.borderHidden = true;
+        else delete tile.borderHidden;
+      }, false);
     name.onchange = () => {
       a.change(() => {
         tile.text = name.value;
@@ -672,6 +693,15 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
       name.value = pair.text;
       name.placeholder = "Pair " + (index + 1);
       const hidden = hideLabel(entry, pair);
+      labelPosition(
+        entry,
+        "Pair " + (index + 1) + " label position",
+        pair.labelPosition,
+        (value) => {
+          if (value) pair.labelPosition = value;
+          else delete pair.labelPosition;
+        },
+      );
       name.onchange = () => {
         a.change(() => {
           pair.text = name.value;
@@ -757,6 +787,6 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
   }
   return {
     content,
-    style: OverlayBoardStyle(a, { host, num, select, field }, { group, details, el, labeled }),
+    style,
   };
 };

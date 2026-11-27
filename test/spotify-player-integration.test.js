@@ -93,8 +93,12 @@ test("Spotify refuses saved installations with missing files, and waits for pair
   assert.equal(provider.status().launchError, "spotify_connection_timeout");
 });
 
-async function setup(t) {
+async function setup(t, history = []) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-host-"));
+  if (history.length) {
+    fs.mkdirSync(path.join(root, "spotify-desktop"), { recursive: true });
+    fs.writeFileSync(path.join(root, "spotify-desktop/requests.json"), JSON.stringify(history));
+  }
   const provider = createProvider({ runtimeDir: root, discover: () => [] });
   const app = express();
   installRequestSecurityMiddleware(app, { express });
@@ -198,6 +202,32 @@ async function setup(t) {
     },
   };
 }
+
+test("old unknown Spotify deliveries stay reviewable without consuming player slots", async (t) => {
+  const stale = Array.from({ length: 10 }, (_, index) => ({
+    entryId: "old-" + index,
+    uri: "spotify:track:" + "C".repeat(22),
+    uid: "held-" + index,
+    phase: "unknown",
+    createdAt: Date.now() - 30000,
+  }));
+  const f = await setup(t, stale);
+  const status = f.provider.status();
+  assert.equal(status.handoffs.filter((row) => row.reviewOnly).length, 10);
+  assert.equal(status.capacity.available, 10);
+  const candidate = (await f.complete(f.provider.handle("resolve", { query: "One More Time" })))
+    .candidate;
+  assert.equal(
+    (await f.complete(f.provider.handle("enqueue", { entryId: "new", candidate }))).appended,
+    true,
+  );
+  await f.worker.step();
+  assert.deepEqual(f.provider.status().queueOrder, ["new"]);
+  f.queue.push({ ...stale[0], uid: "needs-review", origin: "manual" });
+  await f.worker.step();
+  assert.equal(f.provider.status().handoffs[0].reviewOnly, undefined);
+  assert.equal(f.queue.length, 2, "reconciling ambiguous history never retries a delivery");
+});
 
 test("Spotify host admits ten native requests, keeps ownership, refills after advancement and removes one exact occurrence", async (t) => {
   const f = await setup(t);

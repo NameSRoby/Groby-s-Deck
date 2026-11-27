@@ -51,9 +51,12 @@ function queueView(queue, provider, currentId, state) {
       .filter((id) => active.get(id)?.phase === "appended")
       .map((id) => [id, active.get(id)]),
   );
-  const pending = [...active.values()].filter((row) => !ordered.has(row.entryId));
+  const pending = [...active.values()].filter(
+    (row) => !ordered.has(row.entryId) && !row.reviewOnly,
+  );
+  const review = [...active.values()].filter((row) => row.reviewOnly);
   const rows = [...ordered.values(), ...waiting.filter((row) => !active.has(rowId(row)))];
-  return { rows, pending };
+  return { rows, pending, review };
 }
 
 module.exports = { queueView, currentReceipt, managedCurrent, managedPosition, rowId, nativeReady };

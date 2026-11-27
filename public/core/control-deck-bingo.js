@@ -33,6 +33,8 @@ export function createDeckBingo({
   panel.innerHTML = `
     <div class="deckBingoBar">
       <label>Saved board <select aria-label="Saved game board"></select></label>
+      <label data-mark-picker hidden>Mark as <select aria-label="Mark as"></select></label>
+      <label data-completed-picker hidden><input type="checkbox" aria-label="Show completed tiles"> Show completed tiles</label>
       <button type="button" data-reset>Reset board</button>
       <button type="button" data-designer>Overlay designer</button>
       <button type="button" data-retry hidden>Retry</button>
@@ -45,6 +47,8 @@ export function createDeckBingo({
     </dialog>`;
   workspace.after(panel);
   const picker = panel.querySelector("select"),
+    markPicker = panel.querySelector("[data-mark-picker] select"),
+    reveal = panel.querySelector("[data-completed-picker] input"),
     grid = panel.querySelector(".deckBingoGrid"),
     status = panel.querySelector(".deckBingoStatus"),
     reset = panel.querySelector("[data-reset]"),
@@ -57,6 +61,7 @@ export function createDeckBingo({
     timer,
     target = "",
     optionsKey = "",
+    conditionKey = "",
     value = null,
     writeCount = 0,
     error = "";
@@ -101,9 +106,25 @@ export function createDeckBingo({
       Boolean(value.error) ||
       sending ||
       !board.cells.some((c) =>
-        board.operation === "flip" ? !c.covered || board.attempts : c.marked && !c.free,
+        board.operation === "flip"
+          ? !c.covered || board.attempts
+          : !c.free && (c.marked || (c.condition && c.condition !== "pending")),
       );
     if (board) picker.value = key(board);
+    const conditions = new Map((board?.conditions || []).map((item) => [item.id, item]));
+    markPicker.parentElement.hidden = !conditions.size || board?.operation === "flip";
+    markPicker.disabled = sending;
+    reveal.parentElement.hidden = !board?.hideCompletedTiles;
+    const options = JSON.stringify([...conditions.values()].map(({ id, name }) => [id, name]));
+    if (options !== conditionKey) {
+      const previous = markPicker.value;
+      conditionKey = options;
+      markPicker.replaceChildren(
+        new Option("Toggle completion", ""),
+        ...[...conditions.values()].map(({ id, name }) => new Option(name, id)),
+      );
+      markPicker.value = conditions.has(previous) ? previous : "";
+    }
     const cells = board?.cells || [];
     grid.classList.toggle("freeform", board?.freeform === true);
     grid.style.setProperty("--bingo-columns", String(board?.columns || 1));
@@ -111,9 +132,6 @@ export function createDeckBingo({
     grid.style.setProperty("--board-aspect", board?.freeform ? board.width / board.height : "");
     grid.style.backgroundImage = board?.image ? `url(${JSON.stringify(board.image)})` : "";
     grid.style.backgroundSize = board?.imageFit || "";
-    grid.style.setProperty("--board-mark-color", board?.markColor || "");
-    grid.style.setProperty("--board-mark-opacity", (board?.markOpacity ?? 100) / 100);
-    grid.style.setProperty("--board-symbol-color", board?.markSymbolColor || "");
     grid.style.setProperty("--board-back-color", board?.matchBackColor || "");
     grid.dataset.markMode = board?.markMode || "color";
     while (grid.children.length > cells.length) grid.lastElementChild.remove();
@@ -122,11 +140,20 @@ export function createDeckBingo({
       if (!button) {
         button = document.createElement("button");
         button.type = "button";
-        button.onclick = () => void act(value?.board?.operation || "mark", index + 1);
+        button.onclick = () => {
+          const condition = value?.board?.operation !== "flip" ? markPicker.value : "";
+          void act(
+            condition ? "condition" : value?.board?.operation || "mark",
+            index + 1,
+            null,
+            condition,
+          );
+        };
         const image = document.createElement("img"),
           label = document.createElement("span"),
           symbol = document.createElement("span");
         image.alt = "";
+        label.className = "deckBoardLabel";
         symbol.className = "deckBoardSymbol";
         symbol.setAttribute("aria-hidden", "true");
         button.append(image, label, symbol);
@@ -137,14 +164,39 @@ export function createDeckBingo({
       if (cell.image && image.getAttribute("src") !== cell.image) image.src = cell.image;
       image.style.objectFit = board.cellImageFit;
       button.classList.toggle("covered", cell.covered === true);
+      button.dataset.condition = cell.condition || (cell.marked ? "completed" : "pending");
+      button.dataset.labelPosition = cell.covered ? "center" : cell.labelPosition || "center";
+      button.classList.toggle(
+        "border-hidden",
+        board.showBorders === false || cell.borderHidden === true,
+      );
+      button.classList.toggle(
+        "completed-hidden",
+        board.hideCompletedTiles &&
+          !reveal.checked &&
+          cell.marked &&
+          (board.operation === "flip" || !cell.free),
+      );
       label.hidden =
         !cell.covered &&
         (cell.labelHidden ||
           (board.showLabels === false && (Boolean(cell.image) || board.operation !== "flip")));
       const text = cell.covered ? board.matchBack : cell.text;
       if (label.textContent !== text) label.textContent = text;
-      symbol.hidden = !cell.marked || board.markMode === "color";
-      if (symbol.textContent !== board.markSymbol) symbol.textContent = board.markSymbol;
+      const style =
+        conditions.get(button.dataset.condition) ||
+        (cell.marked
+          ? {
+              mode: board.markMode,
+              color: board.markColor,
+              opacity: board.markOpacity,
+              symbol: board.markSymbol,
+              symbolColor: board.markSymbolColor,
+            }
+          : {});
+      symbol.hidden = !style.symbol || !["symbol", "both"].includes(style.mode);
+      if (symbol.textContent !== (style.symbol || "")) symbol.textContent = style.symbol || "";
+      symbol.style.color = style.symbolColor || "";
       if (board.freeform)
         Object.assign(button.style, {
           left: cell.x + "%",
@@ -154,6 +206,13 @@ export function createDeckBingo({
           transform: `rotate(${cell.rotation}deg)`,
         });
       else button.removeAttribute("style");
+      if (["color", "both"].includes(style.mode)) {
+        button.style.setProperty("--board-mark-color", style.color);
+        button.style.setProperty("--board-mark-opacity", (style.opacity ?? 100) / 100);
+      } else {
+        button.style.removeProperty("--board-mark-color");
+        button.style.removeProperty("--board-mark-opacity");
+      }
       button.setAttribute("aria-pressed", String(cell.marked));
       button.setAttribute(
         "aria-label",
@@ -165,6 +224,15 @@ export function createDeckBingo({
       );
       button.disabled = cell.free || board.waiting === true || Boolean(value.error);
     }
+    for (const position of ["above", "below"])
+      grid.classList.toggle(
+        "labels-" + position,
+        Array.from(grid.children).some(
+          (button) =>
+            button.dataset.labelPosition === position &&
+            !button.querySelector(".deckBoardLabel").hidden,
+        ),
+      );
     grid.setAttribute("aria-busy", String(sending));
     notice(
       error ||
@@ -224,7 +292,7 @@ export function createDeckBingo({
       schedule(selected && selected !== target ? 0 : value?.board?.waiting ? 250 : 1000);
     }
   }
-  async function act(operation, cell, confirmed = null) {
+  async function act(operation, cell, confirmed = null, condition = "") {
     const board = value?.board;
     if (!browsing() || sending || !board || value.error) return;
     if (
@@ -247,6 +315,7 @@ export function createDeckBingo({
         widgetId: board.widgetId,
         operation,
         cell,
+        ...(condition ? { condition } : {}),
         version: board.version,
         revision: value.revision,
         returnBingo: true,
@@ -262,11 +331,14 @@ export function createDeckBingo({
   tab.onclick = onOpen;
   picker.onchange = () => {
     target = picker.value;
+    reveal.checked = false;
+    markPicker.value = "";
     value = null;
     error = "";
     paint();
     schedule(0);
   };
+  reveal.onchange = paint;
   reset.onclick = () => {
     const board = value?.board;
     if (!board) return;

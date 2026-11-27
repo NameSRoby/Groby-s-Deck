@@ -1,5 +1,9 @@
 /** Normal deck actions; no private action path or widget-specific automation runner. */
-const { markTypes, types: gameTypes } = require("../../../public/core/overlay-game-rules");
+const {
+  markTypes,
+  conditions,
+  types: gameTypes,
+} = require("../../../public/core/overlay-game-rules");
 const { boardLimit, matchPairLimit } = require("../../../public/core/overlay-model");
 function rows(documents) {
   return documents.flatMap((doc) =>
@@ -10,6 +14,7 @@ function rows(documents) {
         title: doc.name + " / " + w.name,
         type: w.type,
         entrySource: w.entrySource,
+        conditions: markTypes.includes(w.type) ? conditions(w) : [],
       })),
   );
 }
@@ -22,6 +27,7 @@ exports.catalog = (documents) => {
     ["start", "Start chat vote", ["chat-vote"]],
     ["close", "Close chat vote", ["chat-vote"]],
     ["mark", "Toggle board square", markTypes, boardLimit],
+    ["condition", "Set board square condition", markTypes, boardLimit],
     ["flip", "Flip a Tile Match card", ["tile-match"], matchPairLimit * 2],
     ["reset", "Reset overlay game", gameTypes],
   ]
@@ -30,6 +36,9 @@ exports.catalog = (documents) => {
         (w) =>
           types.includes(w.type) &&
           (!["collect", "close-entries"].includes(operation) || w.entrySource === "chat"),
+      );
+      const stateNames = Object.fromEntries(
+        choices.flatMap((w) => w.conditions.map((state) => [state.id, state.name])),
       );
       return {
         id: "overlay.game." + operation,
@@ -41,7 +50,12 @@ exports.catalog = (documents) => {
         parameters: {
           type: "object",
           additionalProperties: false,
-          required: cellLimit ? ["widget", "cell"] : ["widget"],
+          required:
+            operation === "condition"
+              ? ["widget", "cell", "condition"]
+              : cellLimit
+                ? ["widget", "cell"]
+                : ["widget"],
           properties: {
             widget: {
               type: "string",
@@ -59,9 +73,23 @@ exports.catalog = (documents) => {
                   },
                 }
               : {}),
+            ...(operation === "condition"
+              ? {
+                  condition: {
+                    type: "string",
+                    title: "Condition",
+                    enum: Object.keys(stateNames),
+                    enumNames: stateNames,
+                  },
+                }
+              : {}),
           },
         },
-        defaults: { widget: choices[0]?.key || "", ...(cellLimit ? { cell: 1 } : {}) },
+        defaults: {
+          widget: choices[0]?.key || "",
+          ...(cellLimit ? { cell: 1 } : {}),
+          ...(operation === "condition" ? { condition: "completed" } : {}),
+        },
       };
     })
     .filter((action) => action.available);
@@ -72,5 +100,11 @@ exports.execute = (id, input, documents, control) => {
   if (!action || !action.parameters.properties.widget.enum.includes(input?.widget))
     throw Error("Choose a saved overlay game.");
   const [documentId, widgetId] = input.widget.split("/");
-  return control({ documentId, widgetId, operation, cell: input.cell });
+  return control({
+    documentId,
+    widgetId,
+    operation,
+    cell: input.cell,
+    ...(operation === "condition" ? { condition: input.condition } : {}),
+  });
 };

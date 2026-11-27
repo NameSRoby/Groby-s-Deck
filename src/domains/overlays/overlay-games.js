@@ -33,6 +33,17 @@ module.exports = ({ runtimeDir, documents, now = Date.now, random = randomInt })
         s.entries.length > 100 ||
         !Array.isArray(s.marks) ||
         s.marks.length > boardLimit ||
+        (s.tileConditions !== undefined &&
+          (!s.tileConditions ||
+            typeof s.tileConditions !== "object" ||
+            Array.isArray(s.tileConditions) ||
+            Object.keys(s.tileConditions).length > boardLimit ||
+            Object.entries(s.tileConditions).some(
+              ([id, value]) =>
+                !/^[a-z0-9-]{1,80}$/i.test(id) ||
+                typeof value !== "string" ||
+                !/^[a-z0-9-]{1,80}$/i.test(value),
+            ))) ||
         !Array.isArray(s.counts) ||
         s.counts.length > 100 ||
         !s.votes ||

@@ -336,7 +336,7 @@ test("clicking a canvas tile opens its settings and dragging still moves the who
   const position = () => layer.evaluate((node) => node.style.left);
   const before = await position();
   await tile.click();
-  const picker = page.getByLabel("Selected tile");
+  const picker = page.getByLabel("Selected tile", { exact: true });
   assert.equal(await picker.inputValue(), "20");
   assert.equal(await position(), before);
   assert.equal(await tile.evaluate((node) => node.matches(".selectedChallengeTile")), true);
@@ -488,8 +488,8 @@ test("board designer saves images, custom marks, announcements and freeform geom
   await page.locator('[data-inspector="style"]').click();
   await page.getByLabel("Design preset").selectOption("Photo tiles");
   await page.getByLabel("Completed square").selectOption("both");
-  await page.getByLabel("Completion symbol").fill("★");
-  await page.getByLabel("Completion symbol").press("Tab");
+  await page.getByLabel("Completion symbol", { exact: true }).fill("★");
+  await page.getByLabel("Completion symbol", { exact: true }).press("Tab");
   await page.getByLabel("Announcement text", { exact: true }).fill("Line complete");
   await page.getByLabel("Announcement text", { exact: true }).press("Tab");
   await page.getByLabel("Announcement placement").selectOption("overlay");
@@ -588,13 +588,91 @@ test("board designer saves images, custom marks, announcements and freeform geom
   );
   await output.waitForFunction(() => document.querySelector("#output").style.width === "1234px");
 });
+test("board conditions, symbols, label positions, and hidden borders match OBS", async (t) => {
+  const { page, add, service, browser, base } = await setup(t);
+  await add("Challenge board");
+  await page.getByLabel("Tile label", { exact: true }).fill("Photo task");
+  await page.getByLabel("Tile label", { exact: true }).press("Tab");
+  await page.getByLabel("Selected tile label position").selectOption("above");
+  await page.getByLabel("Hide border on this tile").check();
+  await page.getByText("Use an image URL", { exact: true }).first().click();
+  await page
+    .getByLabel("Tile image URL", { exact: true })
+    .fill("https://example.invalid/photo.png");
+  await page.getByLabel("Tile image URL", { exact: true }).press("Tab");
+  await page.locator('[data-inspector="style"]').click();
+  await page.getByText("Tile appearance", { exact: true }).click();
+  await page.getByLabel("Tile label position", { exact: true }).selectOption("below");
+  await page.getByLabel("Hide completed tiles", { exact: true }).check();
+  await page.getByText("Failure mark", { exact: true }).click();
+  const failureOpacity = page.getByLabel("Overlay opacity (%)", { exact: true });
+  await failureOpacity.fill("40");
+  await failureOpacity.press("Tab");
+  await page.getByLabel("Condition symbol library").selectOption("⚠");
+  await page.getByText("Custom tile conditions", { exact: true }).click();
+  await page.getByRole("button", { name: "Add condition", exact: true }).click();
+  await page.getByLabel("Condition name").fill("Needs another try");
+  await page.getByLabel("Condition name").press("Tab");
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  const [doc] = service.store.snapshot().documents;
+  const [w] = doc.widgets;
+  assert.equal(w.customConditions[0].name, "Needs another try");
+  assert.equal(w.failureCondition.opacity, 40);
+  assert.equal(w.failureCondition.symbol, "⚠");
+  await page.locator('[data-inspector="content"]').click();
+  await page.getByLabel("Mark as", { exact: true }).selectOption("failed");
+  await page.getByRole("button", { name: "Set condition", exact: true }).click();
+  await page.locator('#canvas [data-condition="failed"]').waitFor();
+  for (const [cell, condition] of [
+    [2, w.customConditions[0].id],
+    [3, "completed"],
+  ])
+    service.gameControl({
+      documentId: doc.id,
+      widgetId: w.id,
+      operation: "condition",
+      cell,
+      condition,
+    });
+  const output = await browser.newPage();
+  await output.goto(base + "/stream-overlay.html?id=" + doc.id);
+  for (const view of [page, output]) {
+    const tile = view.locator('.extra-challenge-board [data-condition="failed"]');
+    await tile.waitFor();
+    assert.equal(await tile.locator(".bingoSymbol").textContent(), "⚠");
+    assert.equal(
+      await tile.locator("img").getAttribute("src"),
+      "https://example.invalid/photo.png",
+    );
+    assert.deepEqual(
+      await tile.evaluate((el) => {
+        const caption = el.querySelector(".bingoLabel").getBoundingClientRect();
+        return [
+          getComputedStyle(el, "::before").backgroundColor,
+          getComputedStyle(el).borderTopColor,
+          caption.bottom < el.getBoundingClientRect().top,
+        ];
+      }),
+      ["rgba(185, 28, 28, 0.4)", "rgba(0, 0, 0, 0)", true],
+    );
+    const custom = view.locator(
+      ".extra-challenge-board [data-condition=" + JSON.stringify(w.customConditions[0].id) + "]",
+    );
+    await custom.waitFor();
+    assert.equal(await custom.getAttribute("data-label-position"), "below");
+    const complete = view.locator('.extra-challenge-board [data-condition="completed"]');
+    await complete.waitFor({ state: "attached" });
+    assert.equal(await complete.isHidden(), true);
+  }
+});
 test("Tile Match pairs can be edited and tried in the designer without changing the live overlay", async (t) => {
   const { page, add, service } = await setup(t);
   await add("Tile Match");
   await page.locator("#previewSource").selectOption("sample");
   await page.getByText("Moon", { exact: true }).click();
-  await page.getByLabel("Pair 1 label").fill("Night");
-  await page.getByLabel("Pair 1 label").press("Tab");
+  await page.getByLabel("Pair 1 label", { exact: true }).fill("Night");
+  await page.getByLabel("Pair 1 label", { exact: true }).press("Tab");
   await page.getByLabel("Hide label on board", { exact: true }).first().check();
   assert.equal(await page.locator("#canvas .bingoCell.covered").count(), 12);
   await page.getByRole("button", { name: "Flip tile 1", exact: true }).click();

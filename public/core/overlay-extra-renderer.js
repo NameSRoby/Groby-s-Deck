@@ -378,6 +378,7 @@
     const key = JSON.stringify([
       w,
       game.marks,
+      game.tileConditions,
       announcementActive(w, game, now),
       w.type === "tile-match"
         ? [
@@ -394,7 +395,8 @@
   }
   function renderBoard(body, w, s, now) {
     const board = OverlayGameRules.board(w, s, now),
-      grid = el("div");
+      grid = el("div"),
+      conditions = new Map(OverlayGameRules.conditions(w).map((style) => [style.id, style]));
     const alpha = (color, opacity) =>
       color +
       Math.round((opacity / 100) * 255)
@@ -409,16 +411,29 @@
       return img;
     };
     grid.className = board.freeform ? "bingoGrid freeform" : "bingoGrid";
+    for (const position of ["above", "below"])
+      grid.classList.toggle(
+        "labels-" + position,
+        board.cells.some(
+          (cell) =>
+            cell.labelPosition === position &&
+            !cell.covered &&
+            OverlayGameRules.showLabel(cell, w.showCellLabels, board.operation === "flip"),
+        ),
+      );
     if (!board.freeform) {
       grid.style.gridTemplateColumns = `repeat(${board.columns},minmax(0,1fr))`;
       grid.style.gridTemplateRows = `repeat(${board.rows},minmax(0,1fr))`;
       grid.style.columnGap = Math.min(w.cellGap, w.width / board.columns / 4) + "px";
-      grid.style.rowGap = Math.min(w.cellGap, w.height / board.rows / 4) + "px";
+      const labelGap =
+        (Number(grid.classList.contains("labels-above")) +
+          Number(grid.classList.contains("labels-below"))) *
+        w.fontSize *
+        0.65;
+      grid.style.rowGap = Math.min(Math.max(w.cellGap, labelGap), w.height / board.rows / 2) + "px";
     }
     for (const [name, value] of Object.entries({
       "--cell-fill": alpha(w.cellBackground, w.cellOpacity),
-      "--cell-mark": alpha(w.markColor, w.markOpacity),
-      "--cell-symbol": w.markSymbolColor,
       "--cell-line": w.cellBorderColor,
       "--cell-border": w.cellBorder + "px",
       "--cell-radius": w.cellRadius + "px",
@@ -426,13 +441,25 @@
       "--tile-back": w.matchBackColor || "",
     }))
       grid.style.setProperty(name, value);
-    grid.dataset.markMode = w.markMode;
     if (w.boardImage) grid.append(image(w.boardImage, w.boardImageFit, "bingoImage"));
     for (const [index, item] of board.cells.entries()) {
       const cell = el("div");
       if (w.type === "challenge-board") cell.dataset.challengeTile = index + 1;
       cell.className =
         "bingoCell" + (item.marked ? " marked" : "") + (item.covered ? " covered" : "");
+      const style = conditions.get(item.condition);
+      cell.dataset.condition = item.condition;
+      cell.dataset.labelPosition = item.covered ? "center" : item.labelPosition;
+      cell.classList.toggle(
+        "border-hidden",
+        w.showCellBorders === false || item.borderHidden === true,
+      );
+      cell.classList.toggle(
+        "completed-hidden",
+        w.hideCompletedTiles && item.marked && (board.operation === "flip" || !item.free),
+      );
+      if (style && ["color", "both"].includes(style.mode))
+        cell.style.setProperty("--cell-mark", alpha(style.color, style.opacity));
       if (board.freeform)
         Object.assign(cell.style, {
           left: item.x + "%",
@@ -442,11 +469,15 @@
           transform: `rotate(${item.rotation}deg)`,
         });
       if (item.image) cell.append(image(item.image, w.cellImageFit, "bingoImage"));
-      if (OverlayGameRules.showLabel(item, w.showCellLabels, board.operation === "flip"))
-        cell.append(el("span", item.covered ? w.matchBack : item.text));
-      if (item.marked && w.markMode !== "color") {
-        const symbol = el("span", w.markSymbol);
+      if (OverlayGameRules.showLabel(item, w.showCellLabels, board.operation === "flip")) {
+        const label = el("span", item.covered ? w.matchBack : item.text);
+        label.className = "bingoLabel";
+        cell.append(label);
+      }
+      if (style?.symbol && ["symbol", "both"].includes(style.mode)) {
+        const symbol = el("span", style.symbol);
         symbol.className = "bingoSymbol";
+        symbol.style.color = style.symbolColor;
         symbol.setAttribute("aria-hidden", "true");
         cell.append(symbol);
       }

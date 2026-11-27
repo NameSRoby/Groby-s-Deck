@@ -99,7 +99,12 @@
 }
 .overlayLayer .bingoGrid.freeform {
   display: block;
-  overflow: hidden;
+}
+.overlayLayer .bingoGrid.labels-above {
+  margin-block-start: 0.72em;
+}
+.overlayLayer .bingoGrid.labels-below {
+  margin-block-end: 0.72em;
 }
 .overlayLayer .freeform .bingoCell {
   position: absolute;
@@ -111,6 +116,7 @@
 }
 .overlayLayer .bingoCell > .bingoImage {
   z-index: -2;
+  border-radius: inherit;
 }
 .overlayLayer .bingoCell.covered {
   background: var(--tile-back);
@@ -125,18 +131,49 @@
   border: var(--cell-border) solid var(--cell-line);
   border-radius: var(--cell-radius);
   background: var(--cell-fill);
-  overflow: hidden;
   text-align: center;
   font-size: 0.55em;
   overflow-wrap: anywhere;
 }
-.overlayLayer .bingoGrid[data-mark-mode="color"] .marked::before,
-.overlayLayer .bingoGrid[data-mark-mode="both"] .marked::before {
+.overlayLayer .bingoCell.border-hidden {
+  border-color: transparent;
+}
+.overlayLayer .bingoCell.completed-hidden {
+  visibility: hidden;
+}
+.overlayLayer .bingoCell::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: var(--cell-mark);
+  background: var(--cell-mark, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.overlayLayer .bingoLabel {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.overlayLayer .bingoCell:not([data-label-position="center"]) .bingoLabel {
+  position: absolute;
+  inset-inline: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  z-index: 1;
+}
+.overlayLayer .bingoCell[data-label-position="top"] .bingoLabel {
+  inset-block-start: 0.2em;
+}
+.overlayLayer .bingoCell[data-label-position="bottom"] .bingoLabel {
+  inset-block-end: 0.2em;
+}
+.overlayLayer .bingoCell[data-label-position="above"] .bingoLabel {
+  inset-block-end: calc(100% + 0.15em);
+}
+.overlayLayer .bingoCell[data-label-position="below"] .bingoLabel {
+  inset-block-start: calc(100% + 0.15em);
 }
 .overlayLayer .bingoSymbol {
   position: absolute;
@@ -145,7 +182,6 @@
   place-items: center;
   font-size: 2.2em;
   font-weight: 800;
-  color: var(--cell-symbol);
   text-shadow: 0 1px 4px #000;
 }
 .overlayLayer .bingoGrid > .bingoAnnouncement {

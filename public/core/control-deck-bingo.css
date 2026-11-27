@@ -69,8 +69,16 @@
 .deckBingoGrid.freeform {
   display: block;
   position: relative;
-  overflow: hidden;
   min-width: 0;
+}
+.deckBingoGrid.labels-above {
+  margin-block-start: 1.4em;
+}
+.deckBingoGrid.labels-below {
+  margin-block-end: 1.4em;
+}
+.deckBingoGrid:not(.freeform):is(.labels-above, .labels-below) {
+  row-gap: 1.7em;
 }
 .deckBingoGrid.freeform button {
   position: absolute;
@@ -79,11 +87,16 @@
 .deckBingoGrid button {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
   min-height: 58px;
   padding: 6px 4px;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+.deckBingoGrid button.border-hidden {
+  border-color: transparent;
+}
+.deckBingoGrid button.completed-hidden {
+  visibility: hidden;
 }
 .deckBingoGrid button.covered {
   background: var(--board-back-color);
@@ -100,19 +113,44 @@
   width: 100%;
   height: 100%;
   z-index: -2;
+  border-radius: inherit;
 }
-.deckBingoGrid:not([data-mark-mode="symbol"]) button[aria-pressed="true"]::before {
+.deckBingoGrid button::before {
   content: "";
-  background: var(--board-mark-color);
-  opacity: var(--board-mark-opacity);
+  background: var(--board-mark-color, transparent);
+  opacity: var(--board-mark-opacity, 0);
   z-index: -1;
+  border-radius: inherit;
+}
+.deckBoardLabel {
+  display: block;
+  max-height: 100%;
+  overflow: hidden;
+}
+.deckBingoGrid button:not([data-label-position="center"]) .deckBoardLabel {
+  position: absolute;
+  inset-inline: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  z-index: 1;
+}
+.deckBingoGrid button[data-label-position="top"] .deckBoardLabel {
+  inset-block-start: 0.2em;
+}
+.deckBingoGrid button[data-label-position="bottom"] .deckBoardLabel {
+  inset-block-end: 0.2em;
+}
+.deckBingoGrid button[data-label-position="above"] .deckBoardLabel {
+  inset-block-end: calc(100% + 0.15em);
+}
+.deckBingoGrid button[data-label-position="below"] .deckBoardLabel {
+  inset-block-start: calc(100% + 0.15em);
 }
 .deckBoardSymbol {
   display: grid;
   place-items: center;
   font-size: 1.6em;
   font-weight: bold;
-  color: var(--board-symbol-color);
   text-shadow: 0 1px 4px #000;
 }
 .deckBingoGrid [hidden] {
