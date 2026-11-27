@@ -533,7 +533,8 @@ test("Player connects TIDAL automatically, signs in, chooses supported countries
   assert.equal(await surface.locator("#videoInput").inputValue(), "iron maiden the book of souls");
   await surface.getByRole("tab", { name: "Moderation", exact: true }).click();
   await surface.locator("#maxSongMinutes").waitFor();
-  assert.equal(await surface.locator("#viewerLimit").isHidden(), true);
+  assert.equal(await surface.locator("#viewerLimit").isVisible(), true);
+  assert.equal(await surface.locator("#vipLimit").isVisible(), true);
   assert.equal(await surface.locator("#volumeCeiling").isHidden(), true);
   assert.equal(await surface.locator("#responseToggles").isHidden(), true);
   assert.equal(await surface.locator("#songSearchFilters").isVisible(), true);
