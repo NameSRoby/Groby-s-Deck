@@ -535,8 +535,8 @@ function createSongQueue(options = {}) {
     seenRequests.push(requestId);
     trimState();
     if (paused) return response(false, "rejected", { reason: "intake_paused" });
-    const pendingEntries = require("./pending-requests")(queue, pending);
-    if (pendingEntries.length >= limits.maxQueue)
+    const pendingEntries = require("./pending-requests")(queue, pending, managedPlayback);
+    if (pendingEntries.total >= limits.maxQueue)
       return response(false, "rejected", { reason: "queue_full" });
     const requester = requesterKey(requesterId);
     const role = requesterRole(payload.requesterRole);
@@ -551,7 +551,7 @@ function createSongQueue(options = {}) {
         : role === "vip"
           ? limits.maxPerVip
           : limits.maxPerRequester;
-    if (pendingEntries.filter((row) => row.requesterKey === requester).length >= requestLimit) {
+    if (pendingEntries.forRequester(requester) >= requestLimit) {
       return response(false, "rejected", { reason: "requester_limit" });
     }
     const catalogFailure = text(payload.catalogFailure, 80);
