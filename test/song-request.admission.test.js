@@ -2,13 +2,16 @@ const test = require("node:test"),
   assert = require("node:assert/strict");
 const { createSongQueue } = require("../features/song-request/dist/domain");
 const createChat = require("../src/capabilities/feature-platform/providers/twitch-chat-command-router");
+const createRedemption = require("../src/capabilities/feature-platform/providers/twitch-redemption-router");
+const {
+  createSystemWidgetEventController,
+} = require("../src/domains/system/widget-event.controller");
 
 for (const player of ["tidal", "spotify", "youtube-browser", "youtube", "soundcloud"]) {
   test(`${player}: chat aliases and Channel Points share configured role limits and bans`, async (t) => {
     const provider = player.startsWith("youtube") ? "youtube" : player;
     const queue = createSongQueue(),
       handoffs = [];
-    queue.configure({ limits: { maxPerRequester: 2, maxPerVip: 3 } });
     let sequence = 0,
       at = 1000,
       last,
@@ -59,7 +62,42 @@ for (const player of ["tidal", "spotify", "youtube-browser", "youtube", "soundcl
       return last;
     };
     const chat = createChat({ now: () => at, submitSongRequest: submit });
-    const request = async (user, alias = "!sr", vip = false) => {
+    const fixtures = {
+      "vip-user": "vip",
+      "vip-custom": "vip",
+      "mod-user": "moderator",
+    };
+    const roleOf = (user) => fixtures[user] || "viewer";
+    const reward = createRedemption({
+      chatCommands: chat,
+      twitchProvider: () => ({
+        status: () => ({ monitorConfig: { songRequestChatEnabled: false } }),
+        resolveRequesterRole: async (user) => ({ ok: true, role: roleOf(user) }),
+      }),
+      widgetController: createSystemWidgetEventController({
+        getTwitchIntakeMode: () => "native",
+        submitSongRequest: async (payload) => ({ ok: true, value: await submit(payload) }),
+        settleRedemption: async ({ status }) => ({ ok: true, status }),
+      }),
+    });
+    const points = async (user) => {
+      at += 2000;
+      const result = await reward(
+        {
+          id: "points-" + at,
+          reward: { id: "song-request-reward" },
+          broadcaster_user_id: "owner",
+          user_id: user,
+          user_name: user,
+          user_input: "Song from Channel Points " + at,
+        },
+        { song_request: { rewardId: "song-request-reward" } },
+      );
+      assert.equal(result.body.action, "song_request");
+      assert.equal(result.body.settlement.status, last.ok ? "UNFULFILLED" : "CANCELED");
+      return last;
+    };
+    const request = async (user, alias = "!sr") => {
       at += 2000;
       return chat.handle(
         {
@@ -67,44 +105,35 @@ for (const player of ["tidal", "spotify", "youtube-browser", "youtube", "soundcl
           chatter_user_id: user,
           chatter_user_name: user,
           broadcaster_user_id: "owner",
-          badges: vip ? [{ set_id: "vip" }] : [],
+          badges: roleOf(user) === "viewer" ? [] : [{ set_id: roleOf(user) }],
           message: { text: `${alias} Song ${at}` },
         },
         { songRequestChatEnabled: true },
       );
     };
-    assert.equal((await request("viewer")).accepted, true);
-    assert.equal(
-      (
-        await submit({
-          requestId: "points-1",
-          requesterId: "viewer",
-          requesterRole: "viewer",
-          query: "Points song",
-        })
-      ).ok,
-      true,
-    );
-    assert.equal((await request("viewer", "!songrequest")).accepted, false);
-    assert.equal(last.reason, "requester_limit");
-    assert.equal(
-      (
-        await submit({
-          requestId: "points-2",
-          requesterId: "viewer",
-          requesterRole: "viewer",
-          query: "Other points song",
-        })
-      ).reason,
-      "requester_limit",
-    );
-    for (let i = 0; i < 3; i++)
+    const hitLimit = async (user, limit) => {
+      for (let i = 0; i < limit; i++)
+        assert.equal(
+          i % 2 ? (await request(user, "!songrequest")).accepted : (await points(user)).ok,
+          true,
+          `${user} request ${i + 1}`,
+        );
+      assert.equal((await request(user)).accepted, false);
+      assert.equal(last.reason, "requester_limit");
+      assert.equal((await points(user)).reason, "requester_limit");
+    };
+    await hitLimit("viewer", 5);
+    await hitLimit("vip-user", 10);
+    for (let i = 0; i < 24; i++)
       assert.equal(
-        (await request("vip-user", i % 2 ? "!songrequest" : "!sr", true)).accepted,
+        i % 2 ? (await request("mod-user")).accepted : (await points("mod-user")).ok,
         true,
       );
-    assert.equal((await request("vip-user", "!sr", true)).accepted, false);
-    assert.equal(last.reason, "requester_limit");
+
+    queue.configure({ limits: { maxPerRequester: 2, maxPerVip: 3 } });
+    await hitLimit("viewer-custom", 2);
+    await hitLimit("vip-custom", 3);
+    assert.equal((await points("mod-user")).ok, true);
     queue.moderate({ action: "block", requesterId: "blocked" });
     assert.equal((await request("blocked")).accepted, false);
     assert.equal(last.reason, "requester_blocked");
@@ -112,13 +141,28 @@ for (const player of ["tidal", "spotify", "youtube-browser", "youtube", "soundcl
     assert.equal((await request("timed")).accepted, false);
     assert.equal(last.reason, "requester_timed_out");
     if (native) {
-      handoffs[0].phase = "unknown";
-      assert.equal((await request("viewer")).accepted, false);
-      handoffs[0].phase = "finished";
-      assert.equal((await request("viewer")).accepted, true, "confirmed completion frees a slot");
+      const affected = handoffs.find((row) => row.requesterLabel === "viewer-custom");
+      affected.phase = "unknown";
+      assert.equal((await request("viewer-custom")).accepted, false);
+      affected.phase = "playing";
+      assert.equal(
+        (await request("viewer-custom")).accepted,
+        true,
+        "confirmed playback frees a slot",
+      );
       unavailable = true;
       assert.equal((await request("another")).accepted, false);
       assert.equal(last.reason, "request_limits_unavailable");
+    } else {
+      queue.configure({ limits: { maxPerRequester: 5 } });
+      queue.configurePlaybackSource({ source: provider });
+      queue.moderate({ action: "playback_start" });
+      const driverId = "fixture";
+      const { action } = queue.pull({ driverId, providers: [provider] });
+      assert.ok(action);
+      assert.equal((await points("viewer")).reason, "requester_limit", "loading keeps its slot");
+      queue.acknowledge({ driverId, leaseId: action.leaseId, state: "started" });
+      assert.equal((await points("viewer")).ok, true, "confirmed playback frees a slot");
     }
   });
 }

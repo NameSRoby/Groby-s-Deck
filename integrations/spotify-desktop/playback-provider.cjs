@@ -246,11 +246,16 @@ function playbackProvider(options) {
     if (payload.action === "skip" && state.mode !== "official" && state.current?.entryId) {
       if (routeFor(state.current.entryId) === "desktop") return desktop.handle("control", payload);
     }
+    const official = premium.status();
     if (
-      state.officialControls &&
-      (payload.action !== "volume" || premium.status().volumeAvailable)
+      state.mode === "official" ||
+      (state.officialControls && (payload.action !== "volume" || official.volumeAvailable))
     ) {
-      const current = premium.status().current;
+      if (!state.officialControls)
+        return { ok: false, error: state.lastError || "spotify_device_selection_required" };
+      if (payload.action === "volume" && !official.volumeAvailable)
+        return { ok: false, error: "spotify_volume_unavailable" };
+      const current = official.current;
       if (payload.action === "skip" && current?.uri !== state.current?.uri)
         return { ok: false, error: "spotify_current_changed" };
       return premium.handle("control", {

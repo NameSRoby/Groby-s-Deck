@@ -93,6 +93,28 @@ test("shared chat response controls stay visible for all players and preserve ed
         "an optional installation probe must not claim working controls are unavailable",
       );
     }
+    await frame.getByRole("tab", { name: "Moderation", exact: true }).click();
+    const viewerLimit = frame.getByRole("spinbutton", { name: "Requests per viewer" });
+    const vipLimit = frame.getByRole("spinbutton", { name: "Requests per VIP" });
+    await viewerLimit.waitFor();
+    assert.equal(await viewerLimit.inputValue(), ["youtube", "tidal"].includes(player) ? "5" : "6");
+    assert.equal(await vipLimit.inputValue(), ["youtube", "tidal"].includes(player) ? "10" : "12");
+    assert.equal(
+      await frame.getByText("Moderators have no per-user limit.", { exact: false }).isVisible(),
+      true,
+    );
+    if (player === "tidal") {
+      await viewerLimit.fill("6");
+      await vipLimit.fill("12");
+      await frame.locator("#savePolicy").click();
+      await frame
+        .locator("#notice")
+        .filter({ hasText: "Request policy saved" })
+        .waitFor({ state: "attached" });
+      const { limits } = await call("song.queue.read.v1", "status", {});
+      assert.equal(limits.maxPerRequester, 6);
+      assert.equal(limits.maxPerVip, 12);
+    }
     await frame.getByRole("tab", { name: "Chat Responses", exact: true }).click();
     await frame.getByRole("heading", { name: "Twitch chat responses" }).waitFor();
     const toggle = frame.locator("[data-response=queued]");

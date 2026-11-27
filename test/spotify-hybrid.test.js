@@ -155,6 +155,13 @@ test("hybrid preserves desktop occurrence ownership and can use desktop volume c
   assert.equal(f.calls.at(-1).route, "desktop");
   await f.provider.handle("control", { action: "volume", value: 25 });
   assert.equal(f.calls.at(-1).route, "desktop");
+  f.mismatch();
+  const writes = f.calls.length;
+  assert.deepEqual(await f.provider.handle("control", { action: "volume", value: 25 }), {
+    ok: false,
+    error: "spotify_volume_unavailable",
+  });
+  assert.equal(f.calls.length, writes, "a volume command cannot fall back to a different device");
 });
 test("Spotify preserves invalid saved state while isolating the failure from Core startup", async (t) => {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-invalid-state-")),
