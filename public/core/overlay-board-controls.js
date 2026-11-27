@@ -72,11 +72,8 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     block.append(el("h3", title), ...Array.from(host.children).slice(start));
     host.append(block);
   }
-  const { style, hideLabel, labelPosition, setImage, imageControl } = OverlayBoardStyle(
-    a,
-    { host, num, select, field },
-    { group, details, el, labeled },
-  );
+  const { style, tileColors, hideLabel, labelPosition, choices, setImage, imageControl } =
+    OverlayBoardStyle(a, { host, num, select, field }, { group, details, el, labeled });
   function tileImage(w, read, write) {
     const upload = imageControl(host, w, "Tile image", read, write);
     upload.dataset.boardTileUpload = "";
@@ -295,23 +292,28 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
     const count = OverlayGameRules.challengeCount(w);
     const active = Math.min(selected.get(w) || 1, count);
     const tile = w.tiles[active - 1];
-    const layout = labeled("Tile layout", el("select"));
-    layout.add(new Option("Grid", "grid"));
-    layout.add(new Option("Freeform", "freeform"));
-    layout.value = w.challengeLayout;
     function setGrid(columns, rows) {
       w.challengeLayout = "grid";
       w.gridSize = columns;
       w.gridRows = rows;
       OverlayModel.fillChallengeGrid(w, GrobyRandomId);
     }
-    layout.onchange = () => {
-      a.change(() => {
-        if (layout.value === "grid") setGrid(w.gridSize, w.gridRows);
-        else w.challengeLayout = "freeform";
-      });
-      host.querySelector('[aria-label="Tile layout"]').focus();
-    };
+    choices(
+      host,
+      "Tile layout",
+      w.challengeLayout,
+      [
+        ["grid", "Grid"],
+        ["freeform", "Freeform"],
+      ],
+      (value) => {
+        a.change(() => {
+          if (value === "grid") setGrid(w.gridSize, w.gridRows);
+          else w.challengeLayout = "freeform";
+        });
+        host.querySelector('[data-board-choice="Tile layout"] :checked').focus();
+      },
+    );
     if (grid) {
       const fields = el("div");
       fields.className = "tileGeometry";
@@ -726,5 +728,6 @@ globalThis.OverlayBoardControls = (a, { host, num, select, check, field }, butto
   return {
     content,
     style,
+    tileColors,
   };
 };

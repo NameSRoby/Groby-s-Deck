@@ -135,6 +135,7 @@ export function createDeckBingo({
     grid.style.backgroundSize = board?.imageFit || "";
     grid.style.setProperty("--board-back-color", board?.matchBackColor || "");
     grid.dataset.markMode = board?.markMode || "color";
+    grid.classList.toggle("symbol-above-text", board?.symbolAboveLabel !== false);
     while (grid.children.length > cells.length) grid.lastElementChild.remove();
     for (const [index, cell] of cells.entries()) {
       let button = grid.children[index];
@@ -208,7 +209,22 @@ export function createDeckBingo({
           transform: `rotate(${cell.rotation}deg)`,
         });
       else button.removeAttribute("style");
-      image.style.filter = boardImageTint(style);
+      const tintInFront =
+        board.tintAboveLabel &&
+        !label.hidden &&
+        !["above", "below"].includes(button.dataset.labelPosition);
+      button.classList.toggle("color-above-text", tintInFront);
+      const frontTint = tintInFront && cell.image ? boardImageTint(style, true) : "";
+      image.style.filter = frontTint ? "" : boardImageTint(style);
+      const existingTint = button.querySelector(".deckBoardTint");
+      if (frontTint) {
+        const tint = existingTint || image.cloneNode();
+        tint.className = "deckBoardTint";
+        if (tint.getAttribute("src") !== cell.image) tint.src = image.src;
+        tint.style.objectFit = board.cellImageFit;
+        tint.style.filter = frontTint;
+        if (!existingTint) button.append(tint);
+      } else existingTint?.remove();
       if (style.tintTarget !== "image" && ["color", "both"].includes(style.mode)) {
         button.style.setProperty("--board-mark-color", style.color);
         button.style.setProperty("--board-mark-opacity", (style.opacity ?? 100) / 100);

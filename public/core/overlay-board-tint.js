@@ -1,5 +1,5 @@
-/** Blend a mark into the image's RGB channels while keeping its alpha channel. */
-globalThis.boardImageTint = (style) => {
+/** Tint the image in place or make a color layer shaped by its alpha channel. */
+globalThis.boardImageTint = (style, colorLayer = false) => {
   if (
     style?.tintTarget !== "image" ||
     !["color", "both"].includes(style.mode) ||
@@ -10,8 +10,11 @@ globalThis.boardImageTint = (style) => {
   if (!opacity) return "";
   const channels = ["R", "G", "B"].map((channel, index) => {
     const component = parseInt(style.color.slice(1 + index * 2, 3 + index * 2), 16) / 255;
-    return `<feFunc${channel} type="linear" slope="${1 - opacity}" intercept="${component * opacity}"/>`;
+    const slope = colorLayer ? 0 : 1 - opacity;
+    const intercept = colorLayer ? component : component * opacity;
+    return `<feFunc${channel} type="linear" slope="${slope}" intercept="${intercept}"/>`;
   });
+  if (colorLayer) channels.push(`<feFuncA type="linear" slope="${opacity}"/>`);
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg"><filter id="tint" color-interpolation-filters="sRGB">' +
     "<feComponentTransfer>" +

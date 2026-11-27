@@ -215,5 +215,6 @@ globalThis.OverlayExtraControls = (a, { host, num, select, check, field }) => {
       }
     },
     boardStyle: board.style,
+    tileColors: board.tileColors,
   };
 };

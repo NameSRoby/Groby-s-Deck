@@ -62,10 +62,12 @@ Use **Data > Sample** to try moves on a draft.
 Click any Bingo or Challenge tile on the canvas to open its image controls. Use
 the **Image** button beside a tile in the list to choose a file directly.
 
-In **Style & text**, choose **Whole tile** or **Image pixels only** for each color
-overlay. Image-only tinting preserves fully transparent and translucent parts of
-the image and has no effect on tiles without an image. Use the overlay opacity
-and symbol color controls to adjust each independently.
+In **Tile colors**, find **Completed** and **Failed**. Pick an overlay color to
+turn it on, set the opacity, then click **Whole tile** or **Image only**. Image
+only preserves transparency and leaves tiles without an image untouched. Use
+**Show symbol** independently and open **Symbol options** to choose the symbol
+and its color. **Layer order** lets you put the color and symbol above or below
+the tile text independently.
 
 - **Bingo board** supports rectangular layouts up to 10,000 squares, individual
   labels or pasted lists, and images for the board or each square. Choose winning

@@ -861,6 +861,68 @@ dialog header button {
 .widgetFrame :is(input, select) {
   min-width: 0;
 }
+.tileColorHelp {
+  margin: 2px 0 14px;
+  color: var(--muted);
+}
+.tileOutcome {
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+}
+.tileOutcome > legend {
+  font-weight: 600;
+}
+.tileColorValues,
+.boardChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.boardChoices {
+  min-width: 0;
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+}
+.boardChoices label {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  margin: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.boardChoices input[type="radio"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  margin: 0;
+}
+.boardChoices label:has(:checked) {
+  border-color: var(--accent);
+}
+.tileOutcome > details {
+  margin-block-start: 4px;
+}
+.tileSymbolLibrary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  gap: 4px;
+}
+.tileSymbolLibrary button {
+  min-width: 0;
+  padding-inline: 0;
+}
 #canvasDialog {
   width: min(560px, calc(100vw - 32px));
 }

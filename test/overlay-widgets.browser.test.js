@@ -493,15 +493,21 @@ test("board designer saves images, custom marks, announcements and freeform geom
   assert.equal(await selectedTile.inputValue(), "1");
   await page.locator('[data-inspector="style"]').click();
   await page.getByLabel("Design preset").selectOption("Photo tiles");
-  await page.getByLabel("Completed square").selectOption("both");
-  await page.getByLabel("Completion symbol", { exact: true }).fill("★");
-  await page.getByLabel("Completion symbol", { exact: true }).press("Tab");
+  await page.getByText("Tile colors", { exact: true }).click();
+  const completed = page.getByRole("group", { name: "Completed", exact: true });
+  await completed.getByLabel("Show symbol", { exact: true }).check();
+  await completed.getByText("Symbol options", { exact: true }).click();
+  await completed.getByRole("button", { name: "Star", exact: true }).click();
+  await page.locator('[data-inspector="style"]').click();
   await page.getByLabel("Announcement text", { exact: true }).fill("Line complete");
   await page.getByLabel("Announcement text", { exact: true }).press("Tab");
   await page.getByLabel("Announcement placement").selectOption("overlay");
   await add("Challenge board");
   await page.locator('[data-inspector="content"]').click();
-  await page.getByLabel("Tile layout").selectOption("freeform");
+  await page
+    .getByRole("group", { name: "Tile layout", exact: true })
+    .getByRole("radio", { name: "Freeform" })
+    .check();
   await page.getByLabel("Tile label", { exact: true }).fill("First hero");
   await page.getByLabel("Tile label", { exact: true }).press("Tab");
   await page.getByLabel("Hide label on board", { exact: true }).check();
@@ -602,7 +608,10 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
   await add("Challenge board");
   await page.getByLabel("Tile label", { exact: true }).fill("Photo task");
   await page.getByLabel("Tile label", { exact: true }).press("Tab");
-  await page.getByLabel("Selected tile label position").selectOption("above");
+  await page
+    .getByRole("group", { name: "Selected tile label position", exact: true })
+    .getByRole("radio", { name: "Above tile" })
+    .check();
   await page.getByLabel("Hide border on this tile").check();
   await page.getByText("Use an image URL", { exact: true }).first().click();
   await page
@@ -611,18 +620,32 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
   await page.getByLabel("Tile image URL", { exact: true }).press("Tab");
   await page.locator('[data-inspector="style"]').click();
   await page.getByText("Tile appearance", { exact: true }).click();
-  await page.getByLabel("Tile label position", { exact: true }).selectOption("below");
+  await page
+    .getByRole("group", { name: "Tile label position", exact: true })
+    .getByRole("radio", { name: "Below tile" })
+    .check();
   await page.getByLabel("Hide completed tiles", { exact: true }).check();
-  await page.getByLabel("Completed square", { exact: true }).selectOption("both");
-  await page.getByLabel("Completion overlay area", { exact: true }).selectOption("image");
-  await page.getByText("Failure mark", { exact: true }).click();
-  const failureArea = page.getByLabel("Overlay area", { exact: true });
-  await failureArea.selectOption("image");
-  await failureArea.selectOption("tile");
-  const failureOpacity = page.getByLabel("Overlay opacity (%)", { exact: true });
+  await page.getByText("Tile colors", { exact: true }).click();
+  const completed = page.getByRole("group", { name: "Completed", exact: true });
+  const failed = page.getByRole("group", { name: "Failed", exact: true });
+  assert.equal(await completed.getByLabel("Show color overlay").isChecked(), false);
+  assert.equal(await completed.getByLabel("Show symbol").isChecked(), true);
+  await completed.getByLabel("Show symbol").uncheck();
+  await completed.getByLabel("Overlay color").fill("#006eff");
+  assert.equal(await completed.getByLabel("Show color overlay").isChecked(), true);
+  assert.equal(await completed.getByLabel("Show symbol").isChecked(), false);
+  await completed.getByRole("radio", { name: "Image only" }).check();
+  await failed.getByRole("radio", { name: "Image only" }).check();
+  await failed.getByRole("radio", { name: "Whole tile" }).check();
+  await failed.getByLabel("Overlay color").fill("#b31d45");
+  await failed.getByLabel("Show color overlay").uncheck();
+  assert.equal(await failed.getByLabel("Show symbol").isChecked(), true);
+  await failed.getByLabel("Show color overlay").check();
+  const failureOpacity = failed.getByLabel("Opacity (%)", { exact: true });
   await failureOpacity.fill("40");
   await failureOpacity.press("Tab");
-  await page.getByLabel("Condition symbol library").selectOption("⚠");
+  await failed.getByText("Symbol options", { exact: true }).click();
+  await failed.getByRole("button", { name: "Warning", exact: true }).click();
   await page.getByText("Custom tile conditions", { exact: true }).click();
   await page.getByRole("button", { name: "Add condition", exact: true }).click();
   await page.getByLabel("Condition name").fill("Needs another try");
@@ -635,6 +658,8 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
   assert.equal(w.failureCondition.opacity, 40);
   assert.equal(w.failureCondition.symbol, "⚠");
   assert.equal(w.markTintTarget, "image");
+  assert.equal(w.markColor, "#006eff");
+  assert.equal(w.markMode, "color");
   assert.equal(w.failureCondition.tintTarget, "tile");
   await page.locator('[data-inspector="content"]').click();
   await page.getByLabel("Mark as", { exact: true }).selectOption("failed");
@@ -670,7 +695,7 @@ test("board conditions, symbols, label positions, and hidden borders match OBS",
           caption.bottom < el.getBoundingClientRect().top,
         ];
       }),
-      ["rgba(185, 28, 28, 0.4)", "rgba(0, 0, 0, 0)", true],
+      ["rgba(179, 29, 69, 0.4)", "rgba(0, 0, 0, 0)", true],
     );
     const custom = view.locator(
       ".extra-challenge-board [data-condition=" + JSON.stringify(w.customConditions[0].id) + "]",
@@ -793,6 +818,28 @@ test("board tint follows artwork alpha in the designer and OBS", async (t) => {
     await blank.evaluate((el) => getComputedStyle(el, "::before").backgroundColor),
     "rgba(0, 0, 0, 0)",
   );
+  await page.locator("#layers .layerName").first().click();
+  await page.getByLabel("Show tile labels", { exact: true }).check();
+  await page.getByText("Tile colors", { exact: true }).click();
+  await page.getByLabel("Color above text", { exact: true }).check();
+  await page.getByLabel("Symbol above text", { exact: true }).uncheck();
+  await page.locator("#save").click();
+  await page.locator("#saveState").getByText("Saved", { exact: true }).waitFor();
+  for (const view of [page, output]) {
+    const tile = view.locator(".bingoCell[data-condition]").first();
+    await tile.locator(".bingoTint").waitFor();
+    const layers = await tile.evaluate((el) =>
+      [".bingoTint", ".bingoLabel", ".bingoSymbol"].map(
+        (selector) => getComputedStyle(el.querySelector(selector)).zIndex,
+      ),
+    );
+    assert.deepEqual(layers, ["2", "1", "auto"]);
+    const failed = view.locator('.bingoCell[data-condition="failed"]');
+    assert.equal(await failed.evaluate((el) => getComputedStyle(el, "::before").zIndex), "2");
+  }
+  const board = service.bingoDeck({ documentId: saved.selectedId, widgetId: "board" }).board;
+  assert.equal(board.tintAboveLabel, true);
+  assert.equal(board.symbolAboveLabel, false);
 });
 test("Tile Match pairs can be edited and tried in the designer without changing the live overlay", async (t) => {
   const { page, add, service } = await setup(t);

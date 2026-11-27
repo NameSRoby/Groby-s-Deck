@@ -22,91 +22,175 @@ globalThis.OverlayBoardStyle = (
     ["\u25a0", "Square"],
     ["\u2212", "Dash"],
   ];
-  const tintTargets = [
-    ["tile", "Whole tile"],
-    ["image", "Image pixels only"],
-  ];
-  function symbolPicker(parent, name, input) {
-    const browser = labeled(name, el("select"), parent);
-    browser.add(new Option("Choose a symbol", ""));
-    for (const [symbol, title] of presets) browser.add(new Option(symbol + "  " + title, symbol));
-    browser.onchange = () => {
-      if (browser.value) {
-        input.value = browser.value;
-        input.dispatchEvent(new Event("change"));
-      }
-      browser.value = "";
+  function editCondition(parent, condition, keys = {}) {
+    const keyFor = (key) => keys[key] || key;
+    const get = (key) => condition[keyFor(key)];
+    const set = (key, value) => {
+      condition[keyFor(key)] = value;
     };
-    return browser;
-  }
-  function editCondition(parent, condition, removing) {
-    const field = (title, type, key) => {
-      const input = labeled(title, el("input"), parent);
+    const field = (container, title, type, key) => {
+      const input = labeled(title, el("input"), container);
       input.type = type;
-      input.value = condition[key];
-      input.onchange = () =>
-        a.change(() => {
-          condition[key] = type === "number" ? input.valueAsNumber : input.value;
-        }, false);
+      input.value = get(key);
+      input.onchange = () => {
+        if (!input.reportValidity()) return;
+        a.change(() => set(key, type === "number" ? input.valueAsNumber : input.value), false);
+      };
       return input;
     };
-    if (removing) {
-      const name = field("Condition name", "text", "name");
-      name.maxLength = 40;
-      name.required = true;
-      const change = name.onchange;
+    const check = (title, container, modes) => {
+      const input = el("input");
+      input.type = "checkbox";
+      input.checked = modes.includes(get("mode"));
+      labeled(title, input, container).parentElement.className = "check";
+      return input;
+    };
+    const overlay = check("Show color overlay", parent, ["color", "both"]);
+    const values = el("div");
+    values.className = "tileColorValues";
+    parent.append(values);
+    const color = field(values, "Overlay color", "color", "color");
+    const opacity = field(values, "Opacity (%)", "number", "opacity");
+    Object.assign(opacity, { min: 0, max: 100, required: true });
+    choices(
+      parent,
+      "Apply color to",
+      get("tintTarget"),
+      [
+        ["tile", "Whole tile"],
+        ["image", "Image only"],
+      ],
+      (value) => a.change(() => set("tintTarget", value), false),
+    );
+
+    const symbol = check("Show symbol", parent, ["symbol", "both"]);
+    const options = el("details");
+    options.append(el("summary", "Symbol options"));
+    parent.append(options);
+    const text = field(options, "Symbol text", "text", "symbol");
+    text.maxLength = 16;
+    field(options, "Symbol color", "color", "symbolColor");
+    const icons = el("div");
+    icons.className = "tileSymbolLibrary";
+    icons.setAttribute("role", "group");
+    icons.setAttribute("aria-label", "Symbol library");
+    options.append(icons);
+    const syncMode = () =>
+      set(
+        "mode",
+        overlay.checked ? (symbol.checked ? "both" : "color") : symbol.checked ? "symbol" : "none",
+      );
+    overlay.onchange = symbol.onchange = () => a.change(syncMode, false);
+    color.onchange = () => {
+      overlay.checked = true;
+      a.change(() => {
+        set("color", color.value);
+        syncMode();
+      }, false);
+    };
+    for (const [value, title] of presets) {
+      const button = el("button", value);
+      button.type = "button";
+      button.title = title;
+      button.setAttribute("aria-label", title);
+      button.onclick = () => {
+        text.value = value;
+        symbol.checked = true;
+        a.change(() => {
+          set("symbol", value);
+          syncMode();
+        }, false);
+      };
+      icons.append(button);
+    }
+  }
+  function tileColors(w) {
+    const match = w.type === "tile-match";
+    const help = el(
+      "p",
+      "Pick a color to turn on the overlay. Use a color, a symbol, or both. Image only keeps transparent areas clear.",
+    );
+    help.className = "tileColorHelp";
+    host.append(help);
+    for (const [title, condition, keys] of [
+      [
+        match ? "Matched" : "Completed",
+        w,
+        {
+          mode: "markMode",
+          color: "markColor",
+          opacity: "markOpacity",
+          tintTarget: "markTintTarget",
+          symbol: "markSymbol",
+          symbolColor: "markSymbolColor",
+        },
+      ],
+      [match ? "Mismatch" : "Failed", w.failureCondition],
+    ]) {
+      const group = el("fieldset");
+      group.className = "tileOutcome";
+      group.append(el("legend", title));
+      host.append(group);
+      editCondition(group, condition, keys);
+    }
+    const order = el("fieldset");
+    order.className = "tileOutcome";
+    order.append(
+      el("legend", "Layer order"),
+      field("Color above text", "tintAboveLabel", "checkbox").parentElement,
+      field("Symbol above text", "symbolAboveLabel", "checkbox").parentElement,
+    );
+    host.append(order);
+    if (match) return;
+    const panel = details("Custom tile conditions");
+    panel.className = "boardSettings";
+    panel.dataset.customTileConditions = "";
+    for (const condition of w.customConditions) {
+      const row = el("details");
+      const heading = el("summary", condition.name);
+      row.append(heading);
+      panel.append(row);
+      const name = labeled("Condition name", el("input"), row);
+      Object.assign(name, { value: condition.name, maxLength: 40, required: true });
       name.onchange = () => {
         if (!name.reportValidity() || !name.value.trim()) return;
-        change();
-        parent.querySelector("summary").textContent = name.value.trim();
+        a.change(() => {
+          condition.name = name.value.trim();
+        }, false);
+        heading.textContent = condition.name;
       };
-    }
-    const mode = labeled("Condition appearance", el("select"), parent);
-    for (const [key, title] of [
-      ["none", "No mark"],
-      ["color", "Color overlay"],
-      ["symbol", "Symbol"],
-      ["both", "Color and symbol"],
-    ])
-      mode.add(new Option(title, key));
-    mode.value = condition.mode;
-    const tintTarget = labeled("Overlay area", el("select"), parent);
-    for (const [key, title] of tintTargets) tintTarget.add(new Option(title, key));
-    tintTarget.value = condition.tintTarget;
-    tintTarget.onchange = () =>
-      a.change(() => {
-        condition.tintTarget = tintTarget.value;
-      }, false);
-    const color = field("Overlay color", "color", "color");
-    const opacity = field("Overlay opacity (%)", "number", "opacity");
-    Object.assign(opacity, { min: 0, max: 100, required: true });
-    const changeOpacity = opacity.onchange;
-    opacity.onchange = () => {
-      if (opacity.reportValidity()) changeOpacity();
-    };
-    const symbol = field("Condition symbol", "text", "symbol");
-    symbol.maxLength = 16;
-    const icons = symbolPicker(parent, "Condition symbol library", symbol);
-    const symbolColor = field("Condition symbol color", "color", "symbolColor");
-    const refresh = () => {
-      for (const input of [tintTarget, color, opacity])
-        input.parentElement.hidden = !["color", "both"].includes(mode.value);
-      for (const input of [symbol, icons, symbolColor])
-        input.parentElement.hidden = !["symbol", "both"].includes(mode.value);
-    };
-    mode.onchange = () => {
-      a.change(() => {
-        condition.mode = mode.value;
-      }, false);
-      refresh();
-    };
-    refresh();
-    if (removing) {
+      editCondition(row, condition);
       const remove = el("button", "Remove condition");
       remove.type = "button";
-      remove.onclick = removing;
-      parent.append(remove);
+      remove.onclick = () =>
+        a.change(() => {
+          w.customConditions = w.customConditions.filter((item) => item !== condition);
+        });
+      row.append(remove);
     }
+    const add = el("button", "Add condition");
+    add.type = "button";
+    add.disabled = w.customConditions.length >= OverlayModel.boardConditionLimit;
+    add.onclick = () => {
+      a.change(() =>
+        w.customConditions.push({
+          id: GrobyRandomId(),
+          name: "Condition " + (w.customConditions.length + 1),
+          mode: "both",
+          color: "#1d4ed8",
+          opacity: 60,
+          tintTarget: "tile",
+          symbol: "\u2605",
+          symbolColor: "#ffffff",
+        }),
+      );
+      const current = host.querySelector("[data-custom-tile-conditions]");
+      current.open = true;
+      const row = current.querySelector(":scope > details:last-of-type");
+      row.open = true;
+      row.querySelector("input").focus();
+    };
+    panel.append(add);
   }
   function setImage(image, url) {
     image.hidden = !url;
@@ -190,13 +274,31 @@ globalThis.OverlayBoardStyle = (
       }, false);
     return input;
   }
+  function choices(parent, title, selected, entries, change) {
+    const group = el("fieldset");
+    group.className = "boardChoices";
+    group.dataset.boardChoice = title;
+    group.append(el("legend", title));
+    const name = "board-choice-" + GrobyRandomId();
+    for (const [value, label] of entries) {
+      const input = el("input");
+      Object.assign(input, { type: "radio", name, value, checked: selected === value });
+      labeled(label, input, group);
+      input.onchange = () => change(input.value);
+    }
+    parent.append(group);
+  }
+  const labelPositions = [
+    ["center", "Center"],
+    ["top", "Inside top"],
+    ["bottom", "Inside bottom"],
+    ["above", "Above tile"],
+    ["below", "Below tile"],
+  ];
   function labelPosition(parent, name, position, save) {
-    const input = labeled(name, el("select"), parent);
-    input.add(new Option("Use board setting", ""));
-    for (const value of OverlayModel.boardLabelPositions)
-      input.add(new Option(value[0].toUpperCase() + value.slice(1), value));
-    input.value = position || "";
-    input.onchange = () => a.change(() => save(input.value), false);
+    choices(parent, name, position || "", [["", "Use board setting"], ...labelPositions], (value) =>
+      a.change(() => save(value), false),
+    );
   }
   function style(w, looks) {
     const boardLooks = [
@@ -246,46 +348,20 @@ globalThis.OverlayBoardStyle = (
     ];
     looks.splice(0, looks.length, ...boardLooks);
     if (w.type === "tile-match") field("Tile back color", "matchBackColor", "color");
-    const marksStart = host.children.length;
-    group(
-      "Completion marks",
-      () => {
-        const mode = select("Completed square", "markMode", [
-          ["color", "Color overlay"],
-          ["symbol", "Symbol"],
-          ["both", "Color and symbol"],
-        ]);
-        const colors = [
-          select("Completion overlay area", "markTintTarget", tintTargets),
-          field("Completion color", "markColor", "color"),
-          num("Completion color opacity (%)", "markOpacity", 0, 100),
-        ];
-        const symbols = [
-          field("Completion symbol", "markSymbol", "text", { maxLength: 16 }),
-          field("Symbol color", "markSymbolColor", "color"),
-        ];
-        symbols.push(symbolPicker(host, "Completion symbol library", symbols[0]));
-        const refresh = () => {
-          for (const input of colors) input.parentElement.hidden = w.markMode === "symbol";
-          for (const input of symbols) input.parentElement.hidden = w.markMode === "color";
-        };
-        const change = mode.onchange;
-        mode.onchange = () => {
-          change();
-          refresh();
-        };
-        refresh();
-      },
-      true,
-    );
-    const marks = host.children[marksStart];
     group("Tile appearance", () => {
       const fitOptions = [
         ["cover", "Fill and crop"],
         ["contain", "Fit entire image"],
       ];
-      select("Board image fit", "boardImageFit", fitOptions);
-      select("Tile image fit", "cellImageFit", fitOptions);
+      for (const [title, key] of [
+        ["Board image fit", "boardImageFit"],
+        ["Tile image fit", "cellImageFit"],
+      ])
+        choices(host, title, w[key], fitOptions, (value) =>
+          a.change(() => {
+            w[key] = value;
+          }, false),
+        );
       field("Square background", "cellBackground", "color");
       num("Square background opacity (%)", "cellOpacity", 0, 100);
       field("Square border color", "cellBorderColor", "color");
@@ -293,56 +369,13 @@ globalThis.OverlayBoardStyle = (
       num("Square corner radius (px)", "cellRadius", 0, 120);
       field("Show tile borders", "showCellBorders", "checkbox");
       field("Hide completed tiles", "hideCompletedTiles", "checkbox");
-      select("Tile label position", "labelPosition", [
-        ["center", "Center of tile"],
-        ["top", "Top inside tile"],
-        ["bottom", "Bottom inside tile"],
-        ["above", "Above tile"],
-        ["below", "Below tile"],
-      ]);
+      choices(host, "Tile label position", w.labelPosition, labelPositions, (value) =>
+        a.change(() => {
+          w.labelPosition = value;
+        }, false),
+      );
       if (w.type !== "challenge-board") num("Space between squares (px)", "cellGap", 0, 60);
     });
-    host.append(marks);
-    editCondition(
-      details(w.type === "tile-match" ? "Mismatch mark" : "Failure mark"),
-      w.failureCondition,
-    );
-    if (w.type !== "tile-match") {
-      const panel = details("Custom tile conditions");
-      for (const condition of w.customConditions) {
-        const row = el("details");
-        row.append(el("summary", condition.name));
-        panel.append(row);
-        editCondition(row, condition, () =>
-          a.change(() => {
-            w.customConditions = w.customConditions.filter((item) => item !== condition);
-          }),
-        );
-      }
-      const add = el("button", "Add condition");
-      add.type = "button";
-      add.disabled = w.customConditions.length >= OverlayModel.boardConditionLimit;
-      add.onclick = () => {
-        a.change(() =>
-          w.customConditions.push({
-            id: GrobyRandomId(),
-            name: "Condition " + (w.customConditions.length + 1),
-            mode: "both",
-            color: "#1d4ed8",
-            opacity: 60,
-            tintTarget: "tile",
-            symbol: "\u2605",
-            symbolColor: "#ffffff",
-          }),
-        );
-        const current = host.querySelector("[data-custom-tile-conditions]");
-        current.open = true;
-        current.querySelector("details:last-of-type").open = true;
-        current.querySelector("details:last-of-type input").focus();
-      };
-      panel.dataset.customTileConditions = "";
-      panel.append(add);
-    }
     if (w.type !== "bingo") return;
     const patterns = details("Winning patterns");
     for (const [key, name] of [
@@ -396,5 +429,5 @@ globalThis.OverlayBoardStyle = (
       true,
     );
   }
-  return { style, hideLabel, labelPosition, setImage, imageControl };
+  return { style, tileColors, hideLabel, labelPosition, choices, setImage, imageControl };
 };
