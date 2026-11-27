@@ -1136,7 +1136,7 @@ function createSongQueue(options = {}) {
     overlayProfiles.restore(snapshot);
     configure({
       limits: snapshot.limits,
-      responses: snapshot.version >= 7 ? snapshot.responses : undefined,
+      responses: snapshot.version >= 7 ? snapshot.responses : responseDefaults(false),
       catalogPolicy: snapshot.version >= 8 ? snapshot.catalogPolicy : undefined,
     });
     return { ok: true, restored: queue.length };

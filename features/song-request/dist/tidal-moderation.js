@@ -11,9 +11,11 @@ module.exports = function createTidalModeration({
   providerName = "tidal",
 }) {
   return async function moderate(payload) {
+    const action = payload.action;
+    const targeted = ["remove", "skip"].includes(action);
     // A handoff may settle after a command chooses a request. Read its local and
     // native state after the in-flight delivery drains to keep the target stable.
-    await waitForDelivery();
+    if (targeted) await waitForDelivery();
     let status;
     try {
       status = await provider("status", null);
@@ -33,10 +35,9 @@ module.exports = function createTidalModeration({
       local ||
       status?.handoffs?.find((row) => row.entryId === payload.entryId) ||
       (payload.currentUid ? status?.current : null);
-    const action = payload.action,
-      trackId = entry?.candidate?.providerItemId || entry?.trackId || payload.providerItemId;
+    const trackId = entry?.candidate?.providerItemId || entry?.trackId || payload.providerItemId;
     let result;
-    if (["remove", "skip"].includes(action) && !local) {
+    if (targeted && !local) {
       result = entry
         ? { ok: true, code: "removed", entryId: payload.entryId }
         : { ok: false, code: "rejected", reason: "entry_not_found" };
@@ -51,7 +52,8 @@ module.exports = function createTidalModeration({
     changed(result);
     if (!["remove", "skip", "block_song", "timeout_song", "block", "timeout"].includes(action))
       return result;
-    // Only remove matching recorded native occurrences.
+    // Apply restrictions before waiting so new intake sees them immediately.
+    if (!targeted) await waitForDelivery();
     const selection = ["block", "timeout"].includes(action)
       ? { requesterKey: payload.requesterKey }
       : ["block_song", "timeout_song"].includes(action)
@@ -90,8 +92,7 @@ module.exports = function createTidalModeration({
       (native || payload.currentUid || (entry && !local))
     ) {
       const nativeError = removal?.error || providerName + "_remove_unconfirmed";
-      if (["skip", "remove"].includes(action))
-        return { ok: false, code: "rejected", reason: nativeError };
+      if (targeted) return { ok: false, code: "rejected", reason: nativeError };
       return {
         ...result,
         code: providerName + "_moderation_partial",

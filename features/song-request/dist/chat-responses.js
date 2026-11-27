@@ -245,7 +245,7 @@ function composeChatResponse(request, result, state) {
   };
 }
 
-const responseDefaults = () =>
-  Object.fromEntries(RESPONSE_KINDS.map((kind) => [kind, kind !== "now_playing"]));
+const responseDefaults = (enabled = true) =>
+  Object.fromEntries(RESPONSE_KINDS.map((kind) => [kind, enabled && kind !== "now_playing"]));
 
 module.exports = { RESPONSE_KINDS, composeChatResponse, responseKind, responseDefaults };
