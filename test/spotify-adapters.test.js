@@ -157,6 +157,32 @@ test("desktop rejects unknown devices and never retries an ambiguous native subm
   assert.equal(writes, 1);
 });
 
+test("Spotify can confirm a UID assigned by the append acknowledgement", async () => {
+  const queue = { nextTracks: [{ uri: A, uid: "personal", provider: "queue" }] };
+  const client = desktop(
+    {
+      Queue: queue,
+      addToQueue: async () => {
+        queue.nextTracks.push({ uri: A, uid: "spotify-assigned", provider: "queue" });
+        return { track: { uri: A, uid: "spotify-assigned" } };
+      },
+    },
+    { verifyLocalDevice: () => true, confirmationMs: 0 },
+  );
+  assert.equal((await client.append(A, { uid: "requested" })).uid, "spotify-assigned");
+  const unchanged = desktop(
+    {
+      Queue: queue,
+      addToQueue: async () => ({ track: { uri: A, uid: "personal" } }),
+    },
+    { verifyLocalDevice: () => true, confirmationMs: 0 },
+  );
+  assert.equal(
+    (await unchanged.append(A, { uid: "new-request" })).error,
+    "spotify_delivery_unconfirmed",
+  );
+});
+
 test("Premium transport targets an explicitly chosen device and treats 204 as receipt rather than confirmation", async () => {
   const calls = [],
     client = official({

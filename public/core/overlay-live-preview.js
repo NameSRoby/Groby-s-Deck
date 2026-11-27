@@ -260,8 +260,10 @@ globalThis.setupOverlayLivePreview = (a) => {
       (!saved ||
         OverlayGameRules.signature(saved) !== OverlayGameRules.signature(w) ||
         (w.type === "challenge-board" &&
-          operation === "mark" &&
+          ["mark", "condition"].includes(operation) &&
           saved.tiles[input.cell - 1]?.id !== w.tiles[input.cell - 1]?.id) ||
+        (operation === "condition" &&
+          !OverlayGameRules.conditions(saved).some((item) => item.id === input.condition)) ||
         (w.type === "bingo" && saved.freeCenter !== w.freeCenter))
     )
       throw Error("Save the board layout before changing live marks.");

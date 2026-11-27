@@ -196,6 +196,12 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.24
+
+- Game boards support color and opacity for tile outcomes, a symbol library, and labels above, below, or inside tiles.
+- Hide tile borders while keeping images and labels, or hide completed tiles while preserving their place. Challenge and Bingo boards also support failed and custom conditions.
+- Spotify queue replies include unconfirmed request names. Old unresolved deliveries stay reviewable without blocking confirmed positions when the player shows no matching track.
+
 ## What's new in 0.8.23
 
 - Core Updates checks that the Windows launcher supports restarting into a new release. Older launchers can be upgraded in place with the Windows installer.

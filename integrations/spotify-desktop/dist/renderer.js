@@ -465,19 +465,35 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
           typeof appendOptions.uid === "string" && appendOptions.uid.length <= 200
             ? appendOptions.uid
             : "";
-        const exact = (row) => row?.uid === uid && row.uri === uri;
-        const observed = (entries) =>
-          entries.some((row) => row.origin === "manual" && exact(row)) ||
-          exact(snapshot()?.current);
-        if (uid && observed(before.entries)) return { ok: true, delivery: "confirmed", uri, uid };
+        const observed = (entries, occurrence) => {
+          const exact = (row) => row?.uid === occurrence && row.uri === uri;
+          return (
+            entries.some((row) => row.origin === "manual" && exact(row)) ||
+            exact(snapshot()?.current)
+          );
+        };
+        if (uid && observed(before.entries, uid))
+          return { ok: true, delivery: "confirmed", uri, uid };
         const ids = new Set(before.entries.map((row) => row.uid).filter(Boolean));
+        const beforeCurrent = snapshot()?.current?.uid;
+        let deliveredUid = "";
         try {
-          await api.addToQueue([
+          const receipt = await api.addToQueue([
             {
               uri,
               ...(uid ? { uid } : {}),
             },
           ]);
+          const acknowledgedUid = receipt?.track?.uid || receipt?.uid;
+          if (
+            typeof acknowledgedUid === "string" &&
+            acknowledgedUid &&
+            acknowledgedUid.length <= 200 &&
+            !ids.has(acknowledgedUid) &&
+            acknowledgedUid !== beforeCurrent &&
+            (!receipt?.track?.uri || trackUri(receipt.track.uri) === uri)
+          )
+            deliveredUid = acknowledgedUid;
         } catch (error) {
           return {
             ok: false,
@@ -498,8 +514,9 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
                 (row) => row.uri === uri && row.uid && !ids.has(row.uid) && row.origin === "manual",
               )
             : [];
-          if (uid && observed(after.ok ? after.entries : []))
-            return { ok: true, delivery: "confirmed", uri, uid };
+          for (const occurrence of [uid, deliveredUid])
+            if (occurrence && observed(after.ok ? after.entries : [], occurrence))
+              return { ok: true, delivery: "confirmed", uri, uid: occurrence };
           if ((!uid && added.length) || Date.now() >= deadline) break;
           await new Promise((resolve) => setTimeout(resolve, 100));
           after = queue();

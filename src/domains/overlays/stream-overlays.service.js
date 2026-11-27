@@ -552,6 +552,9 @@ module.exports = function streamOverlays({
               matchBack: chosen.widget.matchBack,
               matchBackColor: chosen.widget.matchBackColor,
               showLabels: chosen.widget.showCellLabels,
+              showBorders: chosen.widget.showCellBorders,
+              hideCompletedTiles: chosen.widget.hideCompletedTiles,
+              conditions: rules.conditions(chosen.widget),
               documentId: chosen.documentId,
               widgetId: chosen.widgetId,
             }

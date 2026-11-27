@@ -97,6 +97,17 @@
     }
   }
   const matchPairLimit = 24;
+  const boardLabelPositions = ["center", "top", "bottom", "above", "below"];
+  const boardConditionLimit = 8;
+  function boardCondition(raw = {}) {
+    return {
+      mode: ["none", "color", "symbol", "both"].includes(raw.mode) ? raw.mode : "both",
+      color: color(raw.color, "#b91c1c"),
+      opacity: number(raw.opacity, 0, 100, 65),
+      symbol: typeof raw.symbol === "string" ? text(raw.symbol, 16) : "\u2715",
+      symbolColor: color(raw.symbolColor, "#ffffff"),
+    };
+  }
   function matchOptions(raw) {
     const initial = ["Moon", "Star", "Cloud", "Lightning", "Sun", "Comet"].map((text, index) => ({
       id: "pair-" + index,
@@ -111,6 +122,9 @@
         text: text(pair?.text, 80),
         image: imageUrl(pair?.image),
         ...(pair?.labelHidden === true ? { labelHidden: true } : {}),
+        ...(boardLabelPositions.includes(pair?.labelPosition)
+          ? { labelPosition: pair.labelPosition }
+          : {}),
       }));
     if (new Set(pairs.map((pair) => pair.id)).size !== pairs.length)
       throw Error("Each matching pair needs a unique ID.");
@@ -129,6 +143,7 @@
     const rows = Math.round(number(raw.gridRows, 0, Math.floor(boardLimit / columns), 0));
     const images = {};
     const hiddenLabels = {};
+    const labelPositions = {};
     for (const [index, value] of Object.entries(raw.boardImages || {})) {
       if (!/^(0|[1-9]\d*)$/.test(index) || Number(index) >= boardLimit) continue;
       const url = imageUrl(value);
@@ -138,6 +153,31 @@
       if (/^(0|[1-9]\d*)$/.test(index) && Number(index) < boardLimit && value === true)
         hiddenLabels[index] = true;
     }
+    for (const [index, value] of Object.entries(raw.boardLabelPositions || {})) {
+      if (
+        /^(0|[1-9]\d*)$/.test(index) &&
+        Number(index) < boardLimit &&
+        boardLabelPositions.includes(value)
+      )
+        labelPositions[index] = value;
+    }
+    const conditionIds = new Set(["pending", "completed", "failed"]);
+    const customConditions = [];
+    if (raw.type !== "tile-match" && Array.isArray(raw.customConditions))
+      for (const entry of raw.customConditions.slice(0, boardConditionLimit)) {
+        if (
+          typeof entry?.id !== "string" ||
+          !/^[a-z0-9-]{1,80}$/i.test(entry.id) ||
+          conditionIds.has(entry.id)
+        )
+          continue;
+        conditionIds.add(entry.id);
+        customConditions.push({
+          id: entry.id,
+          name: text(entry.name, 40).trim() || "Condition " + (customConditions.length + 1),
+          ...boardCondition(entry),
+        });
+      }
     const tiles = [];
     const seen = new Set();
     for (const [index, tile] of (Array.isArray(raw.tiles) ? raw.tiles : [])
@@ -151,6 +191,10 @@
         text: text(tile?.text, 200),
         image: imageUrl(tile?.image),
         ...(tile?.labelHidden === true ? { labelHidden: true } : {}),
+        ...(tile?.borderHidden === true ? { borderHidden: true } : {}),
+        ...(boardLabelPositions.includes(tile?.labelPosition)
+          ? { labelPosition: tile.labelPosition }
+          : {}),
         x: number(tile?.x, 0, 100, 0),
         y: number(tile?.y, 0, 100, 0),
         width: number(tile?.width, 0.1, 100, 25),
@@ -181,10 +225,15 @@
       boardImage: imageUrl(raw.boardImage),
       boardImageFit: raw.boardImageFit === "contain" ? "contain" : "cover",
       boardImages: images,
-      ...(raw.type === "bingo" ? { boardHiddenLabels: hiddenLabels } : {}),
+      ...(raw.type === "bingo"
+        ? { boardHiddenLabels: hiddenLabels, boardLabelPositions: labelPositions }
+        : {}),
       tiles,
       cellImageFit: raw.cellImageFit === "contain" ? "contain" : "cover",
       showCellLabels: raw.showCellLabels !== false,
+      showCellBorders: raw.showCellBorders !== false,
+      hideCompletedTiles: raw.hideCompletedTiles === true,
+      labelPosition: boardLabelPositions.includes(raw.labelPosition) ? raw.labelPosition : "center",
       cellBackground: color(raw.cellBackground, "#111827"),
       cellOpacity: number(raw.cellOpacity, 0, 100, 0),
       cellBorderColor: color(raw.cellBorderColor, "#ffffff"),
@@ -200,6 +249,14 @@
       markOpacity: number(raw.markOpacity, 0, 100, 100),
       markSymbol: typeof raw.markSymbol === "string" ? text(raw.markSymbol, 16) : "✓",
       markSymbolColor: color(raw.markSymbolColor, "#ffffff"),
+      failureCondition: boardCondition(
+        raw.failureCondition && typeof raw.failureCondition === "object"
+          ? raw.failureCondition
+          : raw.type === "tile-match"
+            ? { mode: "none" }
+            : {},
+      ),
+      customConditions,
       bingoPatterns: Array.isArray(raw.bingoPatterns)
         ? [
             ...new Set(
@@ -582,6 +639,8 @@
     mediaUrl,
     imageUrl,
     boardLimit,
+    boardConditionLimit,
+    boardLabelPositions,
     fillChallengeGrid,
     matchPairLimit,
     recordKey,

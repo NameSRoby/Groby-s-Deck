@@ -208,7 +208,8 @@ for (const provider of ["tidal", "spotify"]) {
     f.state.handoffs.find((x) => x.entryId === "next0").phase = "unknown";
     const queue = (await f.query("songqueue")).message;
     assert.match(queue, /Known requests: Upcoming 2.*awaiting player confirmation/);
-    assert.doesNotMatch(queue, /1\. Upcoming|Upcoming 1|in ~/);
+    assert.match(queue, /awaiting player confirmation: Upcoming 1/);
+    assert.doesNotMatch(queue, /1\. Upcoming|in ~/);
     assert.match(
       (await f.query("queue")).message,
       /playing now.*Upcoming 2.*position is not confirmed/,
@@ -220,6 +221,25 @@ for (const provider of ["tidal", "spotify"]) {
     assert.match((await f.query("song")).message, /temporarily unavailable/);
   });
 }
+
+test("Spotify names all unconfirmed requests and keeps old reviews out of confirmed positions", async () => {
+  const f = fixture("spotify");
+  const receipts = f.state.handoffs.filter((row) => row.phase === "appended");
+  const request = receipts.find((row) => row.entryId === "next1");
+  for (const row of receipts) row.phase = "unknown";
+  f.local.length = 0;
+  const unavailable = await f.query("songqueue");
+  assert.match(unavailable.message, /6 requests are awaiting player confirmation: Upcoming/);
+  assert.doesNotMatch(unavailable.message, /1\. Upcoming|in ~/);
+  for (const row of receipts) row.reviewOnly = true;
+  request.phase = "appended";
+  delete request.reviewOnly;
+  assert.match(
+    (await f.query("songqueue")).message,
+    /1\. Upcoming 2.*5 older requests need review/,
+  );
+  assert.match((await f.query("queue")).message, /Upcoming 2.*#1/);
+});
 
 test("a SoundCloud request remains queued while the player loads it", async () => {
   const f = fixture("soundcloud");

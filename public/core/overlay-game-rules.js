@@ -45,11 +45,33 @@
     if (patterns.includes("all")) line("all", count, 0, 1);
     return wins;
   }
-  function bingoBoard(w, marks = []) {
+  function conditions(w) {
+    return [
+      { id: "pending", name: "Pending", mode: "none" },
+      {
+        id: "completed",
+        name: "Completed",
+        mode: w.markMode,
+        color: w.markColor,
+        opacity: w.markOpacity,
+        symbol: w.markSymbol,
+        symbolColor: w.markSymbolColor,
+      },
+      { id: "failed", name: "Failed", ...w.failureCondition },
+      ...(w.customConditions || []),
+    ];
+  }
+  function squareCondition(s, key, marked, available) {
+    if (marked) return "completed";
+    const id = Object.hasOwn(s.tileConditions || {}, key) && s.tileConditions[key];
+    return available.has(id) ? id : "pending";
+  }
+  function bingoBoard(w, marks = [], s = {}) {
     const layout = bingoLayout(w),
       { rows, columns, count, center } = layout,
       marked = new Set(marks),
-      wins = bingoWins(w, layout, marked);
+      wins = bingoWins(w, layout, marked),
+      available = new Set(conditions(w).map((item) => item.id));
     return {
       rows,
       columns,
@@ -58,6 +80,8 @@
         text: index === center ? "FREE" : w.items[index] || "Square " + (index + 1),
         image: w.boardImages[index] || "",
         ...(index !== center && w.boardHiddenLabels?.[index] ? { labelHidden: true } : {}),
+        labelPosition: w.boardLabelPositions?.[index] || w.labelPosition,
+        condition: squareCondition(s, index, marked.has(index), available),
         marked: marked.has(index),
         free: index === center,
       })),
@@ -90,6 +114,8 @@
           text: pair ? pair.text || "Pair " + (faces[index] + 1) : "Tile " + (index + 1),
           image: pair?.image || "",
           ...(pair?.labelHidden ? { labelHidden: true } : {}),
+          labelPosition: pair?.labelPosition || w.labelPosition,
+          condition: marked.has(index) ? "completed" : pair && waiting ? "failed" : "pending",
           marked: marked.has(index),
           covered: !pair,
           free: Boolean(pair),
@@ -117,15 +143,18 @@
     };
   }
   function board(w, s = {}, at = Date.now()) {
-    if (w.type === "bingo") return bingoBoard(w, s.marks);
+    if (w.type === "bingo") return bingoBoard(w, s.marks, s);
     if (w.type === "tile-match") return matchBoard(w, s, at);
     const marked = new Set(s.marks);
+    const available = new Set(conditions(w).map((item) => item.id));
     return {
       freeform: true,
       cells: w.tiles.slice(0, challengeCount(w)).map((tile, index) => ({
         ...tile,
         ...challengeGeometry(w, tile, index),
         text: tile.text || "Tile " + (index + 1),
+        labelPosition: tile.labelPosition || w.labelPosition,
+        condition: squareCondition(s, tile.id, marked.has(tile.id), available),
         marked: marked.has(tile.id),
       })),
     };
@@ -206,7 +235,10 @@
       s.endsAt = at + w.duration * 1000;
     } else if (w.type === "chat-vote" && operation === "close") s.open = false;
     else if (w.type === "tile-match" && operation === "flip") flip(s, w, input.cell, at, random);
-    else if (markTypes.includes(w.type) && ["mark", "complete", "uncomplete"].includes(operation)) {
+    else if (
+      markTypes.includes(w.type) &&
+      ["mark", "complete", "uncomplete", "condition"].includes(operation)
+    ) {
       const index = Number(input.cell) - 1;
       const layout = w.type === "bingo" ? bingoLayout(w) : { count: challengeCount(w), center: -1 };
       const { count, center } = layout;
@@ -216,19 +248,33 @@
         throw Error("The free center is always marked. Turn off Free center to mark it manually.");
       const tile = w.type === "challenge-board" ? w.tiles[index] : null;
       const key = tile?.id ?? index;
+      const available = new Set(conditions(w).map((item) => item.id));
+      const beforeCondition = squareCondition(s, key, s.marks.includes(key), available);
+      const condition =
+        operation === "condition"
+          ? input.condition
+          : operation === "complete" || (operation === "mark" && beforeCondition !== "completed")
+            ? "completed"
+            : beforeCondition === "completed"
+              ? "pending"
+              : beforeCondition;
+      if (!available.has(condition)) throw Error("Choose a condition configured on this board.");
+      if (condition === beforeCondition) return current;
+      const states = new Map(Object.entries(s.tileConditions || {}));
       if (tile) {
         const ids = new Set(w.tiles.map((row) => row.id));
         s.marks = s.marks.filter((id) => ids.has(id));
+        for (const id of states.keys()) if (!ids.has(id)) states.delete(id);
       } else {
         s.entries = [];
         s.counts = [];
       }
       const before = new Set(s.marks);
-      const wasMarked = before.has(key);
-      const marked = operation === "mark" ? !wasMarked : operation === "complete";
-      if (marked === wasMarked) return current;
-      if (!marked) before.delete(key);
-      else before.add(key);
+      if (condition === "completed") before.add(key);
+      else before.delete(key);
+      if (condition === "completed" || condition === "pending") states.delete(String(key));
+      else states.set(String(key), condition);
+      s.tileConditions = Object.fromEntries(states);
       s.marks = [...before];
       if (!tile) {
         const previous = new Set(bingoWins(w, layout, new Set(current.marks)));
@@ -245,6 +291,7 @@
     signature,
     control,
     bingoLayout,
+    conditions,
     showLabel,
     bingoBoard,
     challengeCount,
