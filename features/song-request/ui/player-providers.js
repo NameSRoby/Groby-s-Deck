@@ -73,7 +73,11 @@
   const policySummary = document.createElement("h3");
   policySummary.textContent = "Request limits & song length";
   policyGrid.previousElementSibling.replaceWith(policy);
-  policy.append(policySummary, policyGrid);
+  const policyHelp = document.createElement("p");
+  policyHelp.className = "tidalFinePrint";
+  policyHelp.textContent =
+    "These limits apply to pending requests from Twitch chat and Channel Points on every player. Moderators have no per-user limit.";
+  policy.append(policySummary, policyHelp, policyGrid);
   const durationControl = document.createElement("label");
   durationControl.innerHTML =
     'MAXIMUM SONG LENGTH (MINUTES)<input id="maxSongMinutes" type="number" min="0.5" max="60" step="0.5" value="10">';
@@ -697,14 +701,9 @@
     $("allowNonMusic").parentElement.hidden = tidal;
     $("catalogStatus").hidden = tidal;
     $("songSearchFilters").hidden = false;
-    $("viewerLimit").closest("label").hidden = tidal;
-    $("vipLimit").closest("label").hidden = tidal;
     nativeLimit.hidden = !tidal;
     tabs.setAttribute("aria-label", `${tidal ? "TIDAL" : "YouTube"} controls`);
     policy.hidden = false;
-    policySummary.textContent = tidal
-      ? "Request limits & song length"
-      : "Request limits & song length";
     $("playerProviderHint").textContent = tidal
       ? "Search songs · queue in order in TIDAL Desktop"
       : "Embedded YouTube playback";

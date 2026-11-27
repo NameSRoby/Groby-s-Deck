@@ -19,7 +19,10 @@ function fixture(t) {
   let connected = true,
     nativeId = "device-a",
     authConnected = true,
-    restoreRows;
+    restoreRows,
+    nativeCurrent,
+    officialCurrent,
+    officialVolume = true;
   const current = (uid) => ({
     uri: URI,
     uid,
@@ -33,7 +36,8 @@ function fixture(t) {
       ready: connected,
       deviceId: nativeId,
       controlsAvailable: connected,
-      current: current("native-current"),
+      volumeAvailable: connected,
+      current: { ...current("native-current"), ...nativeCurrent },
       capacity: { reported: connected, available: 10 },
       handoffs: nativeRows,
       installation: { prepared: true },
@@ -66,9 +70,9 @@ function fixture(t) {
       ready: true,
       historyLoaded: !restoreRows,
       controlsAvailable: true,
-      volumeAvailable: true,
+      volumeAvailable: officialVolume,
       capacity: { reported: true, available: 10 },
-      current: current("api-current"),
+      current: { ...current("api-current"), ...officialCurrent },
       handoffs: officialRows,
     }),
     handle: async (method, input) => {
@@ -110,6 +114,15 @@ function fixture(t) {
     calls,
     nativeRows,
     officialRows,
+    disableOfficialVolume() {
+      officialVolume = false;
+    },
+    playingRequests(native, official) {
+      nativeRows.push({ ...native, phase: "playing" });
+      officialRows.push({ ...official, phase: "playing" });
+      nativeCurrent = native;
+      officialCurrent = official;
+    },
     restoreOfficial(rows) {
       restoreRows = rows;
     },
@@ -127,6 +140,29 @@ function fixture(t) {
     },
   };
 }
+test("hybrid preserves desktop occurrence ownership and can use desktop volume controls", async (t) => {
+  const f = fixture(t);
+  f.playingRequests(
+    { entryId: "desktop", requesterKey: "desktop-owner" },
+    { entryId: "official", requesterKey: "official-owner" },
+  );
+  f.disableOfficialVolume();
+  const status = await f.provider.handle("status");
+  assert.equal(status.current.entryId, "desktop");
+  assert.equal(status.current.requesterKey, "desktop-owner");
+  assert.equal(status.volumeAvailable, true);
+  await f.provider.handle("control", { action: "skip", currentUid: "native-current" });
+  assert.equal(f.calls.at(-1).route, "desktop");
+  await f.provider.handle("control", { action: "volume", value: 25 });
+  assert.equal(f.calls.at(-1).route, "desktop");
+  f.mismatch();
+  const writes = f.calls.length;
+  assert.deepEqual(await f.provider.handle("control", { action: "volume", value: 25 }), {
+    ok: false,
+    error: "spotify_volume_unavailable",
+  });
+  assert.equal(f.calls.length, writes, "a volume command cannot fall back to a different device");
+});
 test("Spotify preserves invalid saved state while isolating the failure from Core startup", async (t) => {
   const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), "spotify-invalid-state-")),
     root = path.join(runtimeDir, "spotify-desktop"),

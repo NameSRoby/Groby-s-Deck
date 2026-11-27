@@ -196,6 +196,13 @@ Scan the QR code or copy the link to your other device.
 Private-network access gives that device full controls.
 The desktop window and localhost remain available.
 
+## What's new in 0.8.22
+
+- Spotify queue replies show known requests while other deliveries are pending. Numbered commands follow the displayed queue, and skip targets the current song.
+- SoundCloud queue replies distinguish loading tracks from playing tracks and use SoundCloud’s own queue positions.
+- Request limits can be edited from every player and apply to Twitch chat and Channel Points. The defaults are five pending requests per viewer and ten per VIP, with no per-user limit for moderators.
+- Fresh Song Request setups enable all chat responses except automatic now-playing announcements. Upgrades keep saved preferences.
+
 ## What's new in 0.8.21
 
 - Challenge boards have adjustable grid dimensions, per-tile images and one-click sizing for the whole board.

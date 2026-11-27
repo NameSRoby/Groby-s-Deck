@@ -202,16 +202,31 @@ for (const provider of ["youtube", "soundcloud", "tidal", "spotify"]) {
     assert.match((await f.query("songqueue")).message, /after resume/);
   });
 }
-test("uncertain or disconnected native delivery never invents an exact position", async () => {
-  const f = fixture("tidal");
-  f.state.handoffs.find((x) => x.entryId === "next0").phase = "unknown";
-  assert.match((await f.query("songqueue")).message, /awaiting player confirmation/);
-  assert.match((await f.query("queue")).message, /position is not confirmed/);
-  f.state.connected = false;
-  f.state.ready = false;
-  assert.equal((await f.query("queue")).ok, false);
-  f.playback.primary = null;
-  assert.match((await f.query("song")).message, /temporarily unavailable/);
+for (const provider of ["tidal", "spotify"]) {
+  test(`${provider}: known requests stay visible when another delivery is uncertain`, async () => {
+    const f = fixture(provider);
+    f.state.handoffs.find((x) => x.entryId === "next0").phase = "unknown";
+    const queue = (await f.query("songqueue")).message;
+    assert.match(queue, /Known requests: Upcoming 2.*awaiting player confirmation/);
+    assert.doesNotMatch(queue, /1\. Upcoming|Upcoming 1|in ~/);
+    assert.match(
+      (await f.query("queue")).message,
+      /playing now.*Upcoming 2.*position is not confirmed/,
+    );
+    f.state.connected = false;
+    f.state.ready = false;
+    assert.equal((await f.query("queue")).ok, false);
+    f.playback.primary = null;
+    assert.match((await f.query("song")).message, /temporarily unavailable/);
+  });
+}
+
+test("a SoundCloud request remains queued while the player loads it", async () => {
+  const f = fixture("soundcloud");
+  f.playback.managed.status = "loading";
+  assert.match((await f.query("song")).message, /No song is currently playing/);
+  assert.match((await f.query("songqueue")).message, /1\. Current song/);
+  assert.match((await f.query("queue")).message, /Current song.*#1/);
 });
 
 test("chat metadata removes delimiters from nested, unfinished and normalized markup", async () => {

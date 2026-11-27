@@ -9,7 +9,7 @@ const { text, integer } = require("./normalized-values");
 const crypto = require("node:crypto");
 const { DEFAULT_OVERLAY, OVERLAY_BLOCK_KINDS } = require("./overlay-config");
 const { createOverlayProfiles } = require("./overlay-profiles");
-const { RESPONSE_KINDS } = require("./chat-responses");
+const { RESPONSE_KINDS, responseDefaults } = require("./chat-responses");
 const { DEFAULT_CATALOG_POLICY, catalogPolicyFrom } = require("./catalog-policy");
 const requesterRestrictions = require("./requester-restrictions");
 const { requesterKey, requesterRole } = require("./requester-identity");
@@ -105,7 +105,7 @@ function createSongQueue(options = {}) {
   let volume = 100;
   let volumeFloorPercent = 0;
   let volumeCeilingPercent = 40;
-  let responses = Object.fromEntries(RESPONSE_KINDS.map((kind) => [kind, false]));
+  const responses = responseDefaults();
   let catalogPolicy = catalogPolicyFrom();
   let playbackRevision = 0;
   const overlayProfiles = createOverlayProfiles({ now, text });
@@ -535,8 +535,8 @@ function createSongQueue(options = {}) {
     seenRequests.push(requestId);
     trimState();
     if (paused) return response(false, "rejected", { reason: "intake_paused" });
-    const pendingEntries = require("./pending-requests")(queue, pending);
-    if (pendingEntries.length >= limits.maxQueue)
+    const pendingEntries = require("./pending-requests")(queue, pending, managedPlayback);
+    if (pendingEntries.total >= limits.maxQueue)
       return response(false, "rejected", { reason: "queue_full" });
     const requester = requesterKey(requesterId);
     const role = requesterRole(payload.requesterRole);
@@ -551,7 +551,7 @@ function createSongQueue(options = {}) {
         : role === "vip"
           ? limits.maxPerVip
           : limits.maxPerRequester;
-    if (pendingEntries.filter((row) => row.requesterKey === requester).length >= requestLimit) {
+    if (pendingEntries.forRequester(requester) >= requestLimit) {
       return response(false, "rejected", { reason: "requester_limit" });
     }
     const catalogFailure = text(payload.catalogFailure, 80);
@@ -612,7 +612,7 @@ function createSongQueue(options = {}) {
     rememberRequester(requester, entry.requesterLabel, role);
     return response(true, "accepted", {
       entry: publicState({ offset: queue.length - 1 }).queue.at(-1),
-      position: queue.length,
+      position: require("./chat-queue-view").managedPosition(queue, entry, managedPlayback),
       preemptedPlaylist,
     });
   }
@@ -1136,7 +1136,7 @@ function createSongQueue(options = {}) {
     overlayProfiles.restore(snapshot);
     configure({
       limits: snapshot.limits,
-      responses: snapshot.version >= 7 ? snapshot.responses : undefined,
+      responses: snapshot.version >= 7 ? snapshot.responses : responseDefaults(false),
       catalogPolicy: snapshot.version >= 8 ? snapshot.catalogPolicy : undefined,
     });
     return { ok: true, restored: queue.length };

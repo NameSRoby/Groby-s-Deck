@@ -6,6 +6,7 @@
  */
 const crypto = require("node:crypto");
 const { songLabel } = require("./chat-public-song");
+const { queueView, currentReceipt, managedCurrent, nativeReady } = require("./chat-queue-view");
 const describe = (row, length = 180) => songLabel(row, length) || "Untitled song";
 module.exports = async function chatInformation(
   { queue, preferences, tidal, spotify, youtubeBrowser },
@@ -18,22 +19,17 @@ module.exports = async function chatInformation(
     native =
       ["tidal", "spotify"].includes(provider) ||
       (provider === "youtube" && selection.youtubePlayback === "browser");
-  const playback = queue.playbackStatus(),
-    local = [];
+  const playback = queue.playbackStatus();
   const state = native
     ? await (provider === "tidal" ? tidal : provider === "youtube" ? youtubeBrowser : spotify)(
         "status",
         null,
       )
     : null;
-  const receipts = state?.handoffs || [];
-  const currentId = native
-    ? state?.current?.entryId ||
-      receipts.find((row) => row.uid && row.uid === state?.current?.uid)?.entryId
-    : playback.managed?.entryId;
+  const receipt = currentReceipt(state);
   const current = native
-    ? receipts.find((row) => row.entryId === currentId) || state?.current
-    : playback.managed;
+    ? state?.connected && state.current && { ...receipt, ...state.current }
+    : managedCurrent(playback, provider);
   const observation =
     (playback.primary?.candidate?.provider || playback.primary?.provider) === provider
       ? playback.primary
@@ -54,46 +50,12 @@ module.exports = async function chatInformation(
       (!native && playback.control?.paused);
     return reply(`${paused ? "Paused" : "Now playing"}: ${describe(candidate)}.`);
   }
-  if (native && (!state?.ok || !state.ready || !state.connected))
+  if (native && !nativeReady(state))
     return {
       ok: false,
       message: "The player queue is unavailable right now; request positions cannot be confirmed.",
     };
-  const first = queue.status({ limit: 25 });
-  local.push(...first.queue.filter((row) => row.candidate.provider === provider));
-  for (let offset = 25; offset < Math.min(200, first.counts.queued); offset += 25)
-    local.push(
-      ...queue
-        .status({ offset, limit: 25 })
-        .queue.filter((row) => row.candidate.provider === provider),
-    );
-  const uncertain = new Set(
-    receipts
-      .filter((row) => row.entryId !== currentId && ["pending", "unknown"].includes(row.phase))
-      .map((row) => row.entryId),
-  );
-  const nativeRows = (state?.queueOrder || [])
-    .map((id) => receipts.find((row) => row.entryId === id && row.phase === "appended"))
-    .filter(Boolean);
-  const rows = [
-    ...new Map(
-      [...nativeRows, ...local]
-        .filter(
-          (row) => !uncertain.has(row.entryId || row.id) && (row.entryId || row.id) !== currentId,
-        )
-        .map((row) => [row.entryId || row.id, row]),
-    ).values(),
-  ];
-  // Unknown ordering affects requests behind it too. An exact number would imply
-  // knowledge the companion has not confirmed, so return an honest pending state.
-  const orderUncertain =
-    uncertain.size > 0 ||
-    receipts.some(
-      (row) =>
-        row.phase === "appended" &&
-        row.entryId !== currentId &&
-        !nativeRows.some((x) => x.entryId === row.entryId),
-    );
+  const { rows, pending } = queueView(queue, provider, current?.entryId, state);
   const timing = require("./chat-queue-timing")({
     rows,
     current,
@@ -103,9 +65,15 @@ module.exports = async function chatInformation(
     native,
   });
   if (payload.command === "songqueue") {
-    if (orderUncertain)
+    if (pending.length)
       return reply(
-        "The request queue is awaiting player confirmation. Try !songqueue again shortly.",
+        (rows.length
+          ? `Known requests: ${rows
+              .slice(0, 5)
+              .map((row) => describe(row, 48))
+              .join(" | ")}. `
+          : "") +
+          `${pending.length} request${pending.length === 1 ? " is" : "s are"} awaiting player confirmation. Positions and ETAs are unavailable.`,
       );
     if (!rows.length) return reply("There are no pending song requests.");
     return reply(
@@ -128,14 +96,12 @@ module.exports = async function chatInformation(
   const owned = rows
     .map((row, i) => ({ row, position: i + 1 }))
     .filter((x) => x.row.requesterKey === key);
-  if (playing && !owned.length) return reply(currentNotice);
-  if (
-    orderUncertain &&
-    (owned.length || receipts.some((row) => row.requesterKey === key && uncertain.has(row.entryId)))
-  )
+  const next = owned[0]?.row || pending.find((row) => row.requesterKey === key);
+  if (pending.length && next)
     return reply(
-      "Your request is awaiting player confirmation; its queue position is not confirmed yet.",
+      `${playing ? currentNotice + " " : ""}Your request "${describe(next, 90)}" is ${owned.length ? "in the request queue" : "awaiting player confirmation"}. Its position is not confirmed yet.`,
     );
+  if (playing && !owned.length) return reply(currentNotice);
   if (!owned.length) return reply("You have no pending song requests.");
   return reply(
     `${playing ? currentNotice + " " : ""}Your next request "${describe(owned[0].row, 90)}" is #${owned[0].position} in the request queue (${owned[0].position - 1} ahead; ${timing[owned[0].position - 1]})${owned.length > 1 ? `; ${owned.length - 1} more queued` : ""}.`,

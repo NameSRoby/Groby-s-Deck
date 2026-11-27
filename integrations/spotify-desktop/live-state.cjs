@@ -31,6 +31,9 @@ module.exports = function liveState(input) {
     ok: true,
     complete: input.complete !== false,
     localDevice: input.localDevice === true,
+    ...(typeof input.volumeAvailable === "boolean"
+      ? { volumeAvailable: input.volumeAvailable }
+      : {}),
     ...(/^[A-Za-z0-9_-]{1,120}$/.test(input.deviceId || "") ? { deviceId: input.deviceId } : {}),
     queue,
     current: current

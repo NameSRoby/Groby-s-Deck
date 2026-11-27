@@ -46,6 +46,24 @@ const REASONS = Object.freeze({
   spotify_search_unavailable: "Spotify search is unavailable",
   tidal_experiment_disabled: "the TIDAL desktop connection is unavailable",
   spotify_companion_unavailable: "the Spotify desktop connection is unavailable",
+  tidal_companion_unavailable: "the TIDAL desktop connection is unavailable",
+  spotify_device_selection_required: "select an active Spotify device in Setup",
+  spotify_local_device_unverified: "the Spotify desktop companion could not verify the device",
+  spotify_native_queue_full: "the Spotify player queue is full",
+  spotify_queue_removal_unsupported:
+    "removing queued Spotify tracks requires the desktop companion",
+  spotify_delivery_needs_review: "the Spotify request needs confirmation in Song Request",
+  spotify_delivery_unconfirmed: "Spotify did not confirm the action; check the player queue",
+  spotify_remove_unconfirmed: "Spotify did not confirm the removal; check the player queue",
+  tidal_remove_unconfirmed: "TIDAL did not confirm the removal; check the player queue",
+  spotify_volume_unavailable: "the active Spotify device does not support volume control",
+  spotify_current_changed: "the song changed before the command was applied",
+  tidal_current_changed: "the song changed before the command was applied",
+  request_already_playing: "that request already started playing; use !skip",
+  queue_position_unconfirmed:
+    "the queue position is awaiting confirmation; try using the song name",
+  player_control_busy: "another player command is in progress; try again shortly",
+  tidal_moderation_busy: "another player command is in progress; try again shortly",
   tidal_query_invalid: "enter a song name or a valid track link",
   song_link_track_required: "the link must point to one song",
   song_link_metadata_unavailable:
@@ -152,6 +170,8 @@ function contextFrom(request, result, state) {
       REASONS[clean(result?.reason || result?.code || result?.error, 80)] ||
       "the request could not be completed",
     removed: Math.max(0, Number(result?.removed || 0)),
+    partialQueueUpdate: Boolean(result?.nativeError),
+    action: payload.action,
     minutes: Math.max(1, Number(payload.minutes || 10)),
     volume: Math.max(0, Math.min(100, Number(payload.value || result?.volume?.control || 0))),
     outputVolume: result?.volume?.outputPercent ?? state?.volume?.outputPercent ?? 0,
@@ -167,6 +187,9 @@ function title(value) {
   return value ? `\"${value}\"` : "that song";
 }
 
+const partial = (c) =>
+  c.partialQueueUpdate ? " Some player removals could not be confirmed." : "";
+
 const MESSAGES = Object.freeze({
   queued: (c) =>
     `${mention(c.user)}Queued ${title(c.title)}${c.position ? ` at position ${c.position}` : ""}.`,
@@ -179,14 +202,16 @@ const MESSAGES = Object.freeze({
   remove_succeeded: (c) => `${title(c.title)} was removed from the queue.`,
   remove_failed: (c) => `Remove failed: ${c.reason}.`,
   song_ban_succeeded: (c) =>
-    `${title(c.title)} was ${c.removed ? `blocked and ${c.removed} matching queue item${c.removed === 1 ? " was" : "s were"} removed` : "updated in the song block list"}.`,
+    c.action === "unblock_song"
+      ? `${title(c.title)} can be requested again.`
+      : `${title(c.title)} was blocked from Song Request.${partial(c)}`,
   song_ban_failed: (c) => `Song block update failed: ${c.reason}.`,
   user_ban_succeeded: (c) =>
-    `${mention(c.target)}was blocked from requesting songs${c.removed ? `; ${c.removed} pending request${c.removed === 1 ? " was" : "s were"} removed` : ""}.`,
+    `${mention(c.target)}was blocked from requesting songs${c.removed ? `; ${c.removed} pending request${c.removed === 1 ? " was" : "s were"} removed` : ""}.${partial(c)}`,
   user_ban_failed: (c) => `Requester access update failed: ${c.reason}.`,
   user_restored: (c) => `${mention(c.target)}can request songs again.`,
   user_timeout_succeeded: (c) =>
-    `${mention(c.target)}was blocked from Song Request for ${c.minutes} minute${c.minutes === 1 ? "" : "s"}.`,
+    `${mention(c.target)}was blocked from Song Request for ${c.minutes} minute${c.minutes === 1 ? "" : "s"}.${partial(c)}`,
   user_timeout_failed: (c) => `Requester timeout failed: ${c.reason}.`,
   user_timeout_removed: (c) => `${mention(c.target)}Song Request timeout was removed.`,
   volume_changed: (c) => `Song Request volume changed to ${c.volume}% (output ${c.outputVolume}%).`,
@@ -220,4 +245,7 @@ function composeChatResponse(request, result, state) {
   };
 }
 
-module.exports = { RESPONSE_KINDS, composeChatResponse, responseKind };
+const responseDefaults = (enabled = true) =>
+  Object.fromEntries(RESPONSE_KINDS.map((kind) => [kind, enabled && kind !== "now_playing"]));
+
+module.exports = { RESPONSE_KINDS, composeChatResponse, responseKind, responseDefaults };

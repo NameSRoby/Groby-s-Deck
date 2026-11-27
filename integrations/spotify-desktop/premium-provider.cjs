@@ -390,6 +390,8 @@ module.exports = function premiumProvider(options) {
             : payload.requesterKey && row.requesterKey === payload.requesterKey),
     );
     const queued = matches.some((row) => row.phase !== "playing");
+    if (payload.queuedOnly && matches.some((row) => row.phase === "playing"))
+      return { ok: false, error: "request_already_playing", removed: 0 };
     const uid = payload.currentUid || matches.find((row) => row.phase === "playing")?.uid;
     if (!uid)
       return queued

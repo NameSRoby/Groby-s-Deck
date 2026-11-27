@@ -113,29 +113,30 @@ module.exports = function createSpotifyProvider(options) {
   // Request replay is governed by the durable entry receipt above.
   const invokeOnce = (kind, payload, id = crypto.randomUUID()) =>
     bridge.invoke(kind, payload, id, { oneShot: true });
+  const onDevice = (row, state) =>
+    state?.localDevice && (!row.deviceId || row.deviceId === state.deviceId);
+  const matchesOccurrence = (row, item) => row.uid && row.uid === item?.uid && row.uri === item.uri;
   function observe(next) {
     snapshot = next;
     observedAt = Date.now();
     let changed = false;
     for (const row of receipts.values()) {
       if (
-        !next.localDevice ||
-        (row.deviceId && row.deviceId !== next.deviceId) ||
+        !onDevice(row, next) ||
         !row.uid ||
-        !["appended", "playing", "pending", "unknown"].includes(row.phase) ||
-        observedAt <= (row.confirmedAt || 0)
+        !["appended", "playing", "pending", "unknown"].includes(row.phase)
       )
         continue;
-      const phase =
-        next.current?.uid === row.uid && next.current.uri === row.uri
-          ? "playing"
-          : next.queue.some((item) => item.uid === row.uid && item.uri === row.uri)
-            ? "appended"
-            : next.complete &&
-                (!next.current || next.current.uid) &&
-                ["appended", "playing"].includes(row.phase)
-              ? "finished"
-              : row.phase;
+      const phase = matchesOccurrence(row, next.current)
+        ? "playing"
+        : next.queue.some((item) => matchesOccurrence(row, item))
+          ? "appended"
+          : next.complete &&
+              observedAt > (row.confirmedAt || 0) &&
+              (!next.current || next.current.uid) &&
+              ["appended", "playing"].includes(row.phase)
+            ? "finished"
+            : row.phase;
       if (phase !== row.phase) {
         row.phase = phase;
         changed = true;
@@ -151,18 +152,22 @@ module.exports = function createSpotifyProvider(options) {
     const launching = launchState(connection.connected);
     const currentOwner = [...receipts.values()].find(
       (row) =>
-        row.phase === "playing" &&
-        snapshot?.localDevice &&
-        (!row.deviceId || row.deviceId === snapshot.deviceId) &&
-        row.uid === snapshot.current?.uid &&
-        row.uri === snapshot.current?.uri,
+        ["appended", "playing", "pending", "unknown"].includes(row.phase) &&
+        onDevice(row, snapshot) &&
+        matchesOccurrence(row, snapshot.current),
     );
     const active = [...receipts.values()].filter((row) =>
       ["pending", "unknown", "appended"].includes(row.phase),
     );
-    const entryByUid = new Map(
-      [...receipts.values()].filter((row) => row.uid).map((row) => [row.uid, row.entryId]),
-    );
+    const queueOrder = fresh
+      ? snapshot.queue
+          .map(
+            (item) =>
+              active.find((row) => onDevice(row, snapshot) && matchesOccurrence(row, item))
+                ?.entryId,
+          )
+          .filter(Boolean)
+      : [];
     return {
       ok: true,
       enabled: true,
@@ -175,6 +180,9 @@ module.exports = function createSpotifyProvider(options) {
       deviceId: fresh ? snapshot?.deviceId || "" : "",
       localDevice: fresh && snapshot?.localDevice === true,
       controlsAvailable: Boolean(fresh && snapshot?.localDevice),
+      volumeAvailable: Boolean(
+        fresh && snapshot?.localDevice && snapshot.volumeAvailable !== false,
+      ),
       capacity: {
         limit: 10,
         queued: active.length,
@@ -206,11 +214,9 @@ module.exports = function createSpotifyProvider(options) {
                   .map((item) => ({ uid: item.uid }))
               : [],
         })),
-      queueOrder: fresh
-        ? (snapshot?.queue || []).map((item) => entryByUid.get(item.uid)).filter(Boolean)
-        : [],
+      queueOrder,
       queueTimingComplete: Boolean(
-        fresh && snapshot.complete && snapshot.queue.every((item) => entryByUid.has(item.uid)),
+        fresh && snapshot.complete && snapshot.queue.length === queueOrder.length,
       ),
       installation: installed(),
     };
@@ -387,6 +393,8 @@ module.exports = function createSpotifyProvider(options) {
         if (!state.localDevice || (row.deviceId && row.deviceId !== state.deviceId))
           return { ok: false, removed, error: "spotify_local_device_unverified" };
         const current = state.current;
+        if (payload.queuedOnly && (row.phase === "playing" || matchesOccurrence(row, current)))
+          return { ok: false, removed, error: "request_already_playing" };
         const result =
           current?.uid === row.uid
             ? await invokeOnce("control", { action: "skip", currentUid: row.uid })

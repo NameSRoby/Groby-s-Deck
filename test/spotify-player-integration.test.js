@@ -250,6 +250,11 @@ test("Spotify host admits ten native requests, keeps ownership, refills after ad
   await f.worker.step();
   assert.equal(f.provider.status().capacity.available, 1);
   assert.equal(f.provider.status().current.requesterLabel, "Viewer 0");
+  assert.equal(
+    (await f.provider.handle("remove", { entryId: "request-0", queuedOnly: true })).error,
+    "request_already_playing",
+  );
+  assert.equal(f.provider.status().current.requesterLabel, "Viewer 0");
   await f.complete(
     f.provider.handle("enqueue", {
       entryId: "eleven",
@@ -418,10 +423,11 @@ test("Spotify modern registry resolves only named services and checks the active
     },
     _queue: {
       getInternalQueue: () => ({
-        nextTracks: [{ contextTrack: { uri: URI, uid: "native" }, provider: "queue" }],
-        track: null,
+        nextTracks: [{ contextTrack: { uri: URI }, uid: "native", provider: "queue" }],
+        track: { contextTrack: { uri: URI }, uid: "current-native" },
       }),
     },
+    setVolume() {},
   };
   const services = new Map([
     [Symbol.for("PlayerAPI"), player],
@@ -456,6 +462,11 @@ test("Spotify modern registry resolves only named services and checks the active
   });
   assert.equal(facade.localDevice(), true);
   assert.equal(facade.snapshot().queue[0].uid, "native");
+  assert.equal(facade.snapshot().current.uid, "current-native");
+  assert.equal(facade.snapshot().volumeAvailable, true);
+  player._state.item = { uri: "spotify:track:" + "B".repeat(22), uid: "current-player" };
+  assert.equal(facade.snapshot().current.uid, "current-player");
+  assert.equal(facade.snapshot().current.uri, player._state.item.uri);
   active = { isLocal: false, isActive: true };
   assert.equal(facade.localDevice(), false);
   return facade.CosmosAsync.get(
