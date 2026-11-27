@@ -33,7 +33,8 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
     for (const row of rows) {
       const track = row?.contextTrack || row;
       const uri = trackUri(track?.uri),
-        uid = typeof track?.uid === "string" && track.uid.length <= 200 ? track.uid : "";
+        occurrence = track?.uid || row?.uid,
+        uid = typeof occurrence === "string" && occurrence.length <= 200 ? occurrence : "";
       if (uri)
         entries.push({
           uri,

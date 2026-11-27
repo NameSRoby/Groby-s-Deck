@@ -351,7 +351,8 @@ module.exports = function createSpotifyDesktopAdapter(api, options = {}) {
     for (const row of rows) {
       const track = row?.contextTrack || row;
       const uri = trackUri(track?.uri),
-        uid = typeof track?.uid === "string" && track.uid.length <= 200 ? track.uid : "";
+        occurrence = track?.uid || row?.uid,
+        uid = typeof occurrence === "string" && occurrence.length <= 200 ? occurrence : "";
       if (uri)
         entries.push({
           uri,
@@ -742,9 +743,15 @@ module.exports = function createNativeFacade(platform, options = {}) {
         value = null;
       }
       const item = value?.item || {},
-        metadata = item.metadata || current?.metadata || {};
-      const uri = trackUri(current?.uri || item.uri),
-        uid = current?.uid || item.uid || value?.playbackId || "";
+        itemUri = trackUri(item.uri),
+        queueUri = trackUri(current?.uri),
+        uri = itemUri || queueUri,
+        metadata = item.metadata || (uri === queueUri ? current?.metadata : null) || {};
+      const uid =
+        (uri === queueUri ? current?.uid || snapshot.track?.uid : "") ||
+        item.uid ||
+        value?.playbackId ||
+        "";
       let deviceId = "";
       try {
         const device = service("ConnectDevicesAPI")?.getActiveDevice?.();
@@ -766,6 +773,7 @@ module.exports = function createNativeFacade(platform, options = {}) {
         ok: true,
         complete: manual.length === entries.length && (!uri || Boolean(uid)),
         localDevice: facade.localDevice(),
+        volumeAvailable: Boolean(value && typeof player().setVolume === "function"),
         ...(deviceId ? { deviceId } : {}),
         queue: entries,
         current: uri

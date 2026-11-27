@@ -1,7 +1,7 @@
 {
   "name": "grobys-deck",
-  "version": "0.8.21",
-  "releaseVersion": "0.8.21",
+  "version": "0.8.22",
+  "releaseVersion": "0.8.22",
   "description": "Modular Windows stream control deck with Twitch automations, song requests, OBS controls, overlays and smart lighting.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/NameSRoby/Groby-s-Deck#readme",

@@ -77,7 +77,7 @@ test("shared chat response controls stay visible for all players and preserve ed
     assert.equal(j.ok, true, JSON.stringify(j));
     return j.value;
   }
-  for (const [index, player] of ["youtube", "tidal", "spotify", "soundcloud"].entries()) {
+  for (const player of ["youtube", "tidal", "spotify", "soundcloud"]) {
     assert.equal((await call("song.player.preferences.v1", "select", { player })).ok, true);
     await page.goto(base + "/features-ui/song-request/player");
     const frame = page.locator("#surface").contentFrame();
@@ -97,8 +97,8 @@ test("shared chat response controls stay visible for all players and preserve ed
     await frame.getByRole("heading", { name: "Twitch chat responses" }).waitFor();
     const toggle = frame.locator("[data-response=queued]");
     assert.equal(await toggle.isVisible(), true, player + " exposes shared chat settings");
-    assert.equal(await toggle.isChecked(), index > 0, "settings carry across player switches");
-    await toggle.check();
+    assert.equal(await toggle.isChecked(), true, "default and saved settings carry across players");
+    assert.equal(await frame.locator("[data-response=now_playing]").isChecked(), false);
     await toggle.uncheck();
     await frame
       .locator("body")

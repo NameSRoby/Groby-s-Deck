@@ -187,9 +187,15 @@ module.exports = function createNativeFacade(platform, options = {}) {
         value = null;
       }
       const item = value?.item || {},
-        metadata = item.metadata || current?.metadata || {};
-      const uri = trackUri(current?.uri || item.uri),
-        uid = current?.uid || item.uid || value?.playbackId || "";
+        itemUri = trackUri(item.uri),
+        queueUri = trackUri(current?.uri),
+        uri = itemUri || queueUri,
+        metadata = item.metadata || (uri === queueUri ? current?.metadata : null) || {};
+      const uid =
+        (uri === queueUri ? current?.uid || snapshot.track?.uid : "") ||
+        item.uid ||
+        value?.playbackId ||
+        "";
       let deviceId = "";
       try {
         const device = service("ConnectDevicesAPI")?.getActiveDevice?.();
@@ -211,6 +217,7 @@ module.exports = function createNativeFacade(platform, options = {}) {
         ok: true,
         complete: manual.length === entries.length && (!uri || Boolean(uid)),
         localDevice: facade.localDevice(),
+        volumeAvailable: Boolean(value && typeof player().setVolume === "function"),
         ...(deviceId ? { deviceId } : {}),
         queue: entries,
         current: uri

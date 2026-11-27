@@ -125,6 +125,7 @@ function playbackProvider(options) {
       useNative &&
       matching &&
       current &&
+      !current.entryId &&
       official.current?.uri === current.uri &&
       official.current.requesterKey
     )
@@ -158,7 +159,10 @@ function playbackProvider(options) {
       selectedDevice: settings.deviceId,
       sameDevice: matching,
       queueRemoval: useNative,
-      volumeAvailable: Boolean(official.volumeAvailable && (selected === official || matching)),
+      volumeAvailable: Boolean(
+        (useNative && native.volumeAvailable) ||
+        (official.volumeAvailable && (selected === official || matching)),
+      ),
       handoffs: all.filter(
         (row, index) => index >= all.length - 50 || !["finished", "removed"].includes(row.phase),
       ),
@@ -239,7 +243,13 @@ function playbackProvider(options) {
     const state = await status();
     if (payload.action === "skip" && payload.currentUid !== state.current?.uid)
       return { ok: false, error: "spotify_current_changed" };
-    if (state.officialControls) {
+    if (payload.action === "skip" && state.mode !== "official" && state.current?.entryId) {
+      if (routeFor(state.current.entryId) === "desktop") return desktop.handle("control", payload);
+    }
+    if (
+      state.officialControls &&
+      (payload.action !== "volume" || premium.status().volumeAvailable)
+    ) {
       const current = premium.status().current;
       if (payload.action === "skip" && current?.uri !== state.current?.uri)
         return { ok: false, error: "spotify_current_changed" };

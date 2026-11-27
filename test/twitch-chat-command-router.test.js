@@ -246,7 +246,9 @@ for (const provider of ["youtube", "soundcloud", "tidal", "spotify"]) {
         counts: { queued: native ? 0 : rows.length },
         volume,
       }),
-      playbackStatus: () => ({ managed: { entryId: "current" } }),
+      playbackStatus: () => ({
+        managed: { ...rows[0], status: "playing", started: true },
+      }),
       moderate: (p) => {
         calls.push(["queue", p]);
         if (p.action === "volume") volume = { ...volume, control: p.value };
@@ -259,7 +261,14 @@ for (const provider of ["youtube", "soundcloud", "tidal", "spotify"]) {
     };
     const player = async (method, payload) => {
       if (method === "status")
-        return { ok: true, current: { entryId: "current", uid: "current-uid" }, handoffs: rows };
+        return {
+          ok: true,
+          ready: true,
+          connected: true,
+          current: { entryId: "current", uid: "current-uid" },
+          handoffs: [...rows].reverse(),
+          queueOrder: rows.slice(1).map((row) => row.entryId),
+        };
       calls.push([method, payload]);
       return { ok: true, code: payload.action || method };
     };
@@ -294,12 +303,26 @@ for (const provider of ["youtube", "soundcloud", "tidal", "spotify"]) {
     assert.equal(calls.at(-1)[1].entryId, "own");
     assert.equal((await request("remove", { query: "Someone Else" })).value.ok, true);
     assert.equal(calls.at(-1)[1].entryId, "other");
+    assert.equal((await request("remove", { position: 1 })).value.ok, true);
+    assert.equal(calls.at(-1)[1].entryId, "own");
+    if (native) {
+      rows[3].phase = "unknown";
+      const count = calls.length;
+      assert.equal(
+        (await request("remove", { position: 1 })).value.reason,
+        "queue_position_unconfirmed",
+      );
+      assert.equal(calls.length, count);
+      rows[3].phase = "appended";
+    }
     assert.equal(
       (await request("skip", { requesterId: "bob" }, true)).value.reason,
       "not_current_requester",
     );
     assert.equal((await request("skip", {}, true)).value.ok, true);
-    assert.equal(calls.at(-1)[1].entryId, "current");
+    if (provider === "spotify")
+      assert.deepEqual(calls.at(-1), ["control", { action: "skip", currentUid: "current-uid" }]);
+    else assert.equal(calls.at(-1)[1].entryId, "current");
     await request("volume", { value: 100 });
     if (native)
       assert.ok(
@@ -444,7 +467,18 @@ test("moderator and broadcaster skips pass the real broker without a cooldown be
       true,
       "a distinct broadcaster skip needs no clock advance",
     );
-    assert.ok((await pull()).value.action);
+    const third = (await pull()).value.action;
+    assert.ok(third);
+    assert.equal(
+      (await router.handle(chat("!skip", "alice"))).accepted,
+      false,
+      "requesters can remove a loading song, but skip requires confirmed playback",
+    );
+    await request("song.playback.driver.v1", "acknowledge", {
+      driverId: "fixture",
+      leaseId: third.leaseId,
+      state: "started",
+    });
     assert.equal(
       (await router.handle(chat("!skip", "alice"))).accepted,
       true,
